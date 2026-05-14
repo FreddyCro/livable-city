@@ -60,3 +60,20 @@ for (const file of xlsxFiles) {
   writeFileSync(outPath, JSON.stringify(result));
   console.log(`${prefix}.json — ${Object.keys(result).length} entries, ${missing} unmatched → ${outPath}`);
 }
+
+const index = xlsxFiles
+  .map(file => {
+    const match = /^(\d+(?:-\d+)*)\./.exec(file);
+    if (!match) return null;
+    const id = match[1];
+    const name = file
+      .replace(/^\d+(?:-\d+)*\.\s*/, '')
+      .replace(/\s*的副本\.xlsx$/, '')
+      .replace(/\.xlsx$/, '');
+    return { id, name };
+  })
+  .filter(Boolean);
+
+const indexPath = resolve(outDir, 'index.json');
+writeFileSync(indexPath, JSON.stringify(index));
+console.log(`index.json — ${index.length} entries → ${indexPath}`);
