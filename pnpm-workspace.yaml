@@ -1,3 +1,4 @@
 allowBuilds:
   '@parcel/watcher': false
+  '@vaadin/vaadin-usage-statistics': false
   esbuild: false
