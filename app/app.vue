@@ -22,10 +22,13 @@ onMounted(async () => {
     import('topojson-client'),
   ]);
 
-  const res = await fetch('/tw-towns-simplified.json');
-  const topo = await res.json();
+  const [topoRes, metaRes] = await Promise.all([
+    fetch('/tw-towns-optimized.json'),
+    fetch('/tw-towns-meta.json'),
+  ]);
+  const [topo, meta] = await Promise.all([topoRes.json(), metaRes.json()]);
 
-  const districts = (feature as any)(topo, topo.objects.towns);
+  const towns = (feature as any)(topo, topo.objects.towns);
   const counties = (feature as any)(topo, topo.objects.counties);
 
   deckInstance.value = new Deck({
@@ -41,8 +44,8 @@ onMounted(async () => {
     controller: true,
     layers: [
       new GeoJsonLayer({
-        id: 'districts',
-        data: districts,
+        id: 'towns',
+        data: towns,
         filled: true,
         stroked: true,
         getFillColor: [245, 245, 240],
@@ -53,10 +56,13 @@ onMounted(async () => {
         highlightColor: [255, 200, 100, 180],
         onHover: ({ object, x, y }: any) => {
           if (object) {
+            const townCode = object.properties?.TOWNCODE;
+            const townInfo = meta.towns[townCode];
+            const countyInfo = meta.counties[townInfo?.COUNTYCODE];
             hovered.value = {
               x, y,
-              county: object.properties?.COUNTYNAME ?? '',
-              district: object.properties?.TOWNNAME ?? '',
+              county: countyInfo?.COUNTYNAME ?? '',
+              district: townInfo?.TOWNNAME ?? '',
             };
           } else {
             hovered.value = null;
