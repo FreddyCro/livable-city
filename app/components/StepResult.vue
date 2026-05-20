@@ -1,14 +1,28 @@
 <template>
   <div class="step-result">
     <div class="result-sidebar">
-      <!-- Selected indicator tags -->
+      <!-- Back button -->
+      <div class="back-section">
+        <button class="back-btn" @click="$emit('back')">◀ 返回</button>
+      </div>
+
+      <!-- All filter toggles -->
       <div class="filter-section">
         <p class="section-label">條件</p>
         <div class="filter-tags">
-          <span v-for="fid in selectedFilters" :key="fid" class="filter-tag">
-            {{ filterNameMap[fid] ?? fid }}
-            <button class="filter-tag-remove" @click="removeFilter(fid)" aria-label="移除條件">×</button>
-          </span>
+          <label
+            v-for="f in filterIndex"
+            :key="f.id"
+            class="filter-tag"
+            :class="{ selected: selectedFilters.includes(f.id) }"
+          >
+            <input
+              type="checkbox"
+              :checked="selectedFilters.includes(f.id)"
+              @change="toggleFilter(f.id)"
+            />
+            {{ f.name }}
+          </label>
         </div>
       </div>
 
@@ -64,10 +78,15 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:selectedResultCode': [value: string | null]
   'update:selectedFilters': [value: string[]]
+  'back': []
 }>()
 
-function removeFilter(id: string) {
-  emit('update:selectedFilters', props.selectedFilters.filter(f => f !== id))
+function toggleFilter(id: string) {
+  const filters = [...props.selectedFilters]
+  const idx = filters.indexOf(id)
+  if (idx >= 0) filters.splice(idx, 1)
+  else filters.push(id)
+  emit('update:selectedFilters', filters)
 }
 
 const filterNameMap = computed(() =>
@@ -140,33 +159,54 @@ function formatVal(val: number | null | undefined): string {
 .filter-tag {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background: #f1f5f9;
+  gap: 5px;
+  background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 99px;
-  padding: 2px 4px 2px 10px;
+  padding: 3px 10px;
   font-size: 12px;
-  color: #374151;
+  color: #9ca3af;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
-.filter-tag-remove {
+.filter-tag:hover {
+  border-color: #cbd5e1;
+}
+
+.filter-tag.selected {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #111;
+  font-weight: 500;
+}
+
+.filter-tag input[type="checkbox"] {
+  margin: 0;
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+}
+
+.back-section {
+  padding: 10px 14px;
+  border-bottom: 1px solid #eee;
+}
+
+.back-btn {
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: #9ca3af;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
+  gap: 4px;
 }
 
-.filter-tag-remove:hover {
-  background: #cbd5e1;
+.back-btn:hover {
   color: #111;
 }
 

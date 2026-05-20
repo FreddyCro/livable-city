@@ -16,6 +16,7 @@
 
     <!-- Right: indicator cards -->
     <div class="criteria-panel">
+      <button class="back-btn" @click="$emit('back')">◀ 返回</button>
       <p class="criteria-title">與現在居住的地區相比，你希望搬到......的地區</p>
       <p class="criteria-hint">請選擇你最重視（或想改善）的居住條件</p>
       <div class="card-grid">
@@ -51,6 +52,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:selectedFilters': [value: string[]]
   'next': []
+  'back': []
 }>()
 
 const countyName = computed(() => {
@@ -160,6 +162,23 @@ function formatVal(val: number | null | undefined): string {
   gap: 14px;
   overflow-y: auto;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+}
+
+.back-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.back-btn:hover {
+  color: #111;
 }
 
 .criteria-title {

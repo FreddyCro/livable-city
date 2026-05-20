@@ -34,6 +34,7 @@
         :selected-filters="selectedFilters"
         @update:selected-filters="selectedFilters = $event"
         @next="goToStep(3)"
+        @back="goToStep(1)"
       />
       <StepResult
         v-else-if="currentStep === 3"
@@ -46,6 +47,7 @@
         :selected-result-code="selectedResultCode"
         @update:selected-result-code="selectedResultCode = $event"
         @update:selected-filters="selectedFilters = $event"
+        @back="goToStep(2)"
       />
     </Transition>
   </div>
@@ -77,9 +79,11 @@ const selectedFilters = ref<string[]>([])
 const selectedResultCode = ref<string | null>(null)
 
 let GeoJsonLayerCtor: any = null
+let ScatterplotLayerCtor: any = null
 let FlyToInterpolatorCtor: any = null
 let geoTowns: any = null
 let geoCounties: any = null
+let townCentroids: Map<string, [number, number]> = new Map()
 let deckViewState: any = { longitude: 120.9, latitude: 23.6, zoom: 7, minZoom: 5, maxZoom: 14 }
 const loadingSet = new Set<string>()
 
@@ -169,7 +173,7 @@ function flyToTaiwan() {
 
 function buildLayers() {
   if (!GeoJsonLayerCtor || !geoTowns || !geoCounties) return []
-  return [
+  const layers: any[] = [
     new GeoJsonLayerCtor({
       id: 'towns',
       data: geoTowns,
@@ -208,6 +212,52 @@ function buildLayers() {
       pickable: false,
     }),
   ]
+
+  // Result + selected markers (step 3 only)
+  if (currentStep.value === 3 && ScatterplotLayerCtor) {
+    const resultPoints = resultTowns.value
+      .map(t => ({ code: t.code, position: townCentroids.get(t.code) }))
+      .filter(d => d.position) as Array<{ code: string; position: [number, number] }>
+
+    layers.push(
+      new ScatterplotLayerCtor({
+        id: 'result-markers',
+        data: resultPoints,
+        getPosition: (d: any) => d.position,
+        getRadius: 5,
+        radiusUnits: 'pixels',
+        getFillColor: [217, 217, 217, 255],
+        getLineColor: [0, 0, 0, 255],
+        lineWidthUnits: 'pixels',
+        getLineWidth: 2,
+        stroked: true,
+        filled: true,
+        pickable: false,
+      }),
+    )
+
+    const selectedPosition = townCentroids.get(selectedTownCode.value)
+    if (selectedPosition) {
+      layers.push(
+        new ScatterplotLayerCtor({
+          id: 'selected-pin',
+          data: [{ position: selectedPosition }],
+          getPosition: (d: any) => d.position,
+          getRadius: 9,
+          radiusUnits: 'pixels',
+          getFillColor: [217, 217, 217, 255],
+          getLineColor: [0, 0, 0, 255],
+          lineWidthUnits: 'pixels',
+          getLineWidth: 3,
+          stroked: true,
+          filled: true,
+          pickable: false,
+        }),
+      )
+    }
+  }
+
+  return layers
 }
 
 // Watches
@@ -238,11 +288,18 @@ watch(selectedTownCode, () => {
 })
 
 watch(currentStep, async (step) => {
+  deckInstance.value?.setProps({ layers: buildLayers() })
   if (step === 2) {
     await preloadAllFilters()
     if (selectedCountyCode.value) flyToCounty(selectedCountyCode.value)
   } else if (step === 3) {
     flyToTaiwan()
+  }
+})
+
+watch(resultTowns, () => {
+  if (currentStep.value === 3) {
+    deckInstance.value?.setProps({ layers: buildLayers() })
   }
 })
 
@@ -279,12 +336,13 @@ watchEffect(async () => {
 })
 
 onMounted(async () => {
-  const [{ Deck, MapView, FlyToInterpolator }, { GeoJsonLayer }, { feature }] = await Promise.all([
+  const [{ Deck, MapView, FlyToInterpolator }, { GeoJsonLayer, ScatterplotLayer }, { feature }] = await Promise.all([
     import('@deck.gl/core'),
     import('@deck.gl/layers'),
     import('topojson-client'),
   ])
   GeoJsonLayerCtor = GeoJsonLayer
+  ScatterplotLayerCtor = ScatterplotLayer
   FlyToInterpolatorCtor = FlyToInterpolator
 
   const [topoRes, metaRes, indexRes] = await Promise.all([
@@ -300,6 +358,14 @@ onMounted(async () => {
   filterIndex.value = indexData
   geoTowns = (feature as any)(topo, topo.objects.towns)
   geoCounties = (feature as any)(topo, topo.objects.counties)
+
+  // Precompute town centroids (bbox center)
+  for (const f of geoTowns.features) {
+    const code = f.properties?.TOWNCODE
+    if (!code) continue
+    const [minLng, minLat, maxLng, maxLat] = getFeatureBbox(f)
+    townCentroids.set(code, [(minLng + maxLng) / 2, (minLat + maxLat) / 2])
+  }
 
   deckInstance.value = new Deck({
     canvas: canvasRef.value!,
