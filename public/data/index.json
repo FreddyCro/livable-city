@@ -1,1 +1,13 @@
-[{"id":"1-2","name":"租金中位數"},{"id":"2-1","name":"醫療院所平均每家服務人數"},{"id":"2-2","name":"癌症發生率"},{"id":"3-1","name":"犯罪案件發生率"},{"id":"3-2","name":"每千人交通事故死傷數"},{"id":"4-2","name":"超商密度"},{"id":"5-3","name":"圖書館人口比"},{"id":"6-1","name":"人口密度"},{"id":"6-2","name":"青壯年人口比率"},{"id":"7-1","name":"每萬人享有公園、綠地及廣場面積"},{"id":"7-2","name":"大規模崩塌潛勢區數"}]
+[
+  { "id": "1-2", "name": "租金中位數", "lowerIsBetter": true },
+  { "id": "2-1", "name": "醫療院所平均每家服務人數", "lowerIsBetter": true },
+  { "id": "2-2", "name": "癌症發生率", "lowerIsBetter": true },
+  { "id": "3-1", "name": "犯罪案件發生率", "lowerIsBetter": true },
+  { "id": "3-2", "name": "每千人交通事故死傷數", "lowerIsBetter": true },
+  { "id": "4-2", "name": "超商密度", "lowerIsBetter": false },
+  { "id": "5-3", "name": "圖書館人口比", "lowerIsBetter": false },
+  { "id": "6-1", "name": "人口密度", "lowerIsBetter": true },
+  { "id": "6-2", "name": "青壯年人口比率", "lowerIsBetter": false },
+  { "id": "7-1", "name": "每萬人享有公園、綠地及廣場面積", "lowerIsBetter": false },
+  { "id": "7-2", "name": "大規模崩塌潛勢區數", "lowerIsBetter": true }
+]

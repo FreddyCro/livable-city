@@ -69,7 +69,7 @@ const deckInstance = shallowRef<any>(null)
 const meta = shallowRef<any>(null)
 
 // Data state
-const filterIndex = ref<Array<{ id: string; name: string }>>([])
+const filterIndex = ref<Array<{ id: string; name: string; lowerIsBetter: boolean }>>([])
 const filterDataCache = shallowRef<Record<string, Record<string, number | null>>>({})
 
 // Selection state
@@ -92,6 +92,7 @@ const loadingSet = new Set<string>()
 const resultTowns = computed(() => {
   if (!selectedTownCode.value || !selectedFilters.value.length || !meta.value) return []
   if (!selectedFilters.value.every(id => id in filterDataCache.value)) return []
+  const filterMeta = Object.fromEntries(filterIndex.value.map(f => [f.id, f]))
   return Object.keys(meta.value.towns)
     .filter(code => {
       if (code === selectedTownCode.value) return false
@@ -100,7 +101,8 @@ const resultTowns = computed(() => {
         if (!data) return false
         const refVal = data[selectedTownCode.value]
         const val = data[code]
-        return refVal != null && val != null && val > refVal
+        if (refVal == null || val == null) return false
+        return filterMeta[fid]?.lowerIsBetter ? val < refVal : val > refVal
       })
     })
     .map(code => {
