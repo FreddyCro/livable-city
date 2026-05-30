@@ -33,6 +33,7 @@
         :selected-town-code="selectedTownCode"
         :filter-data-cache="filterDataCache"
         :selected-filters="selectedFilters"
+        :selected-town-thumb="selectedTownThumb"
         @update:selected-filters="selectedFilters = $event"
         @next="goToStep(3)"
         @back="goToStep(1)"
@@ -99,6 +100,9 @@ const selectedTownCode = ref('')
 const selectedFilters = ref<string[]>([])
 const selectedResultCode = ref<string | null>(null)
 
+// Step-2 small-map thumbnail: normalized SVG path of the selected town only
+const selectedTownThumb = ref<{ path: string; width: number; height: number } | null>(null)
+
 let GeoJsonLayerCtor: any = null
 let ScatterplotLayerCtor: any = null
 let FlyToInterpolatorCtor: any = null
@@ -155,6 +159,43 @@ function getFeatureBbox(feature: any): [number, number, number, number] {
   if (type === 'Polygon') coordinates.forEach(visit)
   else if (type === 'MultiPolygon') coordinates.forEach((poly: number[][][]) => poly.forEach(visit))
   return [minLng, minLat, maxLng, maxLat]
+}
+
+// Build a normalized SVG path for a single town, used as the step-2 thumbnail.
+// Coordinates are projected (lng scaled by cos(lat) to avoid horizontal squish)
+// and emitted in a local viewBox so the SVG can stretch-fit the small-map block.
+function buildTownThumb(code: string) {
+  if (!geoTowns || !code) return null
+  const f = geoTowns.features.find((ft: any) => ft.properties?.TOWNCODE === code)
+  if (!f) return null
+  const rings: number[][][] = []
+  const { type, coordinates } = f.geometry
+  if (type === 'Polygon') rings.push(...coordinates)
+  else if (type === 'MultiPolygon') coordinates.forEach((poly: number[][][]) => rings.push(...poly))
+
+  let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity
+  for (const ring of rings) {
+    for (const [lng, lat] of ring) {
+      if (lng < minLng) minLng = lng
+      if (lat < minLat) minLat = lat
+      if (lng > maxLng) maxLng = lng
+      if (lat > maxLat) maxLat = lat
+    }
+  }
+  if (!isFinite(minLng)) return null
+
+  const midLat = (minLat + maxLat) / 2
+  const kx = Math.cos((midLat * Math.PI) / 180) // lng compression at this latitude
+  const width = (maxLng - minLng) * kx
+  const height = maxLat - minLat
+  const toX = (lng: number) => ((lng - minLng) * kx).toFixed(5)
+  const toY = (lat: number) => (maxLat - lat).toFixed(5) // flip Y for SVG
+
+  const path = rings
+    .map(ring => ring.map(([lng, lat], i) => `${i === 0 ? 'M' : 'L'}${toX(lng)} ${toY(lat)}`).join(' ') + ' Z')
+    .join(' ')
+
+  return { path, width, height }
 }
 
 function flyToCounty(countyCode: string) {
@@ -308,6 +349,7 @@ watch(selectedResultCode, (code) => {
 
 watch(selectedTownCode, () => {
   deckInstance.value?.setProps({ layers: buildLayers() })
+  selectedTownThumb.value = buildTownThumb(selectedTownCode.value)
 })
 
 watch(currentStep, async (step) => {
@@ -390,13 +432,23 @@ onMounted(async () => {
     townCentroids.set(code, [(minLng + maxLng) / 2, (minLat + maxLat) / 2])
   }
 
+  // Init step-2 thumbnail in case a town was already chosen before geo loaded
+  selectedTownThumb.value = buildTownThumb(selectedTownCode.value)
+
   deckInstance.value = new Deck({
     canvas: canvasRef.value!,
     views: new MapView({ repeat: false }),
     viewState: deckViewState,
     onViewStateChange: ({ viewState }: any) => {
-      deckViewState = viewState
-      deckInstance.value?.setProps({ viewState })
+      // Strip any lingering flyTo transition props, otherwise each user
+      // pan/zoom step gets re-animated and the map feels stuck / snaps back.
+      const next = { ...viewState }
+      delete next.transitionDuration
+      delete next.transitionInterpolator
+      delete next.transitionEasing
+      delete next.transitionInterruption
+      deckViewState = next
+      deckInstance.value?.setProps({ viewState: next })
     },
     controller: true,
     layers: buildLayers(),
@@ -461,5 +513,21 @@ onBeforeUnmount(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+</style>
+
+<!-- Global (non-scoped): deck.gl v9 inserts a `.deck-widget-container` overlay
+     above the canvas. Without the widget stylesheet it defaults to
+     pointer-events: auto and swallows drag/zoom before they reach the canvas.
+     Make it pass-through; real widgets re-enable their own events.
+     Per-step touchability is still governed by the canvas `.map-hidden` toggle
+     (pointer-events: none on step 1/2, auto on step 3), so this stays global. -->
+<style>
+.deck-widget-container {
+  pointer-events: none;
+}
+
+.deck-widget-container > * {
+  pointer-events: auto;
 }
 </style>

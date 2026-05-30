@@ -2,9 +2,18 @@
   <div class="lc-sc">
     <!-- Left: current-area info panel -->
     <aside class="lc-sc__info">
-      <!-- Reserved block for the small map (the hidden deck.gl canvas will be
-           moved here in a later step). Empty placeholder for now. -->
-      <div class="lc-sc__map" aria-hidden="true"></div>
+      <!-- Small map: renders ONLY the selected town's shape, stretch-fit to the
+           block. Geometry comes from app.vue as a normalized SVG path. -->
+      <div class="lc-sc__map" aria-hidden="true">
+        <svg
+          v-if="selectedTownThumb"
+          class="lc-sc__map-svg"
+          :viewBox="`0 0 ${selectedTownThumb.width} ${selectedTownThumb.height}`"
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <path :d="selectedTownThumb.path" class="lc-sc__map-shape" />
+        </svg>
+      </div>
 
       <div class="lc-sc__location">
         <span class="lc-sc__location-pin">📍</span>
@@ -67,6 +76,7 @@ const props = defineProps<{
   selectedTownCode: string
   filterDataCache: Record<string, Record<string, number | null>>
   selectedFilters: string[]
+  selectedTownThumb: { path: string; width: number; height: number } | null
 }>()
 
 const emit = defineEmits<{
@@ -136,12 +146,30 @@ function formatVal(val: number | null | undefined): string {
     gap: 14px;
   }
 
-  // step-criteria__map（小地圖區塊，預留給之後嵌入的地圖）
+  // step-criteria__map（小地圖區塊：只顯示被選取的鄉鎮市區，stretch-fit）
   &__map {
     width: 100%;
     aspect-ratio: 4 / 3;
     border-radius: 8px;
     background: #eef1f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  // step-criteria__map-svg
+  &__map-svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  // step-criteria__map-shape（被選取鄉鎮的色塊）
+  &__map-shape {
+    fill: #2f7f8d;
+    stroke: #20606b;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
   }
 
   // step-criteria__location
