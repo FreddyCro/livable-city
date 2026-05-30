@@ -25,3 +25,4 @@ logs
 
 # Scratch / task output (see CLAUDE.md)
 temp/
+architecture/tmp/

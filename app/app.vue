@@ -50,6 +50,9 @@
         @update:selected-result-code="selectedResultCode = $event"
         @update:selected-filters="selectedFilters = $event"
         @back="goToStep(2)"
+        @reselect="goToStep(1)"
+        @zoom-in="zoomBy(1)"
+        @zoom-out="zoomBy(-1)"
       />
     </Transition>
   </div>
@@ -111,6 +114,9 @@ let geoCounties: any = null
 let townCentroids: Map<string, [number, number]> = new Map()
 let deckViewState: any = { longitude: 120.9, latitude: 23.6, zoom: 7, minZoom: 5, maxZoom: 14 }
 const loadingSet = new Set<string>()
+// When true, the next selectedResultCode change is an auto-default (step 3
+// entry) and must NOT trigger a map fly-in — keep the full Taiwan overview.
+let suppressResultFly = false
 
 // Computed
 
@@ -141,6 +147,29 @@ const resultTowns = computed(() => {
 
 function goToStep(step: 1 | 2 | 3) {
   currentStep.value = step
+}
+
+// Step-3 zoom buttons (explore-zoom 3.5) → adjust deck zoom within bounds
+function zoomBy(delta: number) {
+  if (!deckInstance.value) return
+  const z = Math.min(14, Math.max(5, (deckViewState.zoom ?? 7) + delta))
+  deckViewState = { ...deckViewState, zoom: z }
+  deckInstance.value.setProps({ viewState: deckViewState })
+}
+
+// Step 3: default the compare card (explore-compare 3.4) to the first result.
+// Sets selection without flying in, so the Taiwan overview stays put.
+function ensureDefaultResult() {
+  if (currentStep.value !== 3) return
+  const towns = resultTowns.value
+  if (!towns.length) {
+    selectedResultCode.value = null
+    return
+  }
+  if (!selectedResultCode.value || !towns.some(t => t.code === selectedResultCode.value)) {
+    suppressResultFly = true
+    selectedResultCode.value = towns[0].code
+  }
 }
 
 // Map helpers
@@ -332,6 +361,10 @@ watch([selectedTownCode, selectedFilters], () => {
 
 watch(selectedResultCode, (code) => {
   deckInstance.value?.setProps({ layers: buildLayers() })
+  if (suppressResultFly) {
+    suppressResultFly = false
+    return
+  }
   if (!code || !geoTowns || !deckInstance.value || !FlyToInterpolatorCtor) return
   const feature = geoTowns.features.find((f: any) => f.properties?.TOWNCODE === code)
   if (!feature) return
@@ -359,11 +392,13 @@ watch(currentStep, async (step) => {
     if (selectedCountyCode.value) flyToCounty(selectedCountyCode.value)
   } else if (step === 3) {
     flyToTaiwan()
+    ensureDefaultResult()
   }
 })
 
 watch(resultTowns, () => {
   if (currentStep.value === 3) {
+    ensureDefaultResult()
     deckInstance.value?.setProps({ layers: buildLayers() })
   }
 })

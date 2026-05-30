@@ -35,3 +35,11 @@
   `transitionInterruption`）清掉再存回。程式主動呼叫的 `flyTo*()` 不受影響
   （它們是另外主動加 transition）。
 - **位置**：`app/app.vue` 的 `new Deck({ onViewStateChange })`。
+
+### 疊在地圖上的 overlay panel 必須「根層 `pointer-events:none`、panel 設回 `auto`」
+
+- **症狀**：新增一個浮在地圖上的 step overlay（如 StepResult / StepCriteria 的浮動 panel）後，地圖空白處又不能拖曳了。
+- **原因**：step overlay（`.lc-sr` / `.lc-sc`）是 `position:fixed; inset:0` 蓋滿全螢幕、`z-index` 高於 deck canvas。若根層沒設 `pointer-events:none`，整片透明區都會吃掉地圖事件。
+- **修法**：overlay 根層 `pointer-events:none`，只有實際 panel（sidebar / 浮卡 / 清單 / 縮放鈕）各自設 `pointer-events:auto`。如此 panel 之間的空白讓事件穿透到底下 canvas。
+- **位置**：`app/components/StepResult.vue`（`.lc-sr`）、`app/components/StepCriteria.vue`（step 2 為不透明全屏面板，刻意覆蓋＝不可碰地圖）。
+- **延伸**：與上面兩條 deck.gl 陷阱搭配，才完整決定「哪一步能不能碰地圖」。
