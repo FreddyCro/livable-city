@@ -3,12 +3,12 @@
     <div class="result-sidebar">
       <!-- Back button -->
       <div class="back-section">
-        <button class="back-btn" @click="$emit('back')">◀ 返回</button>
+        <button class="back-btn" @click="$emit('back')">◀ {{ common.back }}</button>
       </div>
 
       <!-- All filter toggles -->
       <div class="filter-section">
-        <p class="section-label">條件</p>
+        <p class="section-label">{{ str.conditions }}</p>
         <div class="filter-tags">
           <label
             v-for="f in filterIndex"
@@ -28,8 +28,8 @@
 
       <!-- Result count + list -->
       <div class="result-section">
-        <p class="section-label">共 {{ resultTowns.length }} 項結果</p>
-        <div v-if="!resultTowns.length" class="hint">無符合條件的地區</div>
+        <p class="section-label">{{ str.resultCountPrefix }} {{ resultTowns.length }} {{ str.resultCountSuffix }}</p>
+        <div v-if="!resultTowns.length" class="hint">{{ str.noResult }}</div>
         <div v-else class="result-list">
           <div
             v-for="t in resultTowns"
@@ -64,6 +64,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import str from '../locales/explore.json'
+import common from '../locales/common.json'
 
 const props = defineProps<{
   meta: any

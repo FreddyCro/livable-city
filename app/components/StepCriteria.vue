@@ -1,45 +1,65 @@
 <template>
-  <div class="step-criteria">
-    <!-- Left: town stats (overlays map) -->
-    <div class="town-panel">
-      <div class="town-location">
-        你現在居住的地區
-        <strong>{{ countyName }}{{ townName }}</strong>
+  <div class="lc-sc">
+    <!-- Left: current-area info panel -->
+    <aside class="lc-sc__info">
+      <!-- Reserved block for the small map (the hidden deck.gl canvas will be
+           moved here in a later step). Empty placeholder for now. -->
+      <div class="lc-sc__map" aria-hidden="true"></div>
+
+      <div class="lc-sc__location">
+        <span class="lc-sc__location-pin">📍</span>
+        <span class="lc-sc__location-label">{{ str.currentArea }}</span>
+        <strong class="lc-sc__location-area">{{ countyName }}{{ townName }}</strong>
       </div>
-      <div class="town-stats">
-        <div v-for="f in filterIndex" :key="f.id" class="stat-row">
-          <span class="stat-label">{{ f.name }}</span>
-          <span class="stat-val">{{ formatVal(filterDataCache[f.id]?.[selectedTownCode]) }}</span>
+
+      <div class="lc-sc__stats">
+        <div v-for="f in filterIndex" :key="f.id" class="lc-sc__stat">
+          <span class="lc-sc__stat-label">{{ f.name }}</span>
+          <span class="lc-sc__stat-val">{{ formatVal(filterDataCache[f.id]?.[selectedTownCode]) }}</span>
         </div>
       </div>
-    </div>
+    </aside>
 
-    <!-- Right: indicator cards -->
-    <div class="criteria-panel">
-      <button class="back-btn" @click="$emit('back')">◀ 返回</button>
-      <p class="criteria-title">與現在居住的地區相比，你希望搬到......的地區</p>
-      <p class="criteria-hint">請選擇你最重視（或想改善）的居住條件</p>
-      <div class="card-grid">
-        <div
+    <!-- Right: criteria selection -->
+    <section class="lc-sc__criteria">
+      <button class="lc-sc__back" @click="$emit('back')">◀ {{ common.back }}</button>
+
+      <h2 class="lc-sc__title">{{ str.title }}</h2>
+      <p class="lc-sc__hint">{{ hintText }}</p>
+
+      <div class="lc-sc__cards">
+        <button
           v-for="f in filterIndex"
           :key="f.id"
-          class="criteria-card"
-          :class="{ selected: selectedFilters.includes(f.id) }"
+          class="lc-sc__card"
+          :class="{
+            'lc-sc__card--selected': selectedFilters.includes(f.id),
+            'lc-sc__card--disabled': !selectedFilters.includes(f.id) && atMax,
+          }"
           @click="toggleFilter(f.id)"
         >
-          <span class="card-icon">⌂</span>
-          <span class="card-label">{{ f.name }}</span>
-        </div>
+          <span class="lc-sc__card-icon">⌂</span>
+          <span class="lc-sc__card-label">{{ f.name }}</span>
+        </button>
       </div>
-      <button :disabled="!selectedFilters.length" @click="$emit('next')" class="btn-next">
-        查看你的理想居住地區 ▶
+
+      <button
+        class="lc-sc__submit"
+        :disabled="!selectedFilters.length"
+        @click="$emit('next')"
+      >
+        {{ str.viewResults }} ▶
       </button>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import str from '../locales/criteria.json'
+import common from '../locales/common.json'
+
+const MAX_SELECT = 3
 
 const props = defineProps<{
   meta: any
@@ -66,11 +86,21 @@ const townName = computed(() => {
   return props.meta.towns[props.selectedTownCode]?.TOWNNAME ?? ''
 })
 
+const atMax = computed(() => props.selectedFilters.length >= MAX_SELECT)
+
+const hintText = computed(
+  () => `${str.hint}（${str.selectedLabel} ${props.selectedFilters.length}/${MAX_SELECT}）`
+)
+
 function toggleFilter(id: string) {
   const filters = [...props.selectedFilters]
   const idx = filters.indexOf(id)
-  if (idx >= 0) filters.splice(idx, 1)
-  else filters.push(id)
+  if (idx >= 0) {
+    filters.splice(idx, 1)
+  } else {
+    if (filters.length >= MAX_SELECT) return // cap at MAX_SELECT
+    filters.push(id)
+  }
   emit('update:selectedFilters', filters)
 }
 
@@ -80,182 +110,215 @@ function formatVal(val: number | null | undefined): string {
 }
 </script>
 
-<style scoped>
-.step-criteria {
+<style scoped lang="scss">
+// step-criteria
+.lc-sc {
   position: fixed;
   inset: 0;
-  display: flex;
-  pointer-events: none;
   z-index: 10;
-}
-
-.town-panel {
-  width: 220px;
-  margin: 12px;
-  background: rgba(255, 255, 255, 0.97);
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 16px;
-  font-size: 13px;
-  pointer-events: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 88px 40px 40px;
+  background: #fff;
   overflow-y: auto;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
-  align-self: flex-start;
-  max-height: calc(100% - 24px);
-}
 
-.town-location {
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 12px;
-  line-height: 1.6;
-}
+  // step-criteria__info（左側：現居地區資訊）
+  &__info {
+    flex: 0 0 320px;
+    max-width: 320px;
+    border: 1px solid #d9dde3;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
 
-.town-location strong {
-  display: block;
-  font-size: 14px;
-  color: #111;
-  margin-top: 2px;
-}
+  // step-criteria__map（小地圖區塊，預留給之後嵌入的地圖）
+  &__map {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 8px;
+    background: #eef1f4;
+  }
 
-.town-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+  // step-criteria__location
+  &__location {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: #666;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+  }
 
-.stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-  border-bottom: 1px solid #f0f0f0;
-  padding-bottom: 8px;
-  font-size: 12px;
-}
+  // step-criteria__location-pin
+  &__location-pin {
+    color: #e3000f;
+  }
 
-.stat-label {
-  color: #666;
-  flex: 1;
-  line-height: 1.4;
-}
+  // step-criteria__location-area
+  &__location-area {
+    font-size: 14px;
+    color: #111;
+  }
 
-.stat-val {
-  font-weight: 600;
-  white-space: nowrap;
-  color: #111;
-}
+  // step-criteria__stats
+  &__stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    max-height: 420px;
+  }
 
-.criteria-panel {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  bottom: 12px;
-  width: 460px;
-  background: rgba(255, 255, 255, 0.97);
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 20px;
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
-}
+  // step-criteria__stat
+  &__stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+  }
 
-.back-btn {
-  align-self: flex-start;
-  background: transparent;
-  border: none;
-  padding: 4px 0;
-  font-size: 12px;
-  color: #6b7280;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
+  // step-criteria__stat-label
+  &__stat-label {
+    flex: 1;
+    color: #444;
+    font-weight: 600;
+    line-height: 1.4;
+  }
 
-.back-btn:hover {
-  color: #111;
-}
+  // step-criteria__stat-val
+  &__stat-val {
+    white-space: nowrap;
+    color: #111;
+  }
 
-.criteria-title {
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.5;
-  margin: 0;
-  color: #111;
-}
+  // step-criteria__criteria（右側：條件選擇）
+  &__criteria {
+    flex: 1 1 760px;
+    max-width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
 
-.criteria-hint {
-  font-size: 13px;
-  color: #888;
-  margin: 0;
-}
+  // step-criteria__back
+  &__back {
+    align-self: flex-start;
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    color: #6b7280;
+    cursor: pointer;
 
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  flex: 1;
-  align-content: start;
-}
+    &:hover {
+      color: #111;
+    }
+  }
 
-.criteria-card {
-  padding: 14px 10px;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: center;
-  line-height: 1.4;
-  transition: border-color 0.15s, background 0.15s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
+  // step-criteria__title
+  &__title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #111;
+  }
 
-.criteria-card:hover {
-  border-color: #9ca3af;
-  background: #f9fafb;
-}
+  // step-criteria__hint
+  &__hint {
+    margin: 0;
+    font-size: 14px;
+    color: #888;
+  }
 
-.criteria-card.selected {
-  border-color: #111;
-  background: #f1f5f9;
-}
+  // step-criteria__cards
+  &__cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
 
-.card-icon {
-  font-size: 20px;
-  line-height: 1;
-}
+  // step-criteria__card
+  &__card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 16px;
+    border: 1px solid #d9dde3;
+    border-radius: 12px;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
 
-.card-label {
-  font-size: 12px;
-  color: #374151;
-}
+    &:hover {
+      border-color: #9ca3af;
+    }
 
-.criteria-card.selected .card-label {
-  font-weight: 600;
-  color: #111;
-}
+    // step-criteria__card--selected
+    &--selected {
+      border-color: #111;
+      background: #f1f5f9;
+    }
 
-.btn-next {
-  padding: 12px;
-  background: #111;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  flex-shrink: 0;
-}
+    // step-criteria__card--disabled（已達選取上限）
+    &--disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
 
-.btn-next:disabled {
-  opacity: 0.35;
-  cursor: default;
+      &:hover {
+        border-color: #d9dde3;
+      }
+    }
+  }
+
+  // step-criteria__card-icon
+  &__card-icon {
+    font-size: 24px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  // step-criteria__card-label
+  &__card-label {
+    font-size: 15px;
+    line-height: 1.4;
+    color: #374151;
+  }
+
+  &__card--selected &__card-label {
+    font-weight: 600;
+    color: #111;
+  }
+
+  // step-criteria__submit
+  &__submit {
+    align-self: center;
+    margin-top: 8px;
+    padding: 16px 48px;
+    background: #f7d44c;
+    color: #111;
+    border: none;
+    border-radius: 999px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+  }
 }
 </style>

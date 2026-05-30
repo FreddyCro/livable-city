@@ -1,34 +1,36 @@
 <template>
-  <div class="step-location">
-    <div class="location-selects">
-      <div class="select-wrapper">
-        <select :value="countyCode" @change="onCountyChange" class="location-select">
-          <option value="">縣市</option>
-          <option v-for="c in countyList" :key="c.code" :value="c.code">{{ c.name }}</option>
-        </select>
-        <span class="arrow">△</span>
-      </div>
-      <div class="select-wrapper">
-        <select
-          :value="townCode"
-          @change="$emit('update:townCode', ($event.target as HTMLSelectElement).value)"
-          :disabled="!countyCode"
-          class="location-select"
-        >
-          <option value="">鄉鎮市區</option>
-          <option v-for="t in filteredTowns" :key="t.code" :value="t.code">{{ t.name }}</option>
-        </select>
-        <span class="arrow">△</span>
-      </div>
+  <div class="lc-sl">
+    <div class="lc-sl__hero">
+      <p class="lc-sl__kicker">{{ str.kicker }}</p>
+      <h1 class="lc-sl__title">{{ str.title }}</h1>
+      <p class="lc-sl__subtitle">{{ str.subtitle }}</p>
     </div>
-    <button :disabled="!townCode" @click="$emit('next')" class="btn-next">
-      下一步 ▶
+    <p class="lc-sl__intro">{{ str.intro }}</p>
+    <p class="lc-sl__question">{{ str.question }}</p>
+    <div class="lc-sl__selects">
+      <UiSelectDropdown
+        :model-value="countyCode || null"
+        :options="countyOptions"
+        :placeholder="str.countyPlaceholder"
+        @update:model-value="onCountySelect"
+      />
+      <UiSelectDropdown
+        :model-value="townCode || null"
+        :options="townOptions"
+        :placeholder="str.townPlaceholder"
+        :disabled="!countyCode"
+        @update:model-value="$emit('update:townCode', $event)"
+      />
+    </div>
+    <button :disabled="!townCode" @click="$emit('next')" class="lc-sl__next">
+      {{ str.next }} ▶
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import str from '../locales/locate.json'
 
 const props = defineProps<{
   meta: any
@@ -42,28 +44,28 @@ const emit = defineEmits<{
   'next': []
 }>()
 
-const countyList = computed(() => {
+const countyOptions = computed(() => {
   if (!props.meta) return []
   return Object.entries<any>(props.meta.counties)
-    .map(([code, info]) => ({ code, name: info.COUNTYNAME }))
+    .map(([code, info]) => ({ value: code, label: info.COUNTYNAME }))
 })
 
-const filteredTowns = computed(() => {
+const townOptions = computed(() => {
   if (!props.meta || !props.countyCode) return []
   return Object.entries<any>(props.meta.towns)
     .filter(([, info]) => info.COUNTYCODE === props.countyCode)
-    .map(([code, info]) => ({ code, name: info.TOWNNAME }))
+    .map(([code, info]) => ({ value: code, label: info.TOWNNAME }))
 })
 
-function onCountyChange(e: Event) {
-  const val = (e.target as HTMLSelectElement).value
+function onCountySelect(val: string) {
   emit('update:countyCode', val)
   emit('update:townCode', '')
 }
 </script>
 
-<style scoped>
-.step-location {
+<style scoped lang="scss">
+// step-location
+.lc-sl {
   position: fixed;
   inset: 0;
   background: #fff;
@@ -73,56 +75,84 @@ function onCountyChange(e: Event) {
   justify-content: center;
   gap: 24px;
   z-index: 10;
-}
+  padding: 24px;
+  text-align: center;
 
-.location-selects {
-  display: flex;
-  gap: 12px;
-}
+  // step-location__hero
+  &__hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
 
-.select-wrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
+  // step-location__kicker
+  &__kicker {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #111;
+  }
 
-.location-select {
-  appearance: none;
-  padding: 10px 36px 10px 14px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
-  background: #fff;
-  min-width: 140px;
-  cursor: pointer;
-}
+  // step-location__title
+  &__title {
+    margin: 0;
+    font-size: 48px;
+    font-weight: 800;
+    line-height: 1.1;
+    color: #111;
+  }
 
-.location-select:disabled {
-  color: #aaa;
-  cursor: default;
-}
+  // step-location__subtitle
+  &__subtitle {
+    margin: 0;
+    padding: 2px 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111;
+    background: #f7d44c;
+  }
 
-.arrow {
-  position: absolute;
-  right: 12px;
-  font-size: 10px;
-  color: #888;
-  pointer-events: none;
-}
+  // step-location__intro
+  &__intro {
+    max-width: 720px;
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.9;
+    text-align: left;
+    color: #333;
+  }
 
-.btn-next {
-  padding: 12px 32px;
-  background: #111;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 15px;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
+  // step-location__question
+  &__question {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #111;
+  }
 
-.btn-next:disabled {
-  opacity: 0.35;
-  cursor: default;
+  // step-location__selects
+  &__selects {
+    display: flex;
+    gap: 12px;
+  }
+
+  // step-location__next
+  &__next {
+    padding: 12px 32px;
+    background: #111;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+  }
 }
 </style>

@@ -1,10 +1,11 @@
 <template>
   <div class="map-wrapper">
-    <!-- Map canvas: always in background, hidden only on step 1 -->
+    <!-- Map canvas: background layer, only shown on step 3 (result).
+         Step 1/2 hide it; step 2's small-map block will later host it. -->
     <canvas
       ref="canvasRef"
       class="map-canvas"
-      :class="{ 'map-hidden': currentStep === 1 }"
+      :class="{ 'map-hidden': currentStep !== 3 }"
     />
     <div
       v-if="hovered && currentStep > 1"
@@ -58,6 +59,26 @@ import { ref, computed, watch, watchEffect, onMounted, onBeforeUnmount, shallowR
 import StepLocation from './components/StepLocation.vue'
 import StepCriteria from './components/StepCriteria.vue'
 import StepResult from './components/StepResult.vue'
+import seoMeta from './locales/meta.json'
+
+// SEO meta（文案來自 locales/meta.json）
+const config = useRuntimeConfig()
+const APP_MODE = config.public.APP_MODE
+const ASSETS_PATH = config.public.APP_ASSETS_PATH
+
+useSeoMeta({
+  title: seoMeta.metaTitle,
+  description: seoMeta.metaDesc,
+  ogTitle: seoMeta.metaTitle,
+  ogDescription: seoMeta.metaXDesc,
+  ogImage: `${ASSETS_PATH}/img/${seoMeta.metaImage}`,
+  ogUrl: seoMeta.metaURL,
+  twitterTitle: seoMeta.metaTitle,
+  twitterDescription: seoMeta.metaXDesc,
+  twitterCard: 'summary_large_image',
+  keywords: seoMeta.metaKeywords,
+  robots: APP_MODE === 'production' ? 'index, follow' : 'noindex, nofollow',
+})
 
 // Step state
 const currentStep = ref<1 | 2 | 3>(1)
