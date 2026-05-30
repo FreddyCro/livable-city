@@ -1,0 +1,21 @@
+// Theme colors
+$color-b02: #c2e6f0; // 淺藍 light blue
+$color-b03: #227d92; // 深藍 teal blue
+$color-y01: #f4cc34; // 黃 yellow
+$color-g01: #78bf30; // 綠 green
+$color-r01: #d62e29; // 紅 red
+$color-bg-cream: #fef6ec; // 背景色 cream background
+
+$breakpoints: (
+  xxs: 375px,
+  xs: 414px,
+  mob: 414px,
+  sm: 768px,
+  pad: 768px,
+  md: 1024px,
+  pc: 1024px,
+  lg: 1280px,
+  xl: 1440px,
+  2xl: 1920px,
+  3xl: 2560px,
+);

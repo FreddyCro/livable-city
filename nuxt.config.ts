@@ -1,7 +1,14 @@
+import tailwindcss from "@tailwindcss/vite";
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
+
+  css: [
+    "~/assets/styles/tailwind.css",
+    "~/assets/styles/base.scss",
+  ],
 
   // 讓區網設備可以使用，例如手機
   // devServer: {
@@ -41,6 +48,7 @@ export default defineNuxtConfig({
       include: ["earcut", "deck.gl", "@deck.gl/core", "@deck.gl/layers"],
     },
     plugins: [
+      tailwindcss(),
       {
         name: "earcut-cjs-to-esm",
         apply: "serve",
@@ -57,5 +65,15 @@ export default defineNuxtConfig({
         },
       },
     ],
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: `
+            @use "@/assets/styles/mixins.scss" as *;
+            @use "@/assets/styles/variables.scss" as *;
+          `,
+        },
+      },
+    },
   },
 });

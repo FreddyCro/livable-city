@@ -1,0 +1,59 @@
+@use 'sass:map';
+@use './variables.scss' as vars;
+
+@mixin rwd-min($key) {
+  $bp: map.get(vars.$breakpoints, $key);
+  @if $bp {
+    @media screen and (min-width: #{$bp}) {
+      @content;
+    }
+  } @else {
+    @warn "Breakpoint `#{$key}` not found in \$breakpoints.";
+  }
+}
+
+@mixin rwd-max($key) {
+  $bp: map.get(vars.$breakpoints, $key);
+  @if $bp {
+    $adjusted: calc(#{$bp} - 0.02px);
+    @media screen and (max-width: #{$adjusted}) {
+      @content;
+    }
+  } @else {
+    @warn "Breakpoint `#{$key}` not found in \$breakpoints.";
+  }
+}
+
+@mixin rwd-between($minKey, $maxKey) {
+  $min: map.get(vars.$breakpoints, $minKey);
+  $max: map.get(vars.$breakpoints, $maxKey);
+  @if $min and $max {
+    $adjustedMax: calc(#{$max} - 0.02px);
+    @media screen and (min-width: #{$min}) and (max-width: #{$adjustedMax}) {
+      @content;
+    }
+  } @else {
+    @warn "Breakpoint `#{$minKey}` or `#{$maxKey}` not found in \$breakpoints.";
+  }
+}
+
+@mixin font-style(
+  $family: Noto Sans TC,
+  $size,
+  $weight,
+  $lineHeight,
+  $text-align: left,
+  $color
+) {
+  font-family: $family;
+  font-size: $size;
+  font-weight: $weight;
+  line-height: $lineHeight;
+  text-align: $text-align;
+  color: $color;
+}
+
+@mixin blur($blur: 10px) {
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+}
