@@ -59,10 +59,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, watchEffect, onMounted, onBeforeUnmount, shallowRef } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, shallowRef } from 'vue'
 import StepLocation from './components/StepLocation.vue'
 import StepCriteria from './components/StepCriteria.vue'
 import StepResult from './components/StepResult.vue'
+import { useResultTowns } from './composables/useResultTowns'
+import { useFilterData } from './composables/useFilterData'
 import seoMeta from './locales/meta.json'
 
 // SEO meta（文案來自 locales/meta.json）
@@ -93,15 +95,13 @@ const hovered = ref<{ x: number; y: number; county: string; district: string } |
 const deckInstance = shallowRef<any>(null)
 const meta = shallowRef<any>(null)
 
-// Data state
-const filterIndex = ref<Array<{ id: string; name: string; lowerIsBetter: boolean }>>([])
-const filterDataCache = shallowRef<Record<string, Record<string, number | null>>>({})
-
 // Selection state
 const selectedCountyCode = ref('')
 const selectedTownCode = ref('')
 const selectedFilters = ref<string[]>([])
-const selectedResultCode = ref<string | null>(null)
+
+// Data state: filter index + dataset cache
+const { filterIndex, filterDataCache, preloadAllFilters, loadIndex } = useFilterData({ selectedFilters })
 
 // Step-2 small-map thumbnail: normalized SVG path of the selected town only
 const selectedTownThumb = ref<{ path: string; width: number; height: number } | null>(null)
@@ -113,34 +113,15 @@ let geoTowns: any = null
 let geoCounties: any = null
 let townCentroids: Map<string, [number, number]> = new Map()
 let deckViewState: any = { longitude: 120.9, latitude: 23.6, zoom: 7, minZoom: 5, maxZoom: 14 }
-const loadingSet = new Set<string>()
-// When true, the next selectedResultCode change is an auto-default (step 3
-// entry) and must NOT trigger a map fly-in — keep the full Taiwan overview.
-let suppressResultFly = false
 
-// Computed
-
-const resultTowns = computed(() => {
-  if (!selectedTownCode.value || !selectedFilters.value.length || !meta.value) return []
-  if (!selectedFilters.value.every(id => id in filterDataCache.value)) return []
-  const filterMeta = Object.fromEntries(filterIndex.value.map(f => [f.id, f]))
-  return Object.keys(meta.value.towns)
-    .filter(code => {
-      if (code === selectedTownCode.value) return false
-      return selectedFilters.value.every(fid => {
-        const data = filterDataCache.value[fid]
-        if (!data) return false
-        const refVal = data[selectedTownCode.value]
-        const val = data[code]
-        if (refVal == null || val == null) return false
-        return filterMeta[fid]?.lowerIsBetter ? val < refVal : val > refVal
-      })
-    })
-    .map(code => {
-      const t = meta.value.towns[code]
-      const c = meta.value.counties[t.COUNTYCODE]
-      return { code, name: t.TOWNNAME, county: c?.COUNTYNAME ?? '' }
-    })
+// Result computation (explore-compare 3.4)
+const { selectedResultCode, resultTowns, suppressResultFly, ensureDefaultResult } = useResultTowns({
+  meta,
+  filterIndex,
+  filterDataCache,
+  selectedTownCode,
+  selectedFilters,
+  currentStep,
 })
 
 // Navigation
@@ -155,21 +136,6 @@ function zoomBy(delta: number) {
   const z = Math.min(14, Math.max(5, (deckViewState.zoom ?? 7) + delta))
   deckViewState = { ...deckViewState, zoom: z }
   deckInstance.value.setProps({ viewState: deckViewState })
-}
-
-// Step 3: default the compare card (explore-compare 3.4) to the first result.
-// Sets selection without flying in, so the Taiwan overview stays put.
-function ensureDefaultResult() {
-  if (currentStep.value !== 3) return
-  const towns = resultTowns.value
-  if (!towns.length) {
-    selectedResultCode.value = null
-    return
-  }
-  if (!selectedResultCode.value || !towns.some(t => t.code === selectedResultCode.value)) {
-    suppressResultFly = true
-    selectedResultCode.value = towns[0].code
-  }
 }
 
 // Map helpers
@@ -355,14 +321,10 @@ function buildLayers() {
 
 // Watches
 
-watch([selectedTownCode, selectedFilters], () => {
-  selectedResultCode.value = null
-}, { deep: true })
-
 watch(selectedResultCode, (code) => {
   deckInstance.value?.setProps({ layers: buildLayers() })
-  if (suppressResultFly) {
-    suppressResultFly = false
+  if (suppressResultFly.value) {
+    suppressResultFly.value = false
     return
   }
   if (!code || !geoTowns || !deckInstance.value || !FlyToInterpolatorCtor) return
@@ -403,38 +365,6 @@ watch(resultTowns, () => {
   }
 })
 
-// Load all filter data (for step 2 stats panel)
-async function preloadAllFilters() {
-  const toLoad = filterIndex.value
-    .map(f => f.id)
-    .filter(id => !(id in filterDataCache.value) && !loadingSet.has(id))
-  if (!toLoad.length) return
-  toLoad.forEach(id => loadingSet.add(id))
-  const results = await Promise.all(
-    toLoad.map(async id => {
-      const data = await fetch(`/data/${id}.json`).then(r => r.json())
-      return [id, data] as const
-    })
-  )
-  results.forEach(([id]) => loadingSet.delete(id))
-  filterDataCache.value = { ...filterDataCache.value, ...Object.fromEntries(results) }
-}
-
-// Load selected filter data (for result computation)
-watchEffect(async () => {
-  const toLoad = selectedFilters.value.filter(id => !(id in filterDataCache.value) && !loadingSet.has(id))
-  if (!toLoad.length) return
-  toLoad.forEach(id => loadingSet.add(id))
-  const results = await Promise.all(
-    toLoad.map(async id => {
-      const data = await fetch(`/data/${id}.json`).then(r => r.json())
-      return [id, data] as const
-    })
-  )
-  results.forEach(([id]) => loadingSet.delete(id))
-  filterDataCache.value = { ...filterDataCache.value, ...Object.fromEntries(results) }
-})
-
 onMounted(async () => {
   const [{ Deck, MapView, FlyToInterpolator }, { GeoJsonLayer, ScatterplotLayer }, { feature }] = await Promise.all([
     import('@deck.gl/core'),
@@ -445,17 +375,15 @@ onMounted(async () => {
   ScatterplotLayerCtor = ScatterplotLayer
   FlyToInterpolatorCtor = FlyToInterpolator
 
-  const [topoRes, metaRes, indexRes] = await Promise.all([
+  // 篩選清單由 useFilterData 載入；與地圖底圖/meta 並行抓取
+  const indexReady = loadIndex()
+  const [topoRes, metaRes] = await Promise.all([
     fetch('/tw-towns-optimized.json'),
     fetch('/tw-towns-meta.json'),
-    fetch('/data/index.json'),
   ])
-  const [topo, metaData, indexData] = await Promise.all([
-    topoRes.json(), metaRes.json(), indexRes.json(),
-  ])
+  const [topo, metaData] = await Promise.all([topoRes.json(), metaRes.json()])
 
   meta.value = metaData
-  filterIndex.value = indexData
   geoTowns = (feature as any)(topo, topo.objects.towns)
   geoCounties = (feature as any)(topo, topo.objects.counties)
 
@@ -469,6 +397,8 @@ onMounted(async () => {
 
   // Init step-2 thumbnail in case a town was already chosen before geo loaded
   selectedTownThumb.value = buildTownThumb(selectedTownCode.value)
+
+  await indexReady
 
   deckInstance.value = new Deck({
     canvas: canvasRef.value!,
