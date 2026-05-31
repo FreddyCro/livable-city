@@ -3,9 +3,10 @@ import { ref, toRef, watch } from 'vue'
 import MapTooltip from './MapTooltip.vue'
 import { useTaiwanMap, type TownThumb } from '../composables/useTaiwanMap'
 import type { ResultTown } from '../composables/useResultTowns'
+import type { GeoMeta } from '../types/geo'
 
 const props = defineProps<{
-  meta: any
+  meta: GeoMeta | null
   currentStep: 1 | 2 | 3
   selectedTownCode: string
   selectedResultCode: string | null

@@ -2,14 +2,17 @@
 import { ref, computed } from 'vue';
 import str from '../locales/explore.json';
 import common from '../locales/common.json';
+import type { GeoMeta } from '../types/geo';
+import type { FilterMeta, FilterDataCache } from '../types/filter';
+import type { ResultTown } from '../composables/useResultTowns';
 
 const props = defineProps<{
-  meta: any;
-  filterIndex: Array<{ id: string; name: string }>;
-  filterDataCache: Record<string, Record<string, number | null>>;
+  meta: GeoMeta | null;
+  filterIndex: FilterMeta[];
+  filterDataCache: FilterDataCache;
   selectedTownCode: string;
   selectedFilters: string[];
-  resultTowns: Array<{ code: string; name: string; county: string }>;
+  resultTowns: ResultTown[];
   selectedResultCode: string | null;
 }>();
 
@@ -31,20 +34,23 @@ const filterNameMap = computed(() =>
 
 // Home (current) town name
 const homeCounty = computed(() => {
-  if (!props.meta || !props.selectedTownCode) return '';
-  const t = props.meta.towns[props.selectedTownCode];
-  return props.meta.counties[t?.COUNTYCODE]?.COUNTYNAME ?? '';
+  const m = props.meta;
+  if (!m || !props.selectedTownCode) return '';
+  const t = m.towns[props.selectedTownCode];
+  return (t ? m.counties[t.COUNTYCODE]?.COUNTYNAME : '') ?? '';
 });
 const homeName = computed(() => {
-  if (!props.meta || !props.selectedTownCode) return '';
-  return props.meta.towns[props.selectedTownCode]?.TOWNNAME ?? '';
+  const m = props.meta;
+  if (!m || !props.selectedTownCode) return '';
+  return m.towns[props.selectedTownCode]?.TOWNNAME ?? '';
 });
 
 // Target (selected result) town
 const detailTown = computed(() => {
-  if (!props.selectedResultCode || !props.meta) return null;
-  const t = props.meta.towns[props.selectedResultCode];
-  const c = props.meta.counties[t?.COUNTYCODE];
+  const m = props.meta;
+  if (!props.selectedResultCode || !m) return null;
+  const t = m.towns[props.selectedResultCode];
+  const c = t ? m.counties[t.COUNTYCODE] : undefined;
   return { name: t?.TOWNNAME ?? '', county: c?.COUNTYNAME ?? '' };
 });
 

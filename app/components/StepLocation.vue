@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import str from '../locales/locate.json';
+import type { GeoMeta } from '../types/geo';
 
 const props = defineProps<{
-  meta: any;
+  meta: GeoMeta | null;
   countyCode: string;
   townCode: string;
 }>();
@@ -16,7 +17,7 @@ const emit = defineEmits<{
 
 const countyOptions = computed(() => {
   if (!props.meta) return [];
-  return Object.entries<any>(props.meta.counties).map(([code, info]) => ({
+  return Object.entries(props.meta.counties).map(([code, info]) => ({
     value: code,
     label: info.COUNTYNAME,
   }));
@@ -24,7 +25,7 @@ const countyOptions = computed(() => {
 
 const townOptions = computed(() => {
   if (!props.meta || !props.countyCode) return [];
-  return Object.entries<any>(props.meta.towns)
+  return Object.entries(props.meta.towns)
     .filter(([, info]) => info.COUNTYCODE === props.countyCode)
     .map(([code, info]) => ({ value: code, label: info.TOWNNAME }));
 });

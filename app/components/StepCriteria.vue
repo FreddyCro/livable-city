@@ -2,16 +2,19 @@
 import { computed } from 'vue';
 import str from '../locales/criteria.json';
 import common from '../locales/common.json';
+import type { GeoMeta } from '../types/geo';
+import type { FilterMeta, FilterDataCache } from '../types/filter';
+import type { TownThumb } from '../composables/useTaiwanMap';
 
 const MAX_SELECT = 3;
 
 const props = defineProps<{
-  meta: any;
-  filterIndex: Array<{ id: string; name: string }>;
+  meta: GeoMeta | null;
+  filterIndex: FilterMeta[];
   selectedTownCode: string;
-  filterDataCache: Record<string, Record<string, number | null>>;
+  filterDataCache: FilterDataCache;
   selectedFilters: string[];
-  selectedTownThumb: { path: string; width: number; height: number } | null;
+  selectedTownThumb: TownThumb | null;
 }>();
 
 const emit = defineEmits<{
@@ -21,9 +24,10 @@ const emit = defineEmits<{
 }>();
 
 const countyName = computed(() => {
-  if (!props.meta || !props.selectedTownCode) return '';
-  const town = props.meta.towns[props.selectedTownCode];
-  return props.meta.counties[town?.COUNTYCODE]?.COUNTYNAME ?? '';
+  const m = props.meta;
+  if (!m || !props.selectedTownCode) return '';
+  const town = m.towns[props.selectedTownCode];
+  return (town ? m.counties[town.COUNTYCODE]?.COUNTYNAME : '') ?? '';
 });
 
 const townName = computed(() => {

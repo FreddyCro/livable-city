@@ -1,10 +1,6 @@
 import { ref, computed, watch, type Ref, type ShallowRef } from 'vue'
-
-export interface FilterMeta {
-  id: string
-  name: string
-  lowerIsBetter: boolean
-}
+import type { GeoMeta } from '../types/geo'
+import type { FilterMeta, FilterDataCache } from '../types/filter'
 
 export interface ResultTown {
   code: string
@@ -13,9 +9,9 @@ export interface ResultTown {
 }
 
 interface UseResultTownsOptions {
-  meta: ShallowRef<any>
+  meta: ShallowRef<GeoMeta | null>
   filterIndex: Ref<FilterMeta[]>
-  filterDataCache: ShallowRef<Record<string, Record<string, number | null>>>
+  filterDataCache: ShallowRef<FilterDataCache>
   selectedTownCode: Ref<string>
   selectedFilters: Ref<string[]>
   currentStep: Ref<1 | 2 | 3>
@@ -34,10 +30,11 @@ export function useResultTowns(opts: UseResultTownsOptions) {
   const selectedResultCode = ref<string | null>(null)
 
   const resultTowns = computed<ResultTown[]>(() => {
-    if (!selectedTownCode.value || !selectedFilters.value.length || !meta.value) return []
+    const m = meta.value
+    if (!selectedTownCode.value || !selectedFilters.value.length || !m) return []
     if (!selectedFilters.value.every(id => id in filterDataCache.value)) return []
     const filterMeta = Object.fromEntries(filterIndex.value.map(f => [f.id, f]))
-    return Object.keys(meta.value.towns)
+    return Object.keys(m.towns)
       .filter(code => {
         if (code === selectedTownCode.value) return false
         return selectedFilters.value.every(fid => {
@@ -50,9 +47,9 @@ export function useResultTowns(opts: UseResultTownsOptions) {
         })
       })
       .map(code => {
-        const t = meta.value.towns[code]
-        const c = meta.value.counties[t.COUNTYCODE]
-        return { code, name: t.TOWNNAME, county: c?.COUNTYNAME ?? '' }
+        const t = m.towns[code]
+        const c = t ? m.counties[t.COUNTYCODE] : undefined
+        return { code, name: t?.TOWNNAME ?? '', county: c?.COUNTYNAME ?? '' }
       })
   })
 

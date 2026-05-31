@@ -1,7 +1,6 @@
 import { ref, shallowRef, watchEffect, onMounted, type Ref } from 'vue'
-import type { FilterMeta } from './useResultTowns'
-
-export type FilterDataCache = Record<string, Record<string, number | null>>
+import type { FilterMeta, FilterDataCache } from '../types/filter'
+import { dataSource } from '../utils/dataSource'
 
 interface UseFilterDataOptions {
   selectedFilters: Ref<string[]>
@@ -25,7 +24,7 @@ export function useFilterData(opts: UseFilterDataOptions) {
     toLoad.forEach(id => loadingSet.add(id))
     const results = await Promise.all(
       toLoad.map(async id => {
-        const data = await fetch(`/data/${id}.json`).then(r => r.json())
+        const data = await dataSource.filterDataset(id)
         return [id, data] as const
       })
     )
@@ -38,9 +37,9 @@ export function useFilterData(opts: UseFilterDataOptions) {
     return loadFilters(filterIndex.value.map(f => f.id))
   }
 
-  // 載入篩選清單 manifest（/data/index.json）；client 端掛載後抓取
+  // 載入篩選清單 manifest（data/index.json）；client 端掛載後抓取
   onMounted(async () => {
-    filterIndex.value = await fetch('/data/index.json').then(r => r.json())
+    filterIndex.value = await dataSource.filterIndex()
   })
 
   // Load selected filter data on demand (for result computation)
