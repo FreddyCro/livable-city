@@ -16,14 +16,18 @@ defineProps<{ info: HoverInfo }>();
 // map-tooltip
 .lc-mtt {
   position: absolute;
+  // hover 的 x/y 是相對「地圖 canvas 左上角」的座標，但本元素定位相對滿版的 .lc-mv。
+  // canvas 以 inset:$header-h 0 0 $explore-sidebar-w 內縮，故補上同一組偏移對齊原點。
+  margin-left: $explore-sidebar-w;
+  margin-top: $header-h;
   pointer-events: none;
   padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid #ccc;
+  background: rgb(var(--color-grey-0) / 0.95);
+  border: 1px solid var(--c-border);
   border-radius: 4px;
   font-size: 13px;
   transform: translate(8px, 8px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgb(var(--c-shadow) / 0.1);
   z-index: 20;
 
   // map-tooltip__county
@@ -33,7 +37,7 @@ defineProps<{ info: HoverInfo }>();
 
   // map-tooltip__district
   &__district {
-    color: #666;
+    color: var(--c-text-muted);
     font-size: 12px;
   }
 }

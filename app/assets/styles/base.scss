@@ -3,7 +3,7 @@
 
 :root {
   --hero-min-h: 568px;
-  --white: #fff;
+  --white: var(--color-grey-0);
   --z-index-dialog-open: 9999;
   --z-index-snack-bar-open: 1100;
   --z-index-dialog-close: -1000;
@@ -111,10 +111,10 @@ canvas {
 p.lc-caption {
   font-size: 15px;
   line-height: 22px;
-  color: #9f9f9f;
+  color: var(--c-text-muted);
 
   &--white {
-    color: #fff;
+    color: var(--c-text-inverse);
   }
 }
 
@@ -211,8 +211,8 @@ p.lc-caption {
 
 .lc-text-box {
   padding: 40px 20px;
-  border: solid 1px #808080;
-  background-color: rgba(82, 82, 82, 0.4);
+  border: solid 1px var(--c-border);
+  background-color: rgb(var(--color-grey-700) / 0.4);
 
   @include mixins.blur(10px);
 

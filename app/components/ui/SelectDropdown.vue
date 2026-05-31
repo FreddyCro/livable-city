@@ -227,11 +227,11 @@ onBeforeUnmount(() => {
     width: 100%;
     min-width: 140px;
     padding: 10px 14px;
-    background: #fff;
-    border: 1px solid #ccc;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
     border-radius: 8px;
     font-size: 14px;
-    color: #222;
+    color: var(--c-text);
     cursor: pointer;
     transition: border-color 0.15s;
 
@@ -240,9 +240,9 @@ onBeforeUnmount(() => {
     }
 
     &:disabled {
-      color: #aaa;
+      color: var(--c-text-faint);
       cursor: default;
-      background: #f7f7f7;
+      background: var(--c-surface-sunken);
     }
   }
 
@@ -279,7 +279,7 @@ onBeforeUnmount(() => {
 
     // select-dropdown__label--placeholder
     &--placeholder {
-      color: #999;
+      color: var(--c-text-faint);
     }
   }
 
@@ -288,7 +288,7 @@ onBeforeUnmount(() => {
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
-    color: #888;
+    color: var(--c-text-muted);
     transition: transform 0.18s ease;
   }
 
@@ -304,10 +304,10 @@ onBeforeUnmount(() => {
     z-index: 50;
     max-height: 280px;
     overflow-y: auto;
-    background: #fff;
+    background: var(--c-surface);
     border: 1px solid $color-b03;
     border-radius: 8px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 6px 20px rgb(var(--c-shadow) / 0.12);
     padding: 4px;
 
     // select-dropdown__menu--down（接在 control 下方、接縫去圓角、邊框重疊 1px 合併）
@@ -330,7 +330,7 @@ onBeforeUnmount(() => {
   // select-dropdown__group
   &__group {
     & + & {
-      border-top: 1px solid #f0f0f0;
+      border-top: 1px solid var(--c-border-subtle);
       margin-top: 4px;
       padding-top: 4px;
     }
@@ -341,7 +341,7 @@ onBeforeUnmount(() => {
     padding: 6px 10px 2px;
     font-size: 11px;
     font-weight: 700;
-    color: #999;
+    color: var(--c-text-faint);
     letter-spacing: 0.03em;
   }
 
@@ -349,7 +349,7 @@ onBeforeUnmount(() => {
   &__option {
     padding: 8px 10px;
     font-size: 14px;
-    color: #333;
+    color: var(--c-text-secondary);
     border-radius: 6px;
     cursor: pointer;
     white-space: nowrap;
@@ -363,13 +363,13 @@ onBeforeUnmount(() => {
     // select-dropdown__option--selected
     &--selected {
       background: $color-b03;
-      color: #fff;
+      color: var(--c-text-inverse);
       font-weight: 500;
     }
 
     // select-dropdown__option--disabled
     &--disabled {
-      color: #ccc;
+      color: var(--c-text-faint);
       cursor: default;
       background: transparent;
     }

@@ -1,10 +1,13 @@
 // Theme colors
-$color-b02: #c2e6f0; // 淺藍 light blue
-$color-b03: #227d92; // 深藍 teal blue
-$color-y01: #f4cc34; // 黃 yellow
-$color-g01: #78bf30; // 綠 green
-$color-r01: #d62e29; // 紅 red
-$color-bg-cream: #fef6ec; // 背景色 cream background
+// 實際色值與 wireframe/prod 切換定義於 theme.css（CSS 變數 + data-theme）。
+// 此處僅提供 Figma primitive 的 SCSS alias，讓既有 $color-* 寫法續用、命名對齊 Figma。
+// 元件新樣式請優先用 semantic：var(--c-text) / var(--c-primary) 等（見 theme.css）。
+$color-b02: var(--color-b02); // 淺藍 light blue
+$color-b03: var(--color-b03); // 深藍 teal blue
+$color-y01: var(--color-y01); // 黃 yellow
+$color-g01: var(--color-g01); // 綠 green
+$color-r01: var(--color-r01); // 紅 red
+$color-bg-cream: var(--color-bg-cream); // 米色底 cream
 
 // Layout
 $header-h: 80px; // 假數字：header 尚未實作，確定後再調整

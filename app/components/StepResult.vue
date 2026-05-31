@@ -32,6 +32,9 @@ const filterNameMap = computed(() =>
   Object.fromEntries(props.filterIndex.map((f) => [f.id, f.name])),
 );
 
+// explore-compare 顯示「全部指標」，不受 explore-sidebar 勾選影響
+const allFilterIds = computed(() => props.filterIndex.map((f) => f.id));
+
 // Home (current) town name
 const homeCounty = computed(() => {
   const m = props.meta;
@@ -100,35 +103,37 @@ function formatVal(val: number | null | undefined): string {
   <div class="lc-sr">
     <!-- 3.1 explore-sidebar -->
     <aside class="lc-sr__sidebar">
-      <div class="lc-sr__topbar">
-        <button class="lc-sr__back" @click="$emit('back')">
-          ◀ {{ common.back }}
-        </button>
-      </div>
+      <div class="lc-sr__sidebar-top">
+        <div class="lc-sr__topbar">
+          <button class="lc-sr__back" @click="$emit('back')">
+            ◀ {{ common.back }}
+          </button>
+        </div>
 
-      <div class="lc-sr__head">
-        <p class="lc-sr__title">{{ str.sidebarTitle }}</p>
-        <button class="lc-sr__reselect" @click="$emit('reselect')">
-          {{ str.reselect }} ↺
-        </button>
-      </div>
+        <div class="lc-sr__head">
+          <p class="lc-sr__title">{{ str.sidebarTitle }}</p>
+          <button class="lc-sr__reselect" @click="$emit('reselect')">
+            {{ str.reselect }} ↺
+          </button>
+        </div>
 
-      <div class="lc-sr__cards">
-        <button
-          v-for="f in filterIndex"
-          :key="f.id"
-          class="lc-sr__card"
-          :class="{ 'lc-sr__card--selected': selectedFilters.includes(f.id) }"
-          @click="toggleFilter(f.id)"
-        >
-          <span class="lc-sr__card-label">{{ f.name }}</span>
-          <span v-if="selectedFilters.includes(f.id)" class="lc-sr__card-x"
-            >✕</span
+        <div class="lc-sr__cards">
+          <button
+            v-for="f in filterIndex"
+            :key="f.id"
+            class="lc-sr__card"
+            :class="{ 'lc-sr__card--selected': selectedFilters.includes(f.id) }"
+            @click="toggleFilter(f.id)"
           >
-        </button>
+            <span class="lc-sr__card-label">{{ f.name }}</span>
+            <span v-if="selectedFilters.includes(f.id)" class="lc-sr__card-x"
+              >✕</span
+            >
+          </button>
+        </div>
       </div>
 
-      <div class="lc-sr__banners">
+      <!-- <div class="lc-sr__banners">
         <a
           class="lc-sr__banner lc-sr__banner--data"
           href="#"
@@ -151,7 +156,7 @@ function formatVal(val: number | null | undefined): string {
           >
           <span class="lc-sr__banner-icon">↗</span>
         </a>
-      </div>
+      </div> -->
     </aside>
 
     <!-- 3.2 explore-result-bar（清單態） -->
@@ -202,8 +207,8 @@ function formatVal(val: number | null | undefined): string {
         </button>
       </div>
       <div v-if="!compareCollapsed" class="lc-sr__compare-body">
-        <div v-if="!selectedFilters.length" class="lc-sr__compare-empty">—</div>
-        <div v-for="fid in selectedFilters" :key="fid" class="lc-sr__metric">
+        <div v-if="!allFilterIds.length" class="lc-sr__compare-empty">—</div>
+        <div v-for="fid in allFilterIds" :key="fid" class="lc-sr__metric">
           <p class="lc-sr__metric-name">{{ filterNameMap[fid] ?? fid }}</p>
           <div class="lc-sr__metric-row">
             <span class="lc-sr__metric-area"
@@ -255,13 +260,14 @@ function formatVal(val: number | null | undefined): string {
     width: $explore-sidebar-w;
     height: calc(100vh - #{$header-h});
     max-height: 1080px;
-    background: #fff;
-    padding: 24px 32px;
     display: flex;
+    justify-content: space-between;
     flex-direction: column;
-    overflow-y: auto;
+    padding: 24px 32px 0;
     pointer-events: auto;
-    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.06);
+    background: var(--c-surface);
+    box-shadow: 2px 0 12px rgb(var(--c-shadow) / 0.06);
+    overflow-y: auto;
   }
 
   // step-result__topbar
@@ -275,11 +281,11 @@ function formatVal(val: number | null | undefined): string {
     border: none;
     padding: 0;
     font-size: 13px;
-    color: #6b7280;
+    color: var(--c-text-muted);
     cursor: pointer;
 
     &:hover {
-      color: #111;
+      color: var(--c-text);
     }
   }
 
@@ -291,7 +297,7 @@ function formatVal(val: number | null | undefined): string {
     gap: 12px;
     padding-bottom: 16px;
     margin-bottom: 18px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--c-border-subtle);
   }
 
   // step-result__title
@@ -299,23 +305,23 @@ function formatVal(val: number | null | undefined): string {
     margin: 0;
     font-size: 18px;
     font-weight: 700;
-    color: #111;
+    color: var(--c-text);
   }
 
   // step-result__reselect
   &__reselect {
     flex-shrink: 0;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--c-border);
     border-radius: 999px;
     padding: 6px 14px;
-    background: #fff;
+    background: var(--c-surface);
     font-size: 13px;
-    color: #444;
+    color: var(--c-text-secondary);
     cursor: pointer;
     white-space: nowrap;
 
     &:hover {
-      border-color: #94a3b8;
+      border-color: var(--c-border-hover);
     }
   }
 
@@ -333,11 +339,11 @@ function formatVal(val: number | null | undefined): string {
     justify-content: space-between;
     gap: 8px;
     padding: 16px 18px;
-    border: 1px solid #d9dde3;
+    border: 1px solid var(--c-border);
     border-radius: 10px;
-    background: #fff;
+    background: var(--c-surface);
     font-size: 15px;
-    color: #333;
+    color: var(--c-text-secondary);
     text-align: left;
     cursor: pointer;
     transition:
@@ -345,14 +351,14 @@ function formatVal(val: number | null | undefined): string {
       background 0.15s;
 
     &:hover {
-      border-color: #9ca3af;
+      border-color: var(--c-border-hover);
     }
 
     // step-result__card--selected
     &--selected {
-      background: #f7d44c;
-      border-color: #f7d44c;
-      color: #111;
+      background: var(--c-primary);
+      border-color: var(--c-primary);
+      color: var(--c-text);
       font-weight: 700;
     }
   }
@@ -360,7 +366,7 @@ function formatVal(val: number | null | undefined): string {
   // step-result__card-x
   &__card-x {
     font-size: 12px;
-    color: #111;
+    color: var(--c-text);
   }
 
   // step-result__banners（沿側邊欄底部滿版）
@@ -377,7 +383,7 @@ function formatVal(val: number | null | undefined): string {
     justify-content: space-between;
     gap: 12px;
     padding: 16px 24px;
-    color: #fff;
+    color: var(--c-text-inverse);
     text-decoration: none;
     font-size: 14px;
 
@@ -387,12 +393,12 @@ function formatVal(val: number | null | undefined): string {
 
     // step-result__banner--data
     &--data {
-      background: #2b6a86;
+      background: var(--c-accent-teal);
     }
 
     // step-result__banner--report
     &--report {
-      background: #4a8b5f;
+      background: var(--c-accent-green);
     }
   }
 
@@ -404,16 +410,16 @@ function formatVal(val: number | null | undefined): string {
   // step-result__list（3.2 explore-result-bar 清單態，浮於地圖）
   &__list {
     position: absolute;
-    top: calc(#{$header-h} + 16px);
+    top: #{$header-h};
     left: calc(#{$explore-sidebar-w} + 16px);
     width: 172px;
     max-height: calc(100vh - #{$header-h} - 32px);
     display: flex;
     flex-direction: column;
-    background: #fff;
-    border: 1px solid #d9dde3;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
     border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 10px rgb(var(--c-shadow) / 0.08);
     overflow: hidden;
     pointer-events: auto;
   }
@@ -427,15 +433,15 @@ function formatVal(val: number | null | undefined): string {
     width: 100%;
     padding: 12px 14px;
     border: none;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--c-border-subtle);
     background: transparent;
     font-size: 13px;
-    color: #555;
+    color: var(--c-text-secondary);
     cursor: pointer;
     text-align: left;
 
     &:hover {
-      color: #111;
+      color: var(--c-text);
     }
   }
 
@@ -447,7 +453,7 @@ function formatVal(val: number | null | undefined): string {
   // step-result__list-chevron
   &__list-chevron {
     flex-shrink: 0;
-    color: #999;
+    color: var(--c-text-faint);
   }
 
   // step-result__list-body
@@ -461,24 +467,24 @@ function formatVal(val: number | null | undefined): string {
     padding: 10px 14px 4px;
     font-size: 14px;
     font-weight: 700;
-    color: #111;
+    color: var(--c-text);
   }
 
   // step-result__list-item
   &__list-item {
     padding: 5px 14px;
     font-size: 13px;
-    color: #555;
+    color: var(--c-text-secondary);
     cursor: pointer;
 
     &:hover {
-      background: #f5f7ff;
+      background: var(--c-info-bg);
     }
 
     // step-result__list-item--active
     &--active {
-      background: #eff6ff;
-      color: #1d4ed8;
+      background: var(--c-info-bg);
+      color: var(--c-info);
       font-weight: 600;
     }
   }
@@ -487,7 +493,7 @@ function formatVal(val: number | null | undefined): string {
   &__list-empty {
     padding: 14px;
     font-size: 12px;
-    color: #bbb;
+    color: var(--c-text-faint);
   }
 
   // step-result__compare（3.4 explore-compare，浮於地圖正下方、地圖區水平置中）
@@ -500,10 +506,10 @@ function formatVal(val: number | null | undefined): string {
     max-height: 48%;
     display: flex;
     flex-direction: column;
-    background: #fff;
-    border: 1px solid #d9dde3;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
     border-radius: 14px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px rgb(var(--c-shadow) / 0.1);
     overflow: hidden;
     pointer-events: auto;
   }
@@ -515,14 +521,14 @@ function formatVal(val: number | null | undefined): string {
     justify-content: space-between;
     gap: 12px;
     padding: 18px 22px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--c-border-subtle);
   }
 
   // step-result__compare-title
   &__compare-title {
     font-size: 18px;
     font-weight: 700;
-    color: #111;
+    color: var(--c-text);
   }
 
   // step-result__compare-toggle
@@ -530,7 +536,7 @@ function formatVal(val: number | null | undefined): string {
     background: transparent;
     border: none;
     font-size: 13px;
-    color: #666;
+    color: var(--c-text-muted);
     cursor: pointer;
   }
 
@@ -543,13 +549,13 @@ function formatVal(val: number | null | undefined): string {
   // step-result__compare-empty
   &__compare-empty {
     padding: 16px 0;
-    color: #bbb;
+    color: var(--c-text-faint);
   }
 
   // step-result__metric
   &__metric {
     padding: 14px 0;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--c-border-subtle);
 
     &:last-child {
       border-bottom: none;
@@ -561,7 +567,7 @@ function formatVal(val: number | null | undefined): string {
     margin: 0 0 8px;
     font-size: 15px;
     font-weight: 700;
-    color: #111;
+    color: var(--c-text);
   }
 
   // step-result__metric-row
@@ -574,7 +580,7 @@ function formatVal(val: number | null | undefined): string {
 
     // step-result__metric-row--home
     &--home {
-      color: #888;
+      color: var(--c-text-muted);
     }
   }
 
@@ -585,8 +591,8 @@ function formatVal(val: number | null | undefined): string {
 
   // step-result__metric-pct
   &__metric-pct {
-    background: #e3000f;
-    color: #fff;
+    background: var(--c-danger);
+    color: var(--c-text-inverse);
     font-size: 12px;
     font-weight: 700;
     padding: 1px 6px;
@@ -599,17 +605,17 @@ function formatVal(val: number | null | undefined): string {
     min-width: 60px;
     text-align: right;
     font-weight: 700;
-    color: #111;
+    color: var(--c-text);
   }
 
   &__metric-row--home &__metric-val {
-    color: #888;
+    color: var(--c-text-muted);
   }
 
   // step-result__zoom（3.5 explore-zoom）
   &__zoom {
     position: absolute;
-    top: calc(#{$header-h} + 16px);
+    top: #{$header-h};
     right: 24px;
     display: flex;
     flex-direction: column;
@@ -622,23 +628,23 @@ function formatVal(val: number | null | undefined): string {
     width: 40px;
     height: 40px;
     border-radius: 999px;
-    border: 1px solid #d9dde3;
-    background: #fff;
+    border: 1px solid var(--c-border);
+    background: var(--c-surface);
     font-size: 18px;
-    color: #333;
+    color: var(--c-text-secondary);
     cursor: pointer;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 4px rgb(var(--c-shadow) / 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
 
     &:hover {
-      background: #f7f7f7;
+      background: var(--c-surface-sunken);
     }
 
     // step-result__zoom-btn--info
     &--info {
-      color: #666;
+      color: var(--c-text-muted);
     }
   }
 }

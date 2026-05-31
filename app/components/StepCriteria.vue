@@ -142,14 +142,14 @@ function formatVal(val: number | null | undefined): string {
   align-items: flex-start;
   gap: 24px;
   padding: 88px 40px 40px;
-  background: #fff;
+  background: var(--c-surface);
   overflow-y: auto;
 
   // step-criteria__info（左側：現居地區資訊）
   &__info {
     flex: 0 0 320px;
     max-width: 320px;
-    border: 1px solid #d9dde3;
+    border: 1px solid var(--c-border);
     border-radius: 12px;
     padding: 16px;
     display: flex;
@@ -162,7 +162,7 @@ function formatVal(val: number | null | undefined): string {
     width: 100%;
     aspect-ratio: 4 / 3;
     border-radius: 8px;
-    background: #eef1f4;
+    background: var(--c-surface-sunken);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -177,8 +177,8 @@ function formatVal(val: number | null | undefined): string {
 
   // step-criteria__map-shape（被選取鄉鎮的色塊）
   &__map-shape {
-    fill: #2f7f8d;
-    stroke: #20606b;
+    fill: var(--c-accent-teal);
+    stroke: var(--c-accent-teal-dk);
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
   }
@@ -190,20 +190,20 @@ function formatVal(val: number | null | undefined): string {
     align-items: center;
     gap: 4px;
     font-size: 13px;
-    color: #666;
+    color: var(--c-text-muted);
     padding-bottom: 12px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--c-border-subtle);
   }
 
   // step-criteria__location-pin
   &__location-pin {
-    color: #e3000f;
+    color: var(--c-danger);
   }
 
   // step-criteria__location-area
   &__location-area {
     font-size: 14px;
-    color: #111;
+    color: var(--c-text);
   }
 
   // step-criteria__stats
@@ -222,14 +222,14 @@ function formatVal(val: number | null | undefined): string {
     align-items: baseline;
     gap: 8px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--c-border-subtle);
     font-size: 13px;
   }
 
   // step-criteria__stat-label
   &__stat-label {
     flex: 1;
-    color: #444;
+    color: var(--c-text-secondary);
     font-weight: 600;
     line-height: 1.4;
   }
@@ -237,7 +237,7 @@ function formatVal(val: number | null | undefined): string {
   // step-criteria__stat-val
   &__stat-val {
     white-space: nowrap;
-    color: #111;
+    color: var(--c-text);
   }
 
   // step-criteria__criteria（右側：條件選擇）
@@ -256,11 +256,11 @@ function formatVal(val: number | null | undefined): string {
     border: none;
     padding: 0;
     font-size: 13px;
-    color: #6b7280;
+    color: var(--c-text-muted);
     cursor: pointer;
 
     &:hover {
-      color: #111;
+      color: var(--c-text);
     }
   }
 
@@ -270,14 +270,14 @@ function formatVal(val: number | null | undefined): string {
     font-size: 22px;
     font-weight: 700;
     line-height: 1.4;
-    color: #111;
+    color: var(--c-text);
   }
 
   // step-criteria__hint
   &__hint {
     margin: 0;
     font-size: 14px;
-    color: #888;
+    color: var(--c-text-muted);
   }
 
   // step-criteria__cards
@@ -293,9 +293,9 @@ function formatVal(val: number | null | undefined): string {
     align-items: center;
     gap: 12px;
     padding: 18px 16px;
-    border: 1px solid #d9dde3;
+    border: 1px solid var(--c-border);
     border-radius: 12px;
-    background: #fff;
+    background: var(--c-surface);
     text-align: left;
     cursor: pointer;
     transition:
@@ -303,13 +303,13 @@ function formatVal(val: number | null | undefined): string {
       background 0.15s;
 
     &:hover {
-      border-color: #9ca3af;
+      border-color: var(--c-border-hover);
     }
 
     // step-criteria__card--selected
     &--selected {
-      border-color: #111;
-      background: #f1f5f9;
+      border-color: var(--c-border-strong);
+      background: var(--c-surface-hover);
     }
 
     // step-criteria__card--disabled（已達選取上限）
@@ -318,7 +318,7 @@ function formatVal(val: number | null | undefined): string {
       cursor: not-allowed;
 
       &:hover {
-        border-color: #d9dde3;
+        border-color: var(--c-border);
       }
     }
   }
@@ -334,12 +334,12 @@ function formatVal(val: number | null | undefined): string {
   &__card-label {
     font-size: 15px;
     line-height: 1.4;
-    color: #374151;
+    color: var(--c-text-secondary);
   }
 
   &__card--selected &__card-label {
     font-weight: 600;
-    color: #111;
+    color: var(--c-text);
   }
 
   // step-criteria__submit
@@ -347,8 +347,8 @@ function formatVal(val: number | null | undefined): string {
     align-self: center;
     margin-top: 8px;
     padding: 16px 48px;
-    background: #f7d44c;
-    color: #111;
+    background: var(--c-primary);
+    color: var(--c-text);
     border: none;
     border-radius: 999px;
     font-size: 16px;

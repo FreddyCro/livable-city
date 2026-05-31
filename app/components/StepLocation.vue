@@ -38,13 +38,13 @@ function onCountySelect(val: string) {
 
 <template>
   <div class="lc-sl">
-    <div class="lc-sl__hero">
+    <!-- <div class="lc-sl__hero">
       <p class="lc-sl__kicker">{{ str.kicker }}</p>
       <h1 class="lc-sl__title">{{ str.title }}</h1>
       <p class="lc-sl__subtitle">{{ str.subtitle }}</p>
     </div>
     <p class="lc-sl__intro">{{ str.intro }}</p>
-    <p class="lc-sl__question">{{ str.question }}</p>
+    <p class="lc-sl__question">{{ str.question }}</p> -->
     <div class="lc-sl__selects">
       <UiSelectDropdown
         :model-value="countyCode || null"
@@ -71,7 +71,7 @@ function onCountySelect(val: string) {
 .lc-sl {
   position: fixed;
   inset: 0;
-  background: #fff;
+  background: var(--c-surface);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -95,7 +95,7 @@ function onCountySelect(val: string) {
     font-size: 16px;
     font-weight: 700;
     letter-spacing: 2px;
-    color: #111;
+    color: var(--c-text);
   }
 
   // step-location__title
@@ -104,7 +104,7 @@ function onCountySelect(val: string) {
     font-size: 48px;
     font-weight: 800;
     line-height: 1.1;
-    color: #111;
+    color: var(--c-text);
   }
 
   // step-location__subtitle
@@ -113,8 +113,8 @@ function onCountySelect(val: string) {
     padding: 2px 8px;
     font-size: 18px;
     font-weight: 600;
-    color: #111;
-    background: #f7d44c;
+    color: var(--c-text);
+    background: var(--c-primary);
   }
 
   // step-location__intro
@@ -124,7 +124,7 @@ function onCountySelect(val: string) {
     font-size: 16px;
     line-height: 1.9;
     text-align: left;
-    color: #333;
+    color: var(--c-text-secondary);
   }
 
   // step-location__question
@@ -132,7 +132,7 @@ function onCountySelect(val: string) {
     margin: 0;
     font-size: 20px;
     font-weight: 700;
-    color: #111;
+    color: var(--c-text);
   }
 
   // step-location__selects
@@ -144,8 +144,8 @@ function onCountySelect(val: string) {
   // step-location__next
   &__next {
     padding: 12px 32px;
-    background: #111;
-    color: #fff;
+    background: var(--c-surface-inverse);
+    color: var(--c-text-inverse);
     border: none;
     border-radius: 6px;
     font-size: 15px;
