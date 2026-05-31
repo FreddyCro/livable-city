@@ -1,3 +1,7 @@
 {
-  "back": "返回"
+  "back": "返回",
+  "navbarMenu1Text": "宜居城市互動地圖",
+  "navbarMenu1Link": "#",
+  "navbarMenu2Text": "更多數位專題",
+  "navbarMenu2Link": "https://udn.com/newmedia/office/"
 }

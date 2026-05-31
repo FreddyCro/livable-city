@@ -1,8 +1,147 @@
+<script lang="ts">
+// 共用型別（放在模組區塊，消費端可 import type）
+export interface SelectOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+export interface SelectOptionGroup {
+  label: string;
+  options: SelectOption[];
+}
+export type SelectItems = SelectOption[] | SelectOptionGroup[];
+</script>
+
+<script setup lang="ts">
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
+
+const props = withDefaults(
+  defineProps<{
+    modelValue: string | null;
+    options: SelectItems;
+    placeholder?: string;
+    disabled?: boolean;
+    icon?: string;
+  }>(),
+  {
+    placeholder: '請選擇',
+    disabled: false,
+  },
+);
+
+const emit = defineEmits<{
+  'update:modelValue': [value: string];
+  open: [];
+  close: [];
+}>();
+
+const rootRef = ref<HTMLElement | null>(null);
+const controlRef = ref<HTMLButtonElement | null>(null);
+const open = ref(false);
+const direction = ref<'down' | 'up'>('down');
+
+// 估算 menu 高度上限，與 .lc-sd__menu 的 max-height 對齊
+const MENU_MAX_HEIGHT = 280;
+
+// 判斷 options 是否為分組結構（含 options 欄位即為 group）
+const isGrouped = computed(
+  () => props.options.length > 0 && 'options' in (props.options[0] as object),
+);
+
+// 統一成 group 陣列渲染：扁平 → 單一無標題 group
+const renderGroups = computed<
+  Array<{ label: string | null; options: SelectOption[] }>
+>(() => {
+  if (isGrouped.value) {
+    return (props.options as SelectOptionGroup[]).map((g) => ({
+      label: g.label,
+      options: g.options,
+    }));
+  }
+  return [{ label: null, options: props.options as SelectOption[] }];
+});
+
+const allOptions = computed<SelectOption[]>(() =>
+  renderGroups.value.flatMap((g) => g.options),
+);
+
+const selectedLabel = computed<string | null>(
+  () =>
+    allOptions.value.find((o) => o.value === props.modelValue)?.label ?? null,
+);
+
+function toggle() {
+  if (props.disabled) return;
+  open.value ? close() : openMenu();
+}
+
+async function openMenu() {
+  open.value = true;
+  emit('open');
+  await nextTick();
+  updateDirection();
+}
+
+function close() {
+  if (!open.value) return;
+  open.value = false;
+  emit('close');
+}
+
+function select(opt: SelectOption) {
+  if (opt.disabled) return;
+  emit('update:modelValue', opt.value);
+  close();
+}
+
+// 依視窗可用空間判斷向下 / 向上展開（client only）
+function updateDirection() {
+  const el = controlRef.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
+  direction.value =
+    spaceBelow < MENU_MAX_HEIGHT && spaceAbove > spaceBelow ? 'up' : 'down';
+}
+
+function onDocPointer(e: Event) {
+  if (!open.value) return;
+  if (rootRef.value && !rootRef.value.contains(e.target as Node)) close();
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') close();
+}
+
+function onViewportChange() {
+  if (open.value) updateDirection();
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', onDocPointer);
+  document.addEventListener('keydown', onKeydown);
+  window.addEventListener('resize', onViewportChange);
+  window.addEventListener('scroll', onViewportChange, true);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocPointer);
+  document.removeEventListener('keydown', onKeydown);
+  window.removeEventListener('resize', onViewportChange);
+  window.removeEventListener('scroll', onViewportChange, true);
+});
+</script>
+
 <template>
   <div
     ref="rootRef"
     class="lc-sd"
-    :class="{ 'lc-sd--open': open, 'lc-sd--disabled': disabled, [`lc-sd--${direction}`]: open }"
+    :class="{
+      'lc-sd--open': open,
+      'lc-sd--disabled': disabled,
+      [`lc-sd--${direction}`]: open,
+    }"
   >
     <!-- control -->
     <button
@@ -25,8 +164,13 @@
       </span>
       <span class="lc-sd__chevron" aria-hidden="true">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5"
-            stroke-linecap="round" stroke-linejoin="round" />
+          <path
+            d="M2.5 4.5 6 8l3.5-3.5"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
       </span>
     </button>
@@ -67,131 +211,6 @@
     </Transition>
   </div>
 </template>
-
-<script lang="ts">
-// 共用型別（放在模組區塊，消費端可 import type）
-export interface SelectOption {
-  value: string
-  label: string
-  disabled?: boolean
-}
-export interface SelectOptionGroup {
-  label: string
-  options: SelectOption[]
-}
-export type SelectItems = SelectOption[] | SelectOptionGroup[]
-</script>
-
-<script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
-
-const props = withDefaults(defineProps<{
-  modelValue: string | null
-  options: SelectItems
-  placeholder?: string
-  disabled?: boolean
-  icon?: string
-}>(), {
-  placeholder: '請選擇',
-  disabled: false,
-})
-
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
-  open: []
-  close: []
-}>()
-
-const rootRef = ref<HTMLElement | null>(null)
-const controlRef = ref<HTMLButtonElement | null>(null)
-const open = ref(false)
-const direction = ref<'down' | 'up'>('down')
-
-// 估算 menu 高度上限，與 .lc-sd__menu 的 max-height 對齊
-const MENU_MAX_HEIGHT = 280
-
-// 判斷 options 是否為分組結構（含 options 欄位即為 group）
-const isGrouped = computed(() =>
-  props.options.length > 0 && 'options' in (props.options[0] as object)
-)
-
-// 統一成 group 陣列渲染：扁平 → 單一無標題 group
-const renderGroups = computed<Array<{ label: string | null; options: SelectOption[] }>>(() => {
-  if (isGrouped.value) {
-    return (props.options as SelectOptionGroup[]).map(g => ({ label: g.label, options: g.options }))
-  }
-  return [{ label: null, options: props.options as SelectOption[] }]
-})
-
-const allOptions = computed<SelectOption[]>(() =>
-  renderGroups.value.flatMap(g => g.options)
-)
-
-const selectedLabel = computed<string | null>(() =>
-  allOptions.value.find(o => o.value === props.modelValue)?.label ?? null
-)
-
-function toggle() {
-  if (props.disabled) return
-  open.value ? close() : openMenu()
-}
-
-async function openMenu() {
-  open.value = true
-  emit('open')
-  await nextTick()
-  updateDirection()
-}
-
-function close() {
-  if (!open.value) return
-  open.value = false
-  emit('close')
-}
-
-function select(opt: SelectOption) {
-  if (opt.disabled) return
-  emit('update:modelValue', opt.value)
-  close()
-}
-
-// 依視窗可用空間判斷向下 / 向上展開（client only）
-function updateDirection() {
-  const el = controlRef.value
-  if (!el) return
-  const rect = el.getBoundingClientRect()
-  const spaceBelow = window.innerHeight - rect.bottom
-  const spaceAbove = rect.top
-  direction.value = (spaceBelow < MENU_MAX_HEIGHT && spaceAbove > spaceBelow) ? 'up' : 'down'
-}
-
-function onDocPointer(e: Event) {
-  if (!open.value) return
-  if (rootRef.value && !rootRef.value.contains(e.target as Node)) close()
-}
-
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') close()
-}
-
-function onViewportChange() {
-  if (open.value) updateDirection()
-}
-
-onMounted(() => {
-  document.addEventListener('pointerdown', onDocPointer)
-  document.addEventListener('keydown', onKeydown)
-  window.addEventListener('resize', onViewportChange)
-  window.addEventListener('scroll', onViewportChange, true)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', onDocPointer)
-  document.removeEventListener('keydown', onKeydown)
-  window.removeEventListener('resize', onViewportChange)
-  window.removeEventListener('scroll', onViewportChange, true)
-})
-</script>
 
 <style scoped lang="scss">
 // select-dropdown
@@ -362,7 +381,9 @@ onBeforeUnmount(() => {
 .lc-sd-down-leave-active,
 .lc-sd-up-enter-active,
 .lc-sd-up-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 
 .lc-sd-down-enter-from,

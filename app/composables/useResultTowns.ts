@@ -25,14 +25,13 @@ interface UseResultTownsOptions {
  * 結果運算層：依「選定鄉鎮 + 篩選條件」算出勝過基準的鄉鎮清單，
  * 並維護 step 3 比較卡的預設選取（explore-compare 3.4）。
  *
- * suppressResultFly：step 3 進場時設預設結果，但不希望觸發地圖飛入，
- * 暫以 ref 暴露給地圖 watch 讀取；後續改由 focusTown({ animate:false }) 取代。
+ * 預設選取只設值、不觸發地圖飛入；飛入由 app.vue 在使用者明確點選結果時
+ * 呼叫 map.focusTown() 處理。
  */
 export function useResultTowns(opts: UseResultTownsOptions) {
   const { meta, filterIndex, filterDataCache, selectedTownCode, selectedFilters, currentStep } = opts
 
   const selectedResultCode = ref<string | null>(null)
-  const suppressResultFly = ref(false)
 
   const resultTowns = computed<ResultTown[]>(() => {
     if (!selectedTownCode.value || !selectedFilters.value.length || !meta.value) return []
@@ -67,8 +66,7 @@ export function useResultTowns(opts: UseResultTownsOptions) {
       return
     }
     if (!selectedResultCode.value || !towns.some(t => t.code === selectedResultCode.value)) {
-      suppressResultFly.value = true
-      selectedResultCode.value = towns[0].code
+      selectedResultCode.value = towns[0]!.code
     }
   }
 
@@ -77,5 +75,10 @@ export function useResultTowns(opts: UseResultTownsOptions) {
     selectedResultCode.value = null
   }, { deep: true })
 
-  return { selectedResultCode, resultTowns, suppressResultFly, ensureDefaultResult }
+  // Step 3 進場或結果清單變動時，自動把比較卡預設到第一筆
+  watch([currentStep, resultTowns], () => {
+    ensureDefaultResult()
+  })
+
+  return { selectedResultCode, resultTowns }
 }

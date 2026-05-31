@@ -1,14 +1,110 @@
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import str from '../locales/explore.json';
+import common from '../locales/common.json';
+
+const props = defineProps<{
+  meta: any;
+  filterIndex: Array<{ id: string; name: string }>;
+  filterDataCache: Record<string, Record<string, number | null>>;
+  selectedTownCode: string;
+  selectedFilters: string[];
+  resultTowns: Array<{ code: string; name: string; county: string }>;
+  selectedResultCode: string | null;
+}>();
+
+const emit = defineEmits<{
+  'update:selectedResultCode': [value: string | null];
+  'update:selectedFilters': [value: string[]];
+  back: [];
+  reselect: [];
+  'zoom-in': [];
+  'zoom-out': [];
+}>();
+
+const compareCollapsed = ref(false);
+const listCollapsed = ref(false);
+
+const filterNameMap = computed(() =>
+  Object.fromEntries(props.filterIndex.map((f) => [f.id, f.name])),
+);
+
+// Home (current) town name
+const homeCounty = computed(() => {
+  if (!props.meta || !props.selectedTownCode) return '';
+  const t = props.meta.towns[props.selectedTownCode];
+  return props.meta.counties[t?.COUNTYCODE]?.COUNTYNAME ?? '';
+});
+const homeName = computed(() => {
+  if (!props.meta || !props.selectedTownCode) return '';
+  return props.meta.towns[props.selectedTownCode]?.TOWNNAME ?? '';
+});
+
+// Target (selected result) town
+const detailTown = computed(() => {
+  if (!props.selectedResultCode || !props.meta) return null;
+  const t = props.meta.towns[props.selectedResultCode];
+  const c = props.meta.counties[t?.COUNTYCODE];
+  return { name: t?.TOWNNAME ?? '', county: c?.COUNTYNAME ?? '' };
+});
+
+// Result list grouped by county
+const resultGroups = computed(() => {
+  const map = new Map<string, Array<{ code: string; name: string }>>();
+  for (const t of props.resultTowns) {
+    if (!map.has(t.county)) map.set(t.county, []);
+    map.get(t.county)!.push({ code: t.code, name: t.name });
+  }
+  return Array.from(map, ([county, towns]) => ({ county, towns }));
+});
+
+function toggleFilter(id: string) {
+  const filters = [...props.selectedFilters];
+  const idx = filters.indexOf(id);
+  if (idx >= 0) filters.splice(idx, 1);
+  else filters.push(id);
+  emit('update:selectedFilters', filters);
+}
+
+function toggleResult(code: string) {
+  emit(
+    'update:selectedResultCode',
+    props.selectedResultCode === code ? null : code,
+  );
+}
+
+// % diff of target vs home (e.g. "-13%"); null when not computable
+function pct(fid: string): string | null {
+  const home = props.filterDataCache[fid]?.[props.selectedTownCode];
+  const target = props.selectedResultCode
+    ? props.filterDataCache[fid]?.[props.selectedResultCode]
+    : null;
+  if (home == null || target == null || home === 0) return null;
+  const p = Math.round(((target - home) / home) * 100);
+  return `${p > 0 ? '+' : ''}${p}%`;
+}
+
+function formatVal(val: number | null | undefined): string {
+  if (val == null) return '—';
+  return typeof val === 'number' ? val.toLocaleString() : String(val);
+}
+</script>
+
 <template>
   <div class="lc-sr">
     <!-- 3.1 explore-sidebar -->
     <aside class="lc-sr__sidebar">
       <div class="lc-sr__topbar">
-        <button class="lc-sr__back" @click="$emit('back')">◀ {{ common.back }}</button>
+        <button class="lc-sr__back" @click="$emit('back')">
+          ◀ {{ common.back }}
+        </button>
       </div>
 
       <div class="lc-sr__head">
         <p class="lc-sr__title">{{ str.sidebarTitle }}</p>
-        <button class="lc-sr__reselect" @click="$emit('reselect')">{{ str.reselect }} ↺</button>
+        <button class="lc-sr__reselect" @click="$emit('reselect')">
+          {{ str.reselect }} ↺
+        </button>
       </div>
 
       <div class="lc-sr__cards">
@@ -20,17 +116,33 @@
           @click="toggleFilter(f.id)"
         >
           <span class="lc-sr__card-label">{{ f.name }}</span>
-          <span v-if="selectedFilters.includes(f.id)" class="lc-sr__card-x">✕</span>
+          <span v-if="selectedFilters.includes(f.id)" class="lc-sr__card-x"
+            >✕</span
+          >
         </button>
       </div>
 
       <div class="lc-sr__banners">
-        <a class="lc-sr__banner lc-sr__banner--data" href="#" target="_blank" rel="noopener">
-          <span class="lc-sr__banner-text"><strong>{{ str.banner1Title }}</strong> {{ str.banner1Sub }}</span>
+        <a
+          class="lc-sr__banner lc-sr__banner--data"
+          href="#"
+          target="_blank"
+          rel="noopener"
+        >
+          <span class="lc-sr__banner-text"
+            ><strong>{{ str.banner1Title }}</strong> {{ str.banner1Sub }}</span
+          >
           <span class="lc-sr__banner-icon">↗</span>
         </a>
-        <a class="lc-sr__banner lc-sr__banner--report" href="#" target="_blank" rel="noopener">
-          <span class="lc-sr__banner-text"><strong>{{ str.banner2Title }}</strong> {{ str.banner2Sub }}</span>
+        <a
+          class="lc-sr__banner lc-sr__banner--report"
+          href="#"
+          target="_blank"
+          rel="noopener"
+        >
+          <span class="lc-sr__banner-text"
+            ><strong>{{ str.banner2Title }}</strong> {{ str.banner2Sub }}</span
+          >
           <span class="lc-sr__banner-icon">↗</span>
         </a>
       </div>
@@ -40,7 +152,11 @@
     <div class="lc-sr__list">
       <button class="lc-sr__list-head" @click="listCollapsed = !listCollapsed">
         <span class="lc-sr__list-label">
-          {{ listCollapsed ? `${str.resultCountPrefix} ${resultTowns.length} ${str.resultCountSuffix}` : str.listPlaceholder }}
+          {{
+            listCollapsed
+              ? `${str.resultCountPrefix} ${resultTowns.length} ${str.resultCountSuffix}`
+              : str.listPlaceholder
+          }}
         </span>
         <span class="lc-sr__list-chevron">{{ listCollapsed ? '∨' : '∧' }}</span>
       </button>
@@ -51,22 +167,32 @@
             v-for="t in g.towns"
             :key="t.code"
             class="lc-sr__list-item"
-            :class="{ 'lc-sr__list-item--active': selectedResultCode === t.code }"
+            :class="{
+              'lc-sr__list-item--active': selectedResultCode === t.code,
+            }"
             @click="toggleResult(t.code)"
           >
             {{ t.name }}
           </div>
         </template>
-        <div v-if="!resultTowns.length" class="lc-sr__list-empty">{{ str.noResult }}</div>
+        <div v-if="!resultTowns.length" class="lc-sr__list-empty">
+          {{ str.noResult }}
+        </div>
       </div>
     </div>
 
     <!-- 3.4 explore-compare -->
     <div v-if="detailTown" class="lc-sr__compare">
       <div class="lc-sr__compare-head">
-        <div class="lc-sr__compare-title">{{ detailTown.county }} {{ detailTown.name }}</div>
-        <button class="lc-sr__compare-toggle" @click="compareCollapsed = !compareCollapsed">
-          {{ compareCollapsed ? str.expand : str.collapse }} {{ compareCollapsed ? '∧' : '∨' }}
+        <div class="lc-sr__compare-title">
+          {{ detailTown.county }} {{ detailTown.name }}
+        </div>
+        <button
+          class="lc-sr__compare-toggle"
+          @click="compareCollapsed = !compareCollapsed"
+        >
+          {{ compareCollapsed ? str.expand : str.collapse }}
+          {{ compareCollapsed ? '∧' : '∨' }}
         </button>
       </div>
       <div v-if="!compareCollapsed" class="lc-sr__compare-body">
@@ -74,13 +200,23 @@
         <div v-for="fid in selectedFilters" :key="fid" class="lc-sr__metric">
           <p class="lc-sr__metric-name">{{ filterNameMap[fid] ?? fid }}</p>
           <div class="lc-sr__metric-row">
-            <span class="lc-sr__metric-area">{{ detailTown.county }}{{ detailTown.name }}</span>
-            <span v-if="pct(fid) !== null" class="lc-sr__metric-pct">{{ pct(fid) }}</span>
-            <span class="lc-sr__metric-val">{{ formatVal(filterDataCache[fid]?.[selectedResultCode!]) }}</span>
+            <span class="lc-sr__metric-area"
+              >{{ detailTown.county }}{{ detailTown.name }}</span
+            >
+            <span v-if="pct(fid) !== null" class="lc-sr__metric-pct">{{
+              pct(fid)
+            }}</span>
+            <span class="lc-sr__metric-val">{{
+              formatVal(filterDataCache[fid]?.[selectedResultCode!])
+            }}</span>
           </div>
           <div class="lc-sr__metric-row lc-sr__metric-row--home">
-            <span class="lc-sr__metric-area">{{ homeCounty }}{{ homeName }}</span>
-            <span class="lc-sr__metric-val">{{ formatVal(filterDataCache[fid]?.[selectedTownCode]) }}</span>
+            <span class="lc-sr__metric-area"
+              >{{ homeCounty }}{{ homeName }}</span
+            >
+            <span class="lc-sr__metric-val">{{
+              formatVal(filterDataCache[fid]?.[selectedTownCode])
+            }}</span>
           </div>
         </div>
       </div>
@@ -90,97 +226,12 @@
     <div class="lc-sr__zoom">
       <button class="lc-sr__zoom-btn" @click="$emit('zoom-in')">＋</button>
       <button class="lc-sr__zoom-btn" @click="$emit('zoom-out')">－</button>
-      <button class="lc-sr__zoom-btn lc-sr__zoom-btn--info" title="info">ⓘ</button>
+      <button class="lc-sr__zoom-btn lc-sr__zoom-btn--info" title="info">
+        ⓘ
+      </button>
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref, computed } from 'vue'
-import str from '../locales/explore.json'
-import common from '../locales/common.json'
-
-const props = defineProps<{
-  meta: any
-  filterIndex: Array<{ id: string; name: string }>
-  filterDataCache: Record<string, Record<string, number | null>>
-  selectedTownCode: string
-  selectedFilters: string[]
-  resultTowns: Array<{ code: string; name: string; county: string }>
-  selectedResultCode: string | null
-}>()
-
-const emit = defineEmits<{
-  'update:selectedResultCode': [value: string | null]
-  'update:selectedFilters': [value: string[]]
-  'back': []
-  'reselect': []
-  'zoom-in': []
-  'zoom-out': []
-}>()
-
-const compareCollapsed = ref(false)
-const listCollapsed = ref(false)
-
-const filterNameMap = computed(() =>
-  Object.fromEntries(props.filterIndex.map(f => [f.id, f.name]))
-)
-
-// Home (current) town name
-const homeCounty = computed(() => {
-  if (!props.meta || !props.selectedTownCode) return ''
-  const t = props.meta.towns[props.selectedTownCode]
-  return props.meta.counties[t?.COUNTYCODE]?.COUNTYNAME ?? ''
-})
-const homeName = computed(() => {
-  if (!props.meta || !props.selectedTownCode) return ''
-  return props.meta.towns[props.selectedTownCode]?.TOWNNAME ?? ''
-})
-
-// Target (selected result) town
-const detailTown = computed(() => {
-  if (!props.selectedResultCode || !props.meta) return null
-  const t = props.meta.towns[props.selectedResultCode]
-  const c = props.meta.counties[t?.COUNTYCODE]
-  return { name: t?.TOWNNAME ?? '', county: c?.COUNTYNAME ?? '' }
-})
-
-// Result list grouped by county
-const resultGroups = computed(() => {
-  const map = new Map<string, Array<{ code: string; name: string }>>()
-  for (const t of props.resultTowns) {
-    if (!map.has(t.county)) map.set(t.county, [])
-    map.get(t.county)!.push({ code: t.code, name: t.name })
-  }
-  return Array.from(map, ([county, towns]) => ({ county, towns }))
-})
-
-function toggleFilter(id: string) {
-  const filters = [...props.selectedFilters]
-  const idx = filters.indexOf(id)
-  if (idx >= 0) filters.splice(idx, 1)
-  else filters.push(id)
-  emit('update:selectedFilters', filters)
-}
-
-function toggleResult(code: string) {
-  emit('update:selectedResultCode', props.selectedResultCode === code ? null : code)
-}
-
-// % diff of target vs home (e.g. "-13%"); null when not computable
-function pct(fid: string): string | null {
-  const home = props.filterDataCache[fid]?.[props.selectedTownCode]
-  const target = props.selectedResultCode ? props.filterDataCache[fid]?.[props.selectedResultCode] : null
-  if (home == null || target == null || home === 0) return null
-  const p = Math.round(((target - home) / home) * 100)
-  return `${p > 0 ? '+' : ''}${p}%`
-}
-
-function formatVal(val: number | null | undefined): string {
-  if (val == null) return '—'
-  return typeof val === 'number' ? val.toLocaleString() : String(val)
-}
-</script>
 
 <style scoped lang="scss">
 // step-result
@@ -193,11 +244,11 @@ function formatVal(val: number | null | undefined): string {
   // step-result__sidebar（3.1 explore-sidebar）
   &__sidebar {
     position: absolute;
-    top: 0;
+    top: $header-h;
     left: 0;
-    bottom: 0;
-    width: 560px;
-    max-width: 46vw;
+    width: $explore-sidebar-w;
+    height: calc(100vh - #{$header-h});
+    max-height: 1080px;
     background: #fff;
     padding: 24px 32px;
     display: flex;
@@ -283,7 +334,9 @@ function formatVal(val: number | null | undefined): string {
     color: #333;
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition:
+      border-color 0.15s,
+      background 0.15s;
 
     &:hover {
       border-color: #9ca3af;
@@ -345,10 +398,10 @@ function formatVal(val: number | null | undefined): string {
   // step-result__list（3.2 explore-result-bar 清單態，浮於地圖）
   &__list {
     position: absolute;
-    top: 16px;
-    left: 576px;
+    top: calc(#{$header-h} + 16px);
+    left: calc(#{$explore-sidebar-w} + 16px);
     width: 172px;
-    max-height: calc(100% - 32px);
+    max-height: calc(100vh - #{$header-h} - 32px);
     display: flex;
     flex-direction: column;
     background: #fff;
@@ -434,10 +487,10 @@ function formatVal(val: number | null | undefined): string {
   // step-result__compare（3.4 explore-compare，浮於地圖正下方、地圖區水平置中）
   &__compare {
     position: absolute;
-    left: calc(560px + (100% - 560px) / 2);
+    left: calc(#{$explore-sidebar-w} + (100% - #{$explore-sidebar-w}) / 2);
     transform: translateX(-50%);
     bottom: 24px;
-    width: min(760px, calc(100% - 600px));
+    width: min(760px, calc(100% - #{$explore-sidebar-w} - 40px));
     max-height: 48%;
     display: flex;
     flex-direction: column;
@@ -550,7 +603,7 @@ function formatVal(val: number | null | undefined): string {
   // step-result__zoom（3.5 explore-zoom）
   &__zoom {
     position: absolute;
-    top: 16px;
+    top: calc(#{$header-h} + 16px);
     right: 24px;
     display: flex;
     flex-direction: column;

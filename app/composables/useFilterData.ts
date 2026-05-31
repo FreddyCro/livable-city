@@ -1,4 +1,4 @@
-import { ref, shallowRef, watchEffect, type Ref } from 'vue'
+import { ref, shallowRef, watchEffect, onMounted, type Ref } from 'vue'
 import type { FilterMeta } from './useResultTowns'
 
 export type FilterDataCache = Record<string, Record<string, number | null>>
@@ -38,15 +38,15 @@ export function useFilterData(opts: UseFilterDataOptions) {
     return loadFilters(filterIndex.value.map(f => f.id))
   }
 
-  // 載入篩選清單 manifest（/data/index.json）
-  async function loadIndex() {
+  // 載入篩選清單 manifest（/data/index.json）；client 端掛載後抓取
+  onMounted(async () => {
     filterIndex.value = await fetch('/data/index.json').then(r => r.json())
-  }
+  })
 
   // Load selected filter data on demand (for result computation)
   watchEffect(() => {
     loadFilters(selectedFilters.value)
   })
 
-  return { filterIndex, filterDataCache, loadFilters, preloadAllFilters, loadIndex }
+  return { filterIndex, filterDataCache, loadFilters, preloadAllFilters }
 }

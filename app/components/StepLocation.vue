@@ -1,3 +1,40 @@
+<script setup lang="ts">
+import { computed } from 'vue';
+import str from '../locales/locate.json';
+
+const props = defineProps<{
+  meta: any;
+  countyCode: string;
+  townCode: string;
+}>();
+
+const emit = defineEmits<{
+  'update:countyCode': [value: string];
+  'update:townCode': [value: string];
+  next: [];
+}>();
+
+const countyOptions = computed(() => {
+  if (!props.meta) return [];
+  return Object.entries<any>(props.meta.counties).map(([code, info]) => ({
+    value: code,
+    label: info.COUNTYNAME,
+  }));
+});
+
+const townOptions = computed(() => {
+  if (!props.meta || !props.countyCode) return [];
+  return Object.entries<any>(props.meta.towns)
+    .filter(([, info]) => info.COUNTYCODE === props.countyCode)
+    .map(([code, info]) => ({ value: code, label: info.TOWNNAME }));
+});
+
+function onCountySelect(val: string) {
+  emit('update:countyCode', val);
+  emit('update:townCode', '');
+}
+</script>
+
 <template>
   <div class="lc-sl">
     <div class="lc-sl__hero">
@@ -27,41 +64,6 @@
     </button>
   </div>
 </template>
-
-<script setup lang="ts">
-import { computed } from 'vue'
-import str from '../locales/locate.json'
-
-const props = defineProps<{
-  meta: any
-  countyCode: string
-  townCode: string
-}>()
-
-const emit = defineEmits<{
-  'update:countyCode': [value: string]
-  'update:townCode': [value: string]
-  'next': []
-}>()
-
-const countyOptions = computed(() => {
-  if (!props.meta) return []
-  return Object.entries<any>(props.meta.counties)
-    .map(([code, info]) => ({ value: code, label: info.COUNTYNAME }))
-})
-
-const townOptions = computed(() => {
-  if (!props.meta || !props.countyCode) return []
-  return Object.entries<any>(props.meta.towns)
-    .filter(([, info]) => info.COUNTYCODE === props.countyCode)
-    .map(([code, info]) => ({ value: code, label: info.TOWNNAME }))
-})
-
-function onCountySelect(val: string) {
-  emit('update:countyCode', val)
-  emit('update:townCode', '')
-}
-</script>
 
 <style scoped lang="scss">
 // step-location

@@ -17,6 +17,7 @@ export default defineNuxtConfig({
   // },
 
   ssr: true,
+
   nitro: {
     prerender: {
       crawlLinks: true,
@@ -45,7 +46,9 @@ export default defineNuxtConfig({
 
   vite: {
     optimizeDeps: {
-      include: ["earcut", "deck.gl", "@deck.gl/core", "@deck.gl/layers"],
+      // vue-scrollto 為 CJS-only，預先 bundle 成 ESM 以提供 default export
+      // （common-components 內部元件會 import 它）
+      include: ["earcut", "deck.gl", "@deck.gl/core", "@deck.gl/layers", "vue-scrollto"],
     },
     plugins: [
       tailwindcss(),

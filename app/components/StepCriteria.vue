@@ -1,3 +1,61 @@
+<script setup lang="ts">
+import { computed } from 'vue';
+import str from '../locales/criteria.json';
+import common from '../locales/common.json';
+
+const MAX_SELECT = 3;
+
+const props = defineProps<{
+  meta: any;
+  filterIndex: Array<{ id: string; name: string }>;
+  selectedTownCode: string;
+  filterDataCache: Record<string, Record<string, number | null>>;
+  selectedFilters: string[];
+  selectedTownThumb: { path: string; width: number; height: number } | null;
+}>();
+
+const emit = defineEmits<{
+  'update:selectedFilters': [value: string[]];
+  next: [];
+  back: [];
+}>();
+
+const countyName = computed(() => {
+  if (!props.meta || !props.selectedTownCode) return '';
+  const town = props.meta.towns[props.selectedTownCode];
+  return props.meta.counties[town?.COUNTYCODE]?.COUNTYNAME ?? '';
+});
+
+const townName = computed(() => {
+  if (!props.meta || !props.selectedTownCode) return '';
+  return props.meta.towns[props.selectedTownCode]?.TOWNNAME ?? '';
+});
+
+const atMax = computed(() => props.selectedFilters.length >= MAX_SELECT);
+
+const hintText = computed(
+  () =>
+    `${str.hint}（${str.selectedLabel} ${props.selectedFilters.length}/${MAX_SELECT}）`,
+);
+
+function toggleFilter(id: string) {
+  const filters = [...props.selectedFilters];
+  const idx = filters.indexOf(id);
+  if (idx >= 0) {
+    filters.splice(idx, 1);
+  } else {
+    if (filters.length >= MAX_SELECT) return; // cap at MAX_SELECT
+    filters.push(id);
+  }
+  emit('update:selectedFilters', filters);
+}
+
+function formatVal(val: number | null | undefined): string {
+  if (val == null) return '—';
+  return typeof val === 'number' ? val.toLocaleString() : String(val);
+}
+</script>
+
 <template>
   <div class="lc-sc">
     <!-- Left: current-area info panel -->
@@ -18,20 +76,26 @@
       <div class="lc-sc__location">
         <span class="lc-sc__location-pin">📍</span>
         <span class="lc-sc__location-label">{{ str.currentArea }}</span>
-        <strong class="lc-sc__location-area">{{ countyName }}{{ townName }}</strong>
+        <strong class="lc-sc__location-area"
+          >{{ countyName }}{{ townName }}</strong
+        >
       </div>
 
       <div class="lc-sc__stats">
         <div v-for="f in filterIndex" :key="f.id" class="lc-sc__stat">
           <span class="lc-sc__stat-label">{{ f.name }}</span>
-          <span class="lc-sc__stat-val">{{ formatVal(filterDataCache[f.id]?.[selectedTownCode]) }}</span>
+          <span class="lc-sc__stat-val">{{
+            formatVal(filterDataCache[f.id]?.[selectedTownCode])
+          }}</span>
         </div>
       </div>
     </aside>
 
     <!-- Right: criteria selection -->
     <section class="lc-sc__criteria">
-      <button class="lc-sc__back" @click="$emit('back')">◀ {{ common.back }}</button>
+      <button class="lc-sc__back" @click="$emit('back')">
+        ◀ {{ common.back }}
+      </button>
 
       <h2 class="lc-sc__title">{{ str.title }}</h2>
       <p class="lc-sc__hint">{{ hintText }}</p>
@@ -62,63 +126,6 @@
     </section>
   </div>
 </template>
-
-<script setup lang="ts">
-import { computed } from 'vue'
-import str from '../locales/criteria.json'
-import common from '../locales/common.json'
-
-const MAX_SELECT = 3
-
-const props = defineProps<{
-  meta: any
-  filterIndex: Array<{ id: string; name: string }>
-  selectedTownCode: string
-  filterDataCache: Record<string, Record<string, number | null>>
-  selectedFilters: string[]
-  selectedTownThumb: { path: string; width: number; height: number } | null
-}>()
-
-const emit = defineEmits<{
-  'update:selectedFilters': [value: string[]]
-  'next': []
-  'back': []
-}>()
-
-const countyName = computed(() => {
-  if (!props.meta || !props.selectedTownCode) return ''
-  const town = props.meta.towns[props.selectedTownCode]
-  return props.meta.counties[town?.COUNTYCODE]?.COUNTYNAME ?? ''
-})
-
-const townName = computed(() => {
-  if (!props.meta || !props.selectedTownCode) return ''
-  return props.meta.towns[props.selectedTownCode]?.TOWNNAME ?? ''
-})
-
-const atMax = computed(() => props.selectedFilters.length >= MAX_SELECT)
-
-const hintText = computed(
-  () => `${str.hint}（${str.selectedLabel} ${props.selectedFilters.length}/${MAX_SELECT}）`
-)
-
-function toggleFilter(id: string) {
-  const filters = [...props.selectedFilters]
-  const idx = filters.indexOf(id)
-  if (idx >= 0) {
-    filters.splice(idx, 1)
-  } else {
-    if (filters.length >= MAX_SELECT) return // cap at MAX_SELECT
-    filters.push(id)
-  }
-  emit('update:selectedFilters', filters)
-}
-
-function formatVal(val: number | null | undefined): string {
-  if (val == null) return '—'
-  return typeof val === 'number' ? val.toLocaleString() : String(val)
-}
-</script>
 
 <style scoped lang="scss">
 // step-criteria
@@ -287,7 +294,9 @@ function formatVal(val: number | null | undefined): string {
     background: #fff;
     text-align: left;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition:
+      border-color 0.15s,
+      background 0.15s;
 
     &:hover {
       border-color: #9ca3af;
