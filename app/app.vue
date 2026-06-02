@@ -8,7 +8,6 @@ import AppHeader from './components/AppHeader.vue';
 import { useGeoMeta } from './composables/useGeoMeta';
 import { useFilterData } from './composables/useFilterData';
 import { useResultTowns } from './composables/useResultTowns';
-import { useTheme } from './composables/useTheme';
 import type { TownThumb } from './composables/useTaiwanMap';
 import seoMeta from './locales/meta.json';
 
@@ -61,9 +60,6 @@ const { selectedResultCode, resultTowns } = useResultTowns({
 const mapRef = ref<InstanceType<typeof TaiwanMap> | null>(null);
 const selectedTownThumb = ref<TownThumb | null>(null);
 
-// 暫時：wireframe / prod 主題切換（驗證用，之後可移除或收進設定）
-const { theme, toggle: toggleTheme } = useTheme();
-
 // Navigation
 
 function goToStep(step: 1 | 2 | 3) {
@@ -90,10 +86,6 @@ watch(currentStep, async (step) => {
 </script>
 
 <template>
-  <!-- 暫時：主題切換鈕（驗證 wireframe ⇄ prod 瞬間切換用） -->
-  <!-- <button type="button" class="lc-theme-toggle" @click="toggleTheme">
-    {{ theme === 'wireframe' ? '線框 wireframe' : '正式 prod' }}
-  </button> -->
   <AppHeader />
   <div class="lc-mv">
     <!-- Map background (canvas + hover tooltip). Only shown on step 3;
@@ -151,22 +143,6 @@ watch(currentStep, async (step) => {
 </template>
 
 <style scoped lang="scss">
-// 暫時：主題切換鈕
-.lc-theme-toggle {
-  position: fixed;
-  right: 16px;
-  bottom: 16px;
-  z-index: 9999;
-  padding: 8px 14px;
-  font-size: 13px;
-  background: var(--c-surface-inverse);
-  color: var(--c-text-inverse);
-  border: none;
-  border-radius: 999px;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgb(var(--c-shadow) / 0.25);
-}
-
 // map-view
 // __canvas element 樣式定義於 TaiwanMap.vue（canvas 由該元件渲染）
 .lc-mv {

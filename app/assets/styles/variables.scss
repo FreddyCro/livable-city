@@ -1,5 +1,5 @@
 // Theme colors
-// 實際色值與 wireframe/prod 切換定義於 theme.css（CSS 變數 + data-theme）。
+// 實際色值定義於 theme.css（CSS 變數）。
 // 此處僅提供 Figma primitive 的 SCSS alias，讓既有 $color-* 寫法續用、命名對齊 Figma。
 // 元件新樣式請優先用 semantic：var(--c-text) / var(--c-primary) 等（見 theme.css）。
 $color-b02: var(--color-b02); // 淺藍 light blue

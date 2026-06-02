@@ -2,8 +2,6 @@
    色彩設計 token（兩層）
    - Primitive：原始色票，命名對齊 Figma（--color-*）。
    - Semantic ：角色 token，參照 primitive（--c-*）。元件只用 semantic。
-   切換：<html data-theme="wireframe">。wireframe 只翻「有色 primitive → 灰」，
-   中性灰與 semantic 不重定義，靠參照自動串聯。
    對照表：temp/color-token-map.md
    ============================================================ */
 
@@ -56,7 +54,7 @@
   --c-border-hover: var(--color-grey-400);
   --c-border-strong: var(--color-grey-900);
 
-  /* ---------- Semantic：Accent（指向有色 primitive → wireframe 自動變灰） ---------- */
+  /* ---------- Semantic：Accent（指向有色 primitive） ---------- */
   --c-primary: var(--color-y01); /* 主色：黃高亮 / CTA 選取 */
   --c-danger: var(--color-red-udn); /* 警示 / 必選提示 / 紅標 */
   --c-info: var(--color-blue-link); /* 結果選中文字 */
@@ -78,36 +76,4 @@
 
   /* ---------- Semantic：陰影 ---------- */
   --c-shadow: 0 0 0; /* 用 rgb(var(--c-shadow) / .1) */
-}
-
-/* ============================================================
-   Wireframe：只覆寫「有色 primitive」與「地圖三分量」→ 灰。
-   中性灰 scale、semantic 一律不重定義，靠參照自動跟著變。
-   灰階值為初版、可微調。
-   ============================================================ */
-[data-theme='wireframe'] {
-  /* Figma palette → 灰（依亮度由淺到深） */
-  --color-b02: #dcdcdc;
-  --color-b03: #6e6e6e;
-  --color-y01: #c7c7c7;
-  --color-g01: #9a9a9a;
-  --color-r01: #5a5a5a;
-  --color-bg-cream: #f5f5f5;
-
-  /* 補進來的有色 → 灰 */
-  --color-red-udn: #5a5a5a;
-  --color-blue-link: #6e6e6e;
-  --color-blue-tint: #ededed;
-  --color-b03-dk: #555555;
-
-  /* 地圖三分量 → 灰（town/邊線/marker-line 本就中性，不覆寫） */
-  --c-map-selected: 90 90 90;
-  --c-map-result: 150 150 150;
-  --c-map-marker: 199 199 199;
-  --c-map-hover: 200 200 200;
-  --c-map-pin: 90 90 90;
-
-  .lc-mv * {
-    border-radius: 0 !important;
-  }
 }

@@ -34,11 +34,6 @@ export default defineNuxtConfig({
   },
 
   app: {
-    // 預設主題（線框）。SSR 首屏即帶 data-theme，避免 hydration 閃爍；
-    // runtime 由 useTheme() 切換。預設值要與 useTheme 的 ref 初值一致。
-    head: {
-      htmlAttrs: { "data-theme": "wireframe" },
-    },
     baseURL: (() => {
       const nuxtUrl = process.env.NUXT_URL;
       if (!nuxtUrl) return "/";
