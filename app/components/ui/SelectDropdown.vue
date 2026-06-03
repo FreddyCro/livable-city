@@ -13,7 +13,7 @@ export type SelectItems = SelectOption[] | SelectOptionGroup[];
 </script>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue';
+import { computed } from 'vue';
 
 const props = withDefaults(
   defineProps<{
@@ -31,17 +31,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];
-  open: [];
-  close: [];
 }>();
-
-const rootRef = ref<HTMLElement | null>(null);
-const controlRef = ref<HTMLButtonElement | null>(null);
-const open = ref(false);
-const direction = ref<'down' | 'up'>('down');
-
-// 估算 menu 高度上限，與 .lc-sd__menu 的 max-height 對齊
-const MENU_MAX_HEIGHT = 280;
 
 // 判斷 options 是否為分組結構（含 options 欄位即為 group）
 const isGrouped = computed(
@@ -61,163 +51,95 @@ const renderGroups = computed<
   return [{ label: null, options: props.options as SelectOption[] }];
 });
 
-const allOptions = computed<SelectOption[]>(() =>
-  renderGroups.value.flatMap((g) => g.options),
-);
-
-const selectedLabel = computed<string | null>(
-  () =>
-    allOptions.value.find((o) => o.value === props.modelValue)?.label ?? null,
-);
-
-function toggle() {
-  if (props.disabled) return;
-  open.value ? close() : openMenu();
+function onUpdate(val: string) {
+  emit('update:modelValue', val);
 }
-
-async function openMenu() {
-  open.value = true;
-  emit('open');
-  await nextTick();
-  updateDirection();
-}
-
-function close() {
-  if (!open.value) return;
-  open.value = false;
-  emit('close');
-}
-
-function select(opt: SelectOption) {
-  if (opt.disabled) return;
-  emit('update:modelValue', opt.value);
-  close();
-}
-
-// 依視窗可用空間判斷向下 / 向上展開（client only）
-function updateDirection() {
-  const el = controlRef.value;
-  if (!el) return;
-  const rect = el.getBoundingClientRect();
-  const spaceBelow = window.innerHeight - rect.bottom;
-  const spaceAbove = rect.top;
-  direction.value =
-    spaceBelow < MENU_MAX_HEIGHT && spaceAbove > spaceBelow ? 'up' : 'down';
-}
-
-function onDocPointer(e: Event) {
-  if (!open.value) return;
-  if (rootRef.value && !rootRef.value.contains(e.target as Node)) close();
-}
-
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') close();
-}
-
-function onViewportChange() {
-  if (open.value) updateDirection();
-}
-
-onMounted(() => {
-  document.addEventListener('pointerdown', onDocPointer);
-  document.addEventListener('keydown', onKeydown);
-  window.addEventListener('resize', onViewportChange);
-  window.addEventListener('scroll', onViewportChange, true);
-});
-
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', onDocPointer);
-  document.removeEventListener('keydown', onKeydown);
-  window.removeEventListener('resize', onViewportChange);
-  window.removeEventListener('scroll', onViewportChange, true);
-});
 </script>
 
 <template>
-  <div
-    ref="rootRef"
-    class="lc-sd"
-    :class="{
-      'lc-sd--open': open,
-      'lc-sd--disabled': disabled,
-      [`lc-sd--${direction}`]: open,
-    }"
+  <!-- 行為、鍵盤導航、type-ahead、focus 管理、ARIA 由 Reka UI 提供；樣式維持自有 lc-sd。
+       選單刻意「不」用 SelectPortal：inline 渲染才能讓 .lc-sd 以 :has() 偵測選單方向，
+       把 control 與選單接縫側的圓角去掉，呈現 Reka 前的連續容器外觀。 -->
+  <SelectRoot
+    :model-value="modelValue ?? undefined"
+    :disabled="disabled"
+    @update:model-value="onUpdate"
   >
-    <!-- control -->
-    <button
-      ref="controlRef"
-      type="button"
-      class="lc-sd__control"
-      :disabled="disabled"
-      aria-haspopup="listbox"
-      :aria-expanded="open"
-      @click="toggle"
-    >
-      <span v-if="$slots.icon || icon" class="lc-sd__icon">
-        <slot name="icon">{{ icon }}</slot>
-      </span>
-      <span
-        class="lc-sd__label"
-        :class="{ 'lc-sd__label--placeholder': selectedLabel === null }"
-      >
-        {{ selectedLabel ?? placeholder }}
-      </span>
-      <span class="lc-sd__chevron" aria-hidden="true">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path
-            d="M2.5 4.5 6 8l3.5-3.5"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </span>
-    </button>
+    <div class="lc-sd">
+      <!-- control -->
+      <SelectTrigger class="lc-sd__control">
+        <span v-if="$slots.icon || icon" class="lc-sd__icon">
+          <slot name="icon">{{ icon }}</slot>
+        </span>
+        <SelectValue class="lc-sd__label" :placeholder="placeholder" />
+        <span class="lc-sd__chevron" aria-hidden="true">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path
+              d="M2.5 4.5 6 8l3.5-3.5"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+      </SelectTrigger>
 
-    <!-- menu -->
-    <Transition :name="direction === 'up' ? 'lc-sd-up' : 'lc-sd-down'">
-      <div
-        v-if="open"
+      <!-- menu（inline，非 portal；popper 提供碰撞翻轉 + data-side）。
+           ⚠️ position="popper" 與「不包 SelectPortal」是樣式的硬相依，兩者皆不可移除：
+           - data-side 由 popper 模式才會輸出，是 __menu / __control 接縫去圓角的依據；
+           - --reka-select-trigger-width 亦僅 popper 模式才設，是選單寬度對齊 trigger 的依據；
+           - inline（非 portal）才能讓 .lc-sd 以 :has() 讀到選單的 data-side。
+           若改用 item-aligned 或 SelectPortal，接縫圓角與選單寬度都會失效。 -->
+      <SelectContent
         class="lc-sd__menu"
-        :class="`lc-sd__menu--${direction}`"
-        role="listbox"
+        position="popper"
+        :side-offset="-1"
+        align="start"
       >
-        <div
-          v-for="(group, gi) in renderGroups"
-          :key="gi"
-          class="lc-sd__group"
-          role="group"
-        >
-          <div v-if="group.label !== null" class="lc-sd__group-label">
-            <slot name="group-label" :group="group">{{ group.label }}</slot>
-          </div>
-          <div
-            v-for="opt in group.options"
-            :key="opt.value"
-            class="lc-sd__option"
-            :class="{
-              'lc-sd__option--selected': opt.value === modelValue,
-              'lc-sd__option--disabled': opt.disabled,
-            }"
-            role="option"
-            :aria-selected="opt.value === modelValue"
-            @click="select(opt)"
+        <SelectViewport class="lc-sd__viewport">
+          <SelectGroup
+            v-for="(group, gi) in renderGroups"
+            :key="gi"
+            class="lc-sd__group"
           >
-            <slot name="option" :option="opt">{{ opt.label }}</slot>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </div>
+            <SelectLabel v-if="group.label !== null" class="lc-sd__group-label">
+              <slot name="group-label" :group="group">{{ group.label }}</slot>
+            </SelectLabel>
+            <SelectItem
+              v-for="opt in group.options"
+              :key="opt.value"
+              class="lc-sd__option"
+              :value="opt.value"
+              :disabled="opt.disabled"
+            >
+              <SelectItemText>
+                <slot name="option" :option="opt">{{ opt.label }}</slot>
+              </SelectItemText>
+            </SelectItem>
+          </SelectGroup>
+        </SelectViewport>
+      </SelectContent>
+    </div>
+  </SelectRoot>
 </template>
 
 <style scoped lang="scss">
 // select-dropdown
 .lc-sd {
   position: relative;
-  display: inline-block;
-  font-family: 'Noto Sans TC', sans-serif;
+
+  // 展開時去掉 control 與選單接縫側的圓角，合成連續容器。
+  // 選單 inline 渲染，故 .lc-sd 可用 :has() 讀到 SelectContent 的 data-side。
+  &:has(&__menu[data-side='bottom']) &__control {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  &:has(&__menu[data-side='top']) &__control {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
 
   // select-dropdown__control
   &__control {
@@ -232,33 +154,25 @@ onBeforeUnmount(() => {
     border-radius: 8px;
     font-size: 14px;
     color: var(--c-text);
+    font-family: 'Noto Sans TC', sans-serif;
     cursor: pointer;
     transition: border-color 0.15s;
 
-    &:hover:not(:disabled) {
+    &:hover:not([data-disabled]) {
       border-color: $color-b03;
     }
 
-    &:disabled {
+    // 展開時（Reka 在 trigger 掛 data-state="open"）
+    &[data-state='open'] {
+      border-color: $color-b03;
+    }
+
+    // 停用（Reka 掛 data-disabled）
+    &[data-disabled] {
       color: var(--c-text-faint);
       cursor: default;
       background: var(--c-surface-sunken);
     }
-  }
-
-  &--open &__control {
-    border-color: $color-b03;
-  }
-
-  // 展開時 control 與 menu 接合側去圓角（合成連續容器，方向 class 在 open 時掛於 root）
-  &--open#{&}--down &__control {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-
-  &--open#{&}--up &__control {
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
   }
 
   // select-dropdown__icon
@@ -276,11 +190,11 @@ onBeforeUnmount(() => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
 
-    // select-dropdown__label--placeholder
-    &--placeholder {
-      color: var(--c-text-faint);
-    }
+  // placeholder 態：Reka 在 trigger 掛 data-placeholder
+  &__control[data-placeholder] &__label {
+    color: var(--c-text-faint);
   }
 
   // select-dropdown__chevron
@@ -292,38 +206,58 @@ onBeforeUnmount(() => {
     transition: transform 0.18s ease;
   }
 
-  &--open &__chevron {
+  &__control[data-state='open'] &__chevron {
     transform: rotate(180deg);
   }
+}
+</style>
 
-  // select-dropdown__menu
+<style lang="scss">
+// select-dropdown（選單子樹）
+// reka SelectContent 渲染出的元素不帶 Vue scoped 的 data-v 屬性（即使 inline 不 portal
+// 也一樣，它與 .lc-sd 之間還隔著 reka 的 positioner wrapper），故此區改為 global。
+// class 已以 lc-sd 命名空間隔離。control 的 :has() 接縫規則留在上方 scoped block
+// （.lc-sd / .lc-sd__control 本身帶 scoped 屬性，:has() 內的 __menu 僅作條件比對）。
+.lc-sd {
+  // select-dropdown__menu（與 control 接合的連續容器；popper 寬度對齊 trigger）
   &__menu {
-    position: absolute;
-    left: 0;
-    right: 0;
     z-index: 50;
-    max-height: 280px;
-    overflow-y: auto;
+    width: var(--reka-select-trigger-width);
     background: var(--c-surface);
     border: 1px solid $color-b03;
     border-radius: 8px;
     box-shadow: 0 6px 20px rgb(var(--c-shadow) / 0.12);
-    padding: 4px;
+    overflow: hidden;
 
-    // select-dropdown__menu--down（接在 control 下方、接縫去圓角、邊框重疊 1px 合併）
-    &--down {
-      top: 100%;
-      margin-top: -1px;
+    // 接縫側去圓角（向下展開→去上緣；向上展開→去下緣）
+    &[data-side='bottom'] {
       border-top-left-radius: 0;
       border-top-right-radius: 0;
     }
 
-    // select-dropdown__menu--up（接在 control 上方）
-    &--up {
-      bottom: 100%;
-      margin-bottom: -1px;
+    &[data-side='top'] {
       border-bottom-left-radius: 0;
       border-bottom-right-radius: 0;
+    }
+  }
+
+  // select-dropdown__viewport（可捲動內容）
+  // Reka 會注入 [data-reka-select-viewport]{scrollbar-width:none} 並隱藏 webkit 捲軸；
+  // 以「class + data 屬性」提高權重蓋回，讓選單超出 280px 時仍有捲軸提示（縣市清單必超出）。
+  &__viewport[data-reka-select-viewport] {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 4px;
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+      display: block;
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--c-border-hover);
+      border-radius: 4px;
     }
   }
 
@@ -355,46 +289,27 @@ onBeforeUnmount(() => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    user-select: none;
+    outline: none;
 
-    &:hover {
+    // 鍵盤/滑鼠高亮：Reka 掛 data-highlighted
+    &[data-highlighted] {
       background: $color-b02;
     }
 
-    // select-dropdown__option--selected
-    &--selected {
+    // 已選：Reka 掛 data-state="checked"
+    &[data-state='checked'] {
       background: $color-b03;
       color: var(--c-text-inverse);
       font-weight: 500;
     }
 
-    // select-dropdown__option--disabled
-    &--disabled {
+    // select-dropdown__option--disabled：Reka 掛 data-disabled
+    &[data-disabled] {
       color: var(--c-text-faint);
       cursor: default;
       background: transparent;
     }
   }
-}
-
-// menu transitions（Vue <Transition> 全域 class，非 BEM）
-.lc-sd-down-enter-active,
-.lc-sd-down-leave-active,
-.lc-sd-up-enter-active,
-.lc-sd-up-leave-active {
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
-}
-
-.lc-sd-down-enter-from,
-.lc-sd-down-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-}
-
-.lc-sd-up-enter-from,
-.lc-sd-up-leave-to {
-  opacity: 0;
-  transform: translateY(6px);
 }
 </style>

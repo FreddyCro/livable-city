@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import type { AcceptableValue } from 'reka-ui';
 import str from '../locales/explore.json';
 import common from '../locales/common.json';
 import type { GeoMeta } from '../types/geo';
@@ -26,7 +27,7 @@ const emit = defineEmits<{
 }>();
 
 const compareCollapsed = ref(false);
-const listCollapsed = ref(false);
+const listOpen = ref(true);
 
 const filterNameMap = computed(() =>
   Object.fromEntries(props.filterIndex.map((f) => [f.id, f.name])),
@@ -67,19 +68,14 @@ const resultGroups = computed(() => {
   return Array.from(map, ([county, towns]) => ({ county, towns }));
 });
 
-function toggleFilter(id: string) {
-  const filters = [...props.selectedFilters];
-  const idx = filters.indexOf(id);
-  if (idx >= 0) filters.splice(idx, 1);
-  else filters.push(id);
-  emit('update:selectedFilters', filters);
+// CheckboxGroup 多選：reka 回傳更新後的勾選值陣列（值均為 filter id 字串）
+function onFiltersChange(value: AcceptableValue[]) {
+  emit('update:selectedFilters', value as string[]);
 }
 
-function toggleResult(code: string) {
-  emit(
-    'update:selectedResultCode',
-    props.selectedResultCode === code ? null : code,
-  );
+// Listbox 單選 + 預設 toggle 行為：點未選項→選取，點已選項→回傳 undefined（取消）
+function onResultSelect(val: AcceptableValue | undefined) {
+  emit('update:selectedResultCode', (val as string | undefined) ?? null);
 }
 
 // % diff of target vs home (e.g. "-13%"); null when not computable
@@ -117,23 +113,25 @@ function formatVal(val: number | null | undefined): string {
           </button>
         </div>
 
-        <div class="lc-sr__cards">
-          <button
+        <CheckboxGroupRoot
+          class="lc-sr__cards"
+          :model-value="selectedFilters"
+          @update:model-value="onFiltersChange"
+        >
+          <CheckboxRoot
             v-for="f in filterIndex"
             :key="f.id"
+            :value="f.id"
             class="lc-sr__card"
-            :class="{ 'lc-sr__card--selected': selectedFilters.includes(f.id) }"
-            @click="toggleFilter(f.id)"
           >
             <span class="lc-sr__card-label">{{ f.name }}</span>
-            <span v-if="selectedFilters.includes(f.id)" class="lc-sr__card-x"
-              >✕</span
-            >
-          </button>
-        </div>
+            <!-- CheckboxIndicator 僅在勾選時 render，等同原本 ✕ 的 v-if -->
+            <CheckboxIndicator class="lc-sr__card-x">✕</CheckboxIndicator>
+          </CheckboxRoot>
+        </CheckboxGroupRoot>
       </div>
 
-      <!-- <div class="lc-sr__banners">
+      <div class="lc-sr__banners">
         <a
           class="lc-sr__banner lc-sr__banner--data"
           href="#"
@@ -156,41 +154,59 @@ function formatVal(val: number | null | undefined): string {
           >
           <span class="lc-sr__banner-icon">↗</span>
         </a>
-      </div> -->
+      </div>
     </aside>
 
-    <!-- 3.2 explore-result-bar（清單態） -->
-    <div class="lc-sr__list">
-      <button class="lc-sr__list-head" @click="listCollapsed = !listCollapsed">
+    <!-- 3.2 explore-result-bar（清單態）；收合用 Reka Collapsible、選取用 Reka Listbox。
+         unmount-on-hide=false：收合時以 hidden 保留 DOM（不卸載），維持清單捲動位置。 -->
+    <CollapsibleRoot
+      v-model:open="listOpen"
+      :unmount-on-hide="false"
+      class="lc-sr__list"
+    >
+      <CollapsibleTrigger class="lc-sr__list-head">
         <span class="lc-sr__list-label">
           {{
-            listCollapsed
-              ? `${str.resultCountPrefix} ${resultTowns.length} ${str.resultCountSuffix}`
-              : str.listPlaceholder
+            listOpen
+              ? str.listPlaceholder
+              : `${str.resultCountPrefix} ${resultTowns.length} ${str.resultCountSuffix}`
           }}
         </span>
-        <span class="lc-sr__list-chevron">{{ listCollapsed ? '∨' : '∧' }}</span>
-      </button>
-      <div v-show="!listCollapsed" class="lc-sr__list-body">
-        <template v-for="g in resultGroups" :key="g.county">
-          <div class="lc-sr__list-county">{{ g.county }}</div>
-          <div
-            v-for="t in g.towns"
-            :key="t.code"
-            class="lc-sr__list-item"
-            :class="{
-              'lc-sr__list-item--active': selectedResultCode === t.code,
-            }"
-            @click="toggleResult(t.code)"
-          >
-            {{ t.name }}
-          </div>
-        </template>
-        <div v-if="!resultTowns.length" class="lc-sr__list-empty">
+        <span class="lc-sr__list-chevron">{{ listOpen ? '∧' : '∨' }}</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent class="lc-sr__list-body">
+        <ListboxRoot
+          v-if="resultTowns.length"
+          :model-value="selectedResultCode ?? undefined"
+          @update:model-value="onResultSelect"
+        >
+          <!-- ListboxContent 才會掛 role=listbox 與方向鍵/Enter/type-ahead keydown -->
+          <ListboxContent class="lc-sr__listbox">
+            <ListboxGroup
+              v-for="g in resultGroups"
+              :key="g.county"
+              class="lc-sr__list-group"
+            >
+              <ListboxGroupLabel class="lc-sr__list-county">
+                {{ g.county }}
+              </ListboxGroupLabel>
+              <ListboxItem
+                v-for="t in g.towns"
+                :key="t.code"
+                :value="t.code"
+                class="lc-sr__list-item"
+              >
+                {{ t.name }}
+              </ListboxItem>
+            </ListboxGroup>
+          </ListboxContent>
+        </ListboxRoot>
+        <!-- 空狀態置於 listbox 之外，避免 role=listbox 內含非 option 內容 -->
+        <div v-else class="lc-sr__list-empty">
           {{ str.noResult }}
         </div>
-      </div>
-    </div>
+      </CollapsibleContent>
+    </CollapsibleRoot>
 
     <!-- 3.4 explore-compare -->
     <div v-if="detailTown" class="lc-sr__compare">
@@ -237,9 +253,26 @@ function formatVal(val: number | null | undefined): string {
     <div class="lc-sr__zoom">
       <button class="lc-sr__zoom-btn" @click="$emit('zoom-in')">＋</button>
       <button class="lc-sr__zoom-btn" @click="$emit('zoom-out')">－</button>
-      <button class="lc-sr__zoom-btn lc-sr__zoom-btn--info" title="info">
-        ⓘ
-      </button>
+      <DialogRoot>
+        <DialogTrigger
+          class="lc-sr__zoom-btn lc-sr__zoom-btn--info"
+          title="info"
+        >
+          ⓘ
+        </DialogTrigger>
+        <DialogPortal>
+          <DialogOverlay class="lc-sr__dialog-overlay" />
+          <DialogContent class="lc-sr__dialog">
+            <DialogTitle class="lc-sr__dialog-title">說明</DialogTitle>
+            <DialogDescription class="lc-sr__dialog-desc">
+              這裡之後會放地圖與指標的說明內容（佔位）。
+            </DialogDescription>
+            <DialogClose class="lc-sr__dialog-close" aria-label="關閉">
+              ✕
+            </DialogClose>
+          </DialogContent>
+        </DialogPortal>
+      </DialogRoot>
     </div>
   </div>
 </template>
@@ -354,8 +387,8 @@ function formatVal(val: number | null | undefined): string {
       border-color: var(--c-border-hover);
     }
 
-    // step-result__card--selected
-    &--selected {
+    // 已選：Reka CheckboxRoot 掛 data-state="checked"（樣式沿用原 --selected）
+    &[data-state='checked'] {
       background: var(--c-primary);
       border-color: var(--c-primary);
       color: var(--c-text);
@@ -439,6 +472,7 @@ function formatVal(val: number | null | undefined): string {
     color: var(--c-text-secondary);
     cursor: pointer;
     text-align: left;
+    flex-shrink: 0;
 
     &:hover {
       color: var(--c-text);
@@ -456,13 +490,20 @@ function formatVal(val: number | null | undefined): string {
     color: var(--c-text-faint);
   }
 
-  // step-result__list-body
+  // step-result__list-body（CollapsibleContent；撐滿剩餘高度並自行捲動）
   &__list-body {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     padding: 4px 0;
   }
 
-  // step-result__list-county
+  // step-result__listbox（ListboxRoot；可聚焦容器，移除預設外框）
+  &__listbox {
+    outline: none;
+  }
+
+  // step-result__list-county（ListboxGroupLabel）
   &__list-county {
     padding: 10px 14px 4px;
     font-size: 14px;
@@ -470,19 +511,26 @@ function formatVal(val: number | null | undefined): string {
     color: var(--c-text);
   }
 
-  // step-result__list-item
+  // step-result__list-item（ListboxItem）
   &__list-item {
     padding: 5px 14px;
     font-size: 13px;
     color: var(--c-text-secondary);
     cursor: pointer;
+    user-select: none;
+    outline: none;
 
     &:hover {
       background: var(--c-info-bg);
     }
 
-    // step-result__list-item--active
-    &--active {
+    // 鍵盤導航高亮：Reka 掛 data-highlighted
+    &[data-highlighted] {
+      background: var(--c-info-bg);
+    }
+
+    // 已選：Reka 掛 data-state="checked"
+    &[data-state='checked'] {
       background: var(--c-info-bg);
       color: var(--c-info);
       font-weight: 600;
@@ -645,6 +693,72 @@ function formatVal(val: number | null | undefined): string {
     // step-result__zoom-btn--info
     &--info {
       color: var(--c-text-muted);
+    }
+  }
+}
+</style>
+
+<style lang="scss">
+// step-result（Dialog 經 DialogPortal teleport 至 <body>，
+// Vue scoped 屬性套不到 portal 內元素，故此區改為 global；class 已以 lc-sr 命名空間隔離）
+.lc-sr {
+  // step-result__dialog-overlay
+  &__dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgb(var(--c-shadow) / 0.45);
+  }
+
+  // step-result__dialog（置中浮層）
+  &__dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1001;
+    width: min(440px, calc(100vw - 32px));
+    padding: 28px 24px 24px;
+    background: var(--c-surface);
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgb(var(--c-shadow) / 0.2);
+  }
+
+  // step-result__dialog-title
+  &__dialog-title {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--c-text);
+  }
+
+  // step-result__dialog-desc
+  &__dialog-desc {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--c-text-secondary);
+  }
+
+  // step-result__dialog-close（右上角關閉）
+  &__dialog-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    font-size: 14px;
+    color: var(--c-text-muted);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--c-surface-sunken);
     }
   }
 }

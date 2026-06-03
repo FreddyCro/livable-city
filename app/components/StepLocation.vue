@@ -38,13 +38,13 @@ function onCountySelect(val: string) {
 
 <template>
   <div class="lc-sl">
-    <!-- <div class="lc-sl__hero">
+    <div class="lc-sl__hero">
       <p class="lc-sl__kicker">{{ str.kicker }}</p>
       <h1 class="lc-sl__title">{{ str.title }}</h1>
       <p class="lc-sl__subtitle">{{ str.subtitle }}</p>
     </div>
     <p class="lc-sl__intro">{{ str.intro }}</p>
-    <p class="lc-sl__question">{{ str.question }}</p> -->
+    <p class="lc-sl__question">{{ str.question }}</p>
     <div class="lc-sl__selects">
       <UiSelectDropdown
         :model-value="countyCode || null"
@@ -139,6 +139,12 @@ function onCountySelect(val: string) {
   &__selects {
     display: flex;
     gap: 12px;
+
+    // 兩個 select 等分填滿（layout 屬於本容器，不外洩到共用的 .lc-sd）
+    > * {
+      flex: 1 1 0;
+      min-width: 0;
+    }
   }
 
   // step-location__next

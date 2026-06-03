@@ -5,6 +5,8 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
 
+  modules: ["reka-ui/nuxt"],
+
   css: [
     "~/assets/styles/theme.css", // 色彩 token（CSS 變數，data-theme 切換）；需早於使用它的樣式
     "~/assets/styles/tailwind.css",
