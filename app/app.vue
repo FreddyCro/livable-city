@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import StepLocation from './components/StepLocation.vue';
-import StepCriteria from './components/StepCriteria.vue';
-import StepResult from './components/StepResult.vue';
+import StepLocation from './components/StepLocation/StepLocation.vue';
+import StepCriteria from './components/StepCriteria/StepCriteria.vue';
+import StepResult from './components/StepResult/StepResult.vue';
 import TaiwanMap from './components/TaiwanMap.vue';
 import AppHeader from './components/AppHeader.vue';
 import { useGeoMeta } from './composables/useGeoMeta';
@@ -12,10 +12,12 @@ import { usePopulation } from './composables/usePopulation';
 import { useAssets } from './composables/useAssets';
 import type { TownThumb } from './composables/useTaiwanMap';
 import seoMeta from './locales/meta.json';
+import { useTracking } from '~/assets/js/tracking.js';
 
 // SEO meta（文案來自 locales/meta.json）
 const config = useRuntimeConfig();
 const APP_MODE = config.public.APP_MODE;
+const ASSETS_PATH = config.public.APP_ASSETS_PATH;
 const { img } = useAssets();
 
 useSeoMeta({
@@ -30,6 +32,40 @@ useSeoMeta({
   twitterCard: 'summary_large_image',
   keywords: seoMeta.metaKeywords,
   robots: APP_MODE === 'production' ? 'index, follow' : 'noindex, nofollow',
+});
+
+// UDN 追蹤碼（GTM / comScore / alexa / etu…），集中於 assets/js/tracking.js
+useHead(useTracking());
+
+// 第三方資源：UDN icons、nmd loading 動畫、protico
+useHead({
+  link: [
+    {
+      rel: 'stylesheet',
+      href: 'https://newmedia.udn.com.tw/cms_assets/icons_v4/icons.css',
+      tagPosition: 'bodyOpen',
+    },
+    {
+      rel: 'stylesheet',
+      href: `${ASSETS_PATH}/nmd-loading.css`,
+      tagPosition: 'bodyOpen',
+    },
+  ],
+  script: [
+    {
+      type: 'text/javascript',
+      src: `${ASSETS_PATH}/nmd-loading.min.js`,
+      tagPosition: 'bodyOpen',
+    },
+  ],
+});
+
+// JSON-LD 結構化資料（由 nuxt-jsonld 模組提供 useJsonld）
+useJsonld({
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  name: seoMeta.metaTitle,
+  description: seoMeta.metaDesc,
 });
 
 // Step state

@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
 
-  modules: ["reka-ui/nuxt"],
+  modules: ["reka-ui/nuxt", "nuxt-jsonld"],
 
   css: [
     "~/assets/styles/theme.css", // 色彩 token（CSS 變數，data-theme 切換）；需早於使用它的樣式
@@ -49,9 +49,20 @@ export default defineNuxtConfig({
 
   vite: {
     optimizeDeps: {
+      // 預先 pre-bundle，避免 dev 期間「runtime 才發現依賴」觸發整頁 reload。
       // vue-scrollto 為 CJS-only，預先 bundle 成 ESM 以提供 default export
-      // （common-components 內部元件會 import 它）
-      include: ["earcut", "deck.gl", "@deck.gl/core", "@deck.gl/layers", "vue-scrollto"],
+      // （common-components 內部元件會 import 它）。
+      // common-components / topojson-client 是延遲載入（AppHeader / useTaiwanMap），
+      // Vite 初掃描不到，故明確列入。
+      include: [
+        "earcut",
+        "deck.gl",
+        "@deck.gl/core",
+        "@deck.gl/layers",
+        "vue-scrollto",
+        "@udn-digital-center/common-components",
+        "topojson-client",
+      ],
     },
     plugins: [
       tailwindcss(),

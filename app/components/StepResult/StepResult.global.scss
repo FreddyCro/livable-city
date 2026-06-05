@@ -1,0 +1,31 @@
+// step-result（Dialog 經 DialogPortal teleport 至 <body>，
+// Vue scoped 屬性套不到 portal 內元素，故此區改為 global；class 已以 lc-sr 命名空間隔離）
+.lc-sr {
+  // step-result__dialog-overlay
+  &__dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgb(var(--c-shadow) / 0.45);
+  }
+
+  // step-result__dialog（置中浮層／box；對齊 Figma「蓋板資料來源視窗」。
+  // 內容由 InfoContent 元件渲染，其 class 以 lc-info 命名空間另行定義）
+  &__dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    width: min(620px, calc(100vw - 32px));
+    max-height: min(820px, calc(100vh - 48px));
+    background: var(--c-surface);
+    border: 0.5px solid var(--c-line-main);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgb(var(--c-shadow) / 0.2);
+    backdrop-filter: blur(2px);
+    overflow: hidden; // 讓 footer 滿版且底部圓角能裁切；內距改由 InfoContent 各區塊自負
+  }
+}
