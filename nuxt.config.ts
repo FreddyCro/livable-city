@@ -74,6 +74,11 @@ export default defineNuxtConfig({
     css: {
       preprocessorOptions: {
         scss: {
+          // common-components 的每個 index.scss 是各自的編譯進入點，且用相對路徑 @import，
+          // quietDeps 不涵蓋這種情況，故直接關閉 import 棄用類別。
+          // （自家 assets/styles 用 @use，不受影響；保留 quietDeps 壓其餘 deps 警告。）
+          quietDeps: true,
+          silenceDeprecations: ["import"],
           additionalData: `
             @use "@/assets/styles/mixins.scss" as *;
             @use "@/assets/styles/variables.scss" as *;

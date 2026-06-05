@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import type { AcceptableValue } from 'reka-ui';
 import str from '../locales/explore.json';
 import common from '../locales/common.json';
+import InfoContent from './InfoContent.vue';
 import type { GeoMeta } from '../types/geo';
 import type { FilterMeta, FilterDataCache } from '../types/filter';
 import type { ResultTown } from '../composables/useResultTowns';
@@ -263,13 +264,7 @@ function formatVal(val: number | null | undefined): string {
         <DialogPortal>
           <DialogOverlay class="lc-sr__dialog-overlay" />
           <DialogContent class="lc-sr__dialog">
-            <DialogTitle class="lc-sr__dialog-title">說明</DialogTitle>
-            <DialogDescription class="lc-sr__dialog-desc">
-              這裡之後會放地圖與指標的說明內容（佔位）。
-            </DialogDescription>
-            <DialogClose class="lc-sr__dialog-close" aria-label="關閉">
-              ✕
-            </DialogClose>
+            <InfoContent />
           </DialogContent>
         </DialogPortal>
       </DialogRoot>
@@ -710,56 +705,24 @@ function formatVal(val: number | null | undefined): string {
     background: rgb(var(--c-shadow) / 0.45);
   }
 
-  // step-result__dialog（置中浮層）
+  // step-result__dialog（置中浮層／box；對齊 Figma「蓋板資料來源視窗」。
+  // 內容由 InfoContent 元件渲染，其 class 以 lc-info 命名空間另行定義）
   &__dialog {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 1001;
-    width: min(440px, calc(100vw - 32px));
-    padding: 28px 24px 24px;
-    background: var(--c-surface);
-    border-radius: 14px;
-    box-shadow: 0 8px 32px rgb(var(--c-shadow) / 0.2);
-  }
-
-  // step-result__dialog-title
-  &__dialog-title {
-    margin: 0 0 8px;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--c-text);
-  }
-
-  // step-result__dialog-desc
-  &__dialog-desc {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.7;
-    color: var(--c-text-secondary);
-  }
-
-  // step-result__dialog-close（右上角關閉）
-  &__dialog-close {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    width: 28px;
-    height: 28px;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 999px;
-    background: transparent;
-    font-size: 14px;
-    color: var(--c-text-muted);
-    cursor: pointer;
-
-    &:hover {
-      background: var(--c-surface-sunken);
-    }
+    flex-direction: column;
+    width: min(620px, calc(100vw - 32px));
+    max-height: min(820px, calc(100vh - 48px));
+    background: var(--c-surface);
+    border: 0.5px solid var(--c-line-main);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgb(var(--c-shadow) / 0.2);
+    backdrop-filter: blur(2px);
+    overflow: hidden; // 讓 footer 滿版且底部圓角能裁切；內距改由 InfoContent 各區塊自負
   }
 }
 </style>

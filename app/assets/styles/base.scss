@@ -20,7 +20,8 @@ body {
 }
 
 html {
-  font-family: sans-serif, 'Noto Sans TC', sans-serif;
+  // Figma design system：主字體 Noto Sans TC（weight 300 / 400 / 700）
+  font-family: 'Noto Sans TC', sans-serif;
   font-style: normal;
   line-height: 150%;
 }
@@ -115,6 +116,45 @@ p.lc-caption {
 
   &--white {
     color: var(--c-text-inverse);
+  }
+}
+
+// 文字樣式（對齊 Figma main/* text styles，Noto Sans TC / weight 400）
+// lc-text--btn      = main/Primary_Button
+.lc-text--btn {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
+}
+
+// lc-text--btn-sm   = main/Secondary_Button_P
+.lc-text--btn-sm {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
+}
+
+// lc-text--note     = main/輔助說明
+.lc-text--note {
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+}
+
+// 分隔線（對齊 Figma Line styles）
+// lc-line           = Primary Line：黑 1px
+.lc-line {
+  border: none;
+  border-top: 1px solid var(--c-line-primary);
+
+  // lc-line--thin     = Primary Line 2：黑 0.5px
+  &--thin {
+    border-top-width: 0.5px;
+  }
+
+  // lc-line--faint    = Secondary Line 2：黑 50% / 0.5px
+  &--faint {
+    border-top: 0.5px solid var(--c-line-secondary);
   }
 }
 

@@ -7,6 +7,7 @@
 
 :root {
   /* ---------- Primitive：Figma palette（6 色，themed） ---------- */
+  --color-b01: #e6f5fa; /* 最淺藍 lightest blue */
   --color-b02: #c2e6f0; /* 淺藍 light blue */
   --color-b03: #227d92; /* 深藍 teal blue */
   --color-y01: #f4cc34; /* 黃 yellow */
@@ -19,6 +20,7 @@
   --color-blue-link: #1d4ed8; /* 結果選中藍 */
   --color-blue-tint: #eff6ff; /* 結果選中淺藍底 */
   --color-b03-dk: #20606b; /* 深青（縮圖描邊；b03 的更深一階） */
+  --color-line-main: #403a2c; /* 主線條 暖黑（Figma「主線條」） */
 
   /* ---------- Primitive：中性灰 scale（不 themed，兩模式相同） ---------- */
   --color-grey-0: #ffffff;
@@ -73,6 +75,11 @@
   --c-map-county-line: 80 80 80; /* county 邊線 */
   --c-map-hover: 200 220 255; /* hover highlight */
   --c-map-pin: 214 46 41; /* selected pin（=r01） */
+
+  /* ---------- Semantic：線條 Line（對齊 Figma Line styles） ---------- */
+  --c-line-main: var(--color-line-main); /* 主線條（暖黑 #403a2c） */
+  --c-line-primary: rgb(0 0 0); /* Primary Line：純黑 */
+  --c-line-secondary: rgb(0 0 0 / 0.5); /* Secondary Line：黑 50% */
 
   /* ---------- Semantic：陰影 ---------- */
   --c-shadow: 0 0 0; /* 用 rgb(var(--c-shadow) / .1) */
