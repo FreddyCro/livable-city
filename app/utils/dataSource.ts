@@ -18,6 +18,8 @@ const ASSET = {
   displayOrder: 'data/order.json',
   filterIndex: 'data/index.json',
   filterDataset: (id: string) => `data/${id}.json`,
+  // 人口資料（非篩選指標，獨立檔），供 step 3 比較卡標題顯示
+  population: 'data/0.json',
 } as const
 
 // 補上部署 baseURL 前綴，確保部署於子路徑時 public/ 資產仍解析得到。
@@ -50,4 +52,6 @@ export const dataSource = {
   filterIndex: () => fetchJson<FilterMeta[]>(ASSET.filterIndex),
   /** 單一指標資料集（data/{id}.json） */
   filterDataset: (id: string) => fetchJson<FilterDataset>(ASSET.filterDataset(id)),
+  /** 各鄉鎮人口資料（data/0.json：鄉鎮代碼 → 人口數） */
+  population: () => fetchJson<FilterDataset>(ASSET.population),
 }

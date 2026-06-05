@@ -8,6 +8,7 @@ import AppHeader from './components/AppHeader.vue';
 import { useGeoMeta } from './composables/useGeoMeta';
 import { useFilterData } from './composables/useFilterData';
 import { useResultTowns } from './composables/useResultTowns';
+import { usePopulation } from './composables/usePopulation';
 import { useAssets } from './composables/useAssets';
 import type { TownThumb } from './composables/useTaiwanMap';
 import seoMeta from './locales/meta.json';
@@ -42,6 +43,9 @@ const selectedFilters = ref<string[]>([]);
 // Shared geo metadata（唯讀，供結果運算 / 地圖 / 各 Step 共用）
 const { meta } = useGeoMeta();
 
+// 各鄉鎮人口（供 step 3 比較卡標題顯示）
+const { population } = usePopulation();
+
 // Data state: filter index + dataset cache
 const { filterIndex, filterDataCache, preloadAllFilters } = useFilterData({
   selectedFilters,
@@ -65,6 +69,23 @@ const selectedTownThumb = ref<TownThumb | null>(null);
 
 function goToStep(step: 1 | 2 | 3) {
   currentStep.value = step;
+}
+
+// 全域重置：清空所有使用者選取狀態，回到「全新開始」。
+// selectedResultCode 本會在 town/filters 變動時由 useResultTowns 自動清空，
+// 這裡仍顯式歸零，讓此函式不依賴該副作用、單獨呼叫也保證乾淨。
+function resetSelections() {
+  selectedCountyCode.value = '';
+  selectedTownCode.value = '';
+  selectedFilters.value = [];
+  selectedResultCode.value = null;
+  selectedTownThumb.value = null;
+}
+
+// 「重新選擇」：先重置再回到 step 1（重來一次）。
+function restart() {
+  resetSelections();
+  goToStep(1);
 }
 
 // User picked a result card → select it and fly the map to it.
@@ -131,10 +152,11 @@ watch(currentStep, async (step) => {
         :selected-filters="selectedFilters"
         :result-towns="resultTowns"
         :selected-result-code="selectedResultCode"
+        :population="population"
         @update:selected-result-code="selectResult($event)"
         @update:selected-filters="selectedFilters = $event"
         @back="goToStep(2)"
-        @reselect="goToStep(1)"
+        @reselect="restart"
         @zoom-in="mapRef?.zoomBy(1)"
         @zoom-out="mapRef?.zoomBy(-1)"
       />

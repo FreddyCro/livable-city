@@ -49,3 +49,9 @@ const menu = [
     </NmdMenu>
   </div>
 </template>
+
+<style>
+.nmd-header {
+  background-color: var(--color-grey-0);
+}
+</style>

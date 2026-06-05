@@ -48,7 +48,7 @@ defineExpose({ zoomBy, flyToCounty, flyToTaiwan, focusTown })
 // 只佔 header 下方、explore-sidebar 右側的剩餘空間（不再滿版）
 .lc-mv__canvas {
   position: absolute;
-  inset: $header-h 0 0 $explore-sidebar-w;
+  inset: $app-header-h 0 0 $explore-sidebar-w;
   display: block;
   transition: opacity 0.4s ease;
 

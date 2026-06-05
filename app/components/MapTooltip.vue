@@ -17,9 +17,9 @@ defineProps<{ info: HoverInfo }>();
 .lc-mtt {
   position: absolute;
   // hover 的 x/y 是相對「地圖 canvas 左上角」的座標，但本元素定位相對滿版的 .lc-mv。
-  // canvas 以 inset:$header-h 0 0 $explore-sidebar-w 內縮，故補上同一組偏移對齊原點。
+  // canvas 以 inset:$app-header-h 0 0 $explore-sidebar-w 內縮，故補上同一組偏移對齊原點。
   margin-left: $explore-sidebar-w;
-  margin-top: $header-h;
+  margin-top: $app-header-h;
   pointer-events: none;
   padding: 6px 10px;
   background: rgb(var(--color-grey-0) / 0.95);
