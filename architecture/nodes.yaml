@@ -1,0 +1,135 @@
+# CartoAgent 模組路由表。由 /ca-scout 初始化，/ca-navigate 增補（只加不刪）。
+# 準確度：path~100% / comm~85% / refs~90% / group~70% / edges~50%（深度工作時修正）。
+
+conventions:
+  component_patterns:
+    - "app/components/**/*.vue"
+    - "app/composables/*.ts"
+    - "app/utils/*.ts"
+    - "scripts/**/*.mjs"
+  infra_patterns:
+    - "nuxt.config.ts"
+    - "tsconfig.json"
+    - "app/assets/styles/*"
+  comm_signals:
+    - type: import
+      detect: regex
+      pattern: "import .* from ['\"]([./~@].*)['\"]"
+    - type: rest-api # 此專案的「rest」是 fetch public/ 靜態 JSON（無後端 API）
+      detect: regex
+      pattern: "dataSource\\.\\w+\\("
+  adr_path: architecture/adr/
+  adr_index: architecture/adr/INDEX.md
+  groups:
+    - shell # 應用外殼：app 根、header/footer、資訊 dialog
+    - step # 三步驟主畫面
+    - map # deck.gl 地圖與其周邊
+    - data # 資料載入/運算層（composables + dataSource + types）
+    - pipeline # 離線資料管線（scripts：xlsx → public/data）
+    - ui # 共用 UI 元件與 presentational util
+
+nodes:
+  - name: app
+    path: app/app.vue
+    group: shell
+    comm:
+      - type: import
+        target: data-layer
+        description: 組裝 useGeoMeta/useFilterData/useResultTowns/usePopulation，編排三步驟切換、相機飛入、全域 reset（restart）；含 SEO/追蹤/JSON-LD
+    edges:
+      - StepLocation
+      - StepCriteria
+      - StepResult
+      - TaiwanMap
+      - useGeoMeta
+      - useFilterData
+      - useResultTowns
+      - usePopulation
+    refs:
+      - architecture/wireflow.md
+
+  - name: StepResult
+    path: app/components/StepResult/StepResult.vue
+    group: step
+    comm:
+      - type: import
+        target: InfoContent
+        description: 探索結果頁（sidebar/result-bar/compare/zoom/info-dialog）；view 邏輯在 co-located StepResult.logic.ts
+    edges:
+      - InfoContent
+      - useAssets
+    refs:
+      - architecture/wireflow.md
+      - architecture/map/gotchas.md
+
+  - name: TaiwanMap
+    path: app/components/TaiwanMap.vue
+    group: map
+    comm:
+      - type: import
+        target: useTaiwanMap
+        description: deck.gl 地圖；圖層（towns/counties/結果標點/現居 pin）+ 命令式相機（flyTo*/focusTown/zoomBy）
+    edges:
+      - useTaiwanMap
+      - MapTooltip
+      - mapMarkers
+    refs:
+      - architecture/map/gotchas.md
+
+  - name: useResultTowns
+    path: app/composables/useResultTowns.ts
+    group: data
+    comm:
+      - type: import
+        target: app
+        description: 由 app 注入 meta/filterDataCache/selectedFilters，算出勝過基準鄉鎮的清單，依 townRank（order.json）排序
+    edges: []
+    refs:
+      - architecture/map/gotchas.md
+
+  - name: useGeoMeta
+    path: app/composables/useGeoMeta.ts
+    group: data
+    comm:
+      - type: rest-api
+        target: dataSource
+        description: 載入 tw-towns-meta.json + data/order.json，轉 countyRank/townRank 併入 meta（排序唯一依據）
+    edges:
+      - dataSource
+    refs:
+      - architecture/map/gotchas.md
+      - architecture/wireflow.md
+
+  - name: dataSource
+    path: app/utils/dataSource.ts
+    group: data
+    comm:
+      - type: rest-api
+        target: public/data
+        description: 集中載入 public 靜態 JSON（geoMeta/topology/order/index/{id}/population），補上 app.baseURL 前綴
+    edges: []
+    refs: []
+
+  - name: process-xlsx
+    path: scripts/process-xlsx.mjs
+    group: pipeline
+    comm:
+      - type: import
+        target: lib-sources
+        description: 離線管線：sources/xlsx/*.xlsx → public/data/{id}.json + index.json + order.json（順序唯一依據）
+    edges:
+      - lib-sources
+    refs:
+      - architecture/wireflow.md
+      - architecture/map/gotchas.md
+
+  - name: SelectDropdown
+    path: app/components/ui/SelectDropdown.vue
+    group: ui
+    comm:
+      - type: import
+        target: StepLocation
+        description: 共用下拉選單（reka-ui Listbox）；目前僅 locate-form（StepLocation）使用
+    edges: []
+    refs:
+      - architecture/wireflow.md
