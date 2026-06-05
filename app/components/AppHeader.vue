@@ -20,6 +20,14 @@ const menu = [
     title: str.navbarMenu2Text,
     link: str.navbarMenu2Link,
   },
+  {
+    title: str.navbarMenu3Text,
+    link: str.navbarMenu3Link,
+  },
+  {
+    title: str.navbarMenu4Text,
+    link: str.navbarMenu4Link,
+  },
 ];
 </script>
 
