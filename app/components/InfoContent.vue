@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { NmdShare, NmdFooter } from '@udn-digital-center/common-components';
 import dataSource from '../locales/dataSource.json';
-import { shareURL_fb, shareURL_line, shareURL_twitter } from '../utils/share';
-import InfoEditor from './InfoEditor.vue';
+import AppFooter from './AppFooter.vue';
 </script>
 
 <template>
@@ -22,40 +20,24 @@ import InfoEditor from './InfoEditor.vue';
         <h3 class="lc-info__source-title">{{ s.title }}</h3>
         <p class="lc-info__source-text">
           <!-- prettier-ignore -->
-          <span>{{ s.before }}</span><a
+          <span>{{ s.before }}</span
+          ><a
             v-if="s.link"
             class="lc-info__source-link"
             :href="s.link.url"
             target="_blank"
             rel="noopener"
-          >{{ s.link.label }}</a><span v-if="s.after">{{ s.after }}</span>
+            >{{ s.link.label }}</a
+          ><span v-if="s.after">{{ s.after }}</span>
         </p>
         <p v-if="s.extra" class="lc-info__source-text">{{ s.extra }}</p>
         <p v-if="s.note" class="lc-info__source-note">{{ s.note }}</p>
       </section>
     </template>
 
-    <!-- 頁尾（滿版）：製作團隊 + 分享本頁 + 版權／官方社群 -->
-    <footer class="lc-info__foot">
-      <!-- 製作團隊（獨立元件） -->
-      <InfoEditor :team="dataSource.team" />
-
-      <!-- 分享本頁（NmdShare；網址來自 utils/share，依裝置切換 line 分享）。
-           ClientOnly：分享網址含 navigator 偵測，避免 SSR/CSR hydration 不一致 -->
-      <ClientOnly>
-        <div class="lc-info__share">
-          <NmdShare
-            :facebook="{ href: shareURL_fb }"
-            :line="{ href: shareURL_line, target: '_blank' }"
-            :twitter="{ href: shareURL_twitter }"
-            twitter-icon="x"
-          />
-        </div>
-      </ClientOnly>
-
-      <!-- 版權 + 聯合報官方社群連結（元件自帶深色底與年份） -->
-      <NmdFooter />
-    </footer>
+    <!-- 頁尾（滿版）：製作團隊 + 分享本頁 + 版權／官方社群。
+         lc-info__foot 提供滿版負邊距（抵銷 body 20px 內距），套到 AppFooter 根元素。 -->
+    <AppFooter class="lc-info__foot" />
   </div>
   <DialogClose class="lc-info__close" aria-label="關閉">✕</DialogClose>
 </template>
@@ -152,18 +134,9 @@ import InfoEditor from './InfoEditor.vue';
     color: var(--c-text-muted);
   }
 
-  // info__foot（頁尾滿版：抵銷 body 的 20px 水平內距與底部，貼齊 dialog 邊緣）
+  // info__foot（頁尾滿版：抵銷 body 的 20px 水平內距與底部，貼齊 dialog 邊緣；套於 AppFooter 根）
   &__foot {
     margin: 0 -20px;
-  }
-
-  // info__share（分享本頁按鈕列；底色接續製作團隊的 #f1f1f1）
-  &__share {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    padding: 50px 0;
-    background: var(--c-surface-sunken);
   }
 
   // info__close（右上角關閉）
