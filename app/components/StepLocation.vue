@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue';
 import str from '../locales/locate.json';
 import type { GeoMeta } from '../types/geo';
+import { useAssets } from '../composables/useAssets';
+import { byRank } from '../utils/sort';
 
 const props = defineProps<{
   meta: GeoMeta | null;
@@ -15,7 +17,15 @@ const emit = defineEmits<{
   next: [];
 }>();
 
-// 兩階段：false = 主視覺（階段 1），true = 內文＋表單（階段 2）。可逆。
+// 主視覺三斷點圖檔（於 setup 期算一次，不必每次 render 重組字串）。
+const { img } = useAssets();
+const visualSrc = {
+  pc: img('step1-visual-pc.png'),
+  pad: img('step1-visual-pad.png'),
+  mob: img('step1-visual-mob.png'),
+};
+
+// 兩階段：false = 首屏主視覺（step 1-1），true = 內文＋表單（step 1-2）。可逆。
 const revealed = ref(false);
 function reveal() {
   revealed.value = true;
@@ -46,19 +56,22 @@ function onTouchMove(e: TouchEvent) {
   dy > 0 ? reveal() : collapse();
 }
 
+// 依 order.json 帶入的 rank 排序（唯一依據）；無 rank 的代碼排到最後且維持穩定順序。
 const countyOptions = computed(() => {
   if (!props.meta) return [];
-  return Object.entries(props.meta.counties).map(([code, info]) => ({
-    value: code,
-    label: info.COUNTYNAME,
-  }));
+  const rank = props.meta.countyRank;
+  return Object.entries(props.meta.counties)
+    .map(([code, info]) => ({ value: code, label: info.COUNTYNAME }))
+    .sort(byRank(rank, (o) => o.value));
 });
 
 const townOptions = computed(() => {
   if (!props.meta || !props.countyCode) return [];
+  const rank = props.meta.townRank;
   return Object.entries(props.meta.towns)
     .filter(([, info]) => info.COUNTYCODE === props.countyCode)
-    .map(([code, info]) => ({ value: code, label: info.TOWNNAME }));
+    .map(([code, info]) => ({ value: code, label: info.TOWNNAME }))
+    .sort(byRank(rank, (o) => o.value));
 });
 
 function onCountySelect(val: string) {
@@ -75,32 +88,33 @@ function onCountySelect(val: string) {
     @touchstart.passive="onTouchStart"
     @touchmove.passive="onTouchMove"
   >
-    <!-- 1 標題（兩階段皆顯示） -->
-    <header class="lc-sl__header">
+    <!-- ── 固定標題（step 1-1／1-2 共用，切換時不動、不淡出）──── -->
+    <header class="lc-sl__title lc-sl__title--top">
       <span class="lc-sl__badge">{{ str.badge }}</span>
       <h1 class="lc-sl__heading">{{ str.heading }}</h1>
     </header>
 
-    <!-- 兩階段疊放於同一格，靠 class 切換做 fade / slide -->
-    <div class="lc-sl__stage">
-      <!-- 階段 1：2 主視覺 + 3 下滑提示 -->
-      <div class="lc-sl__visual-layer">
-        <button
-          type="button"
-          class="lc-sl__visual"
-          @click="reveal"
-        >
-          {{ str.visualPlaceholder }}
-        </button>
-        <button type="button" class="lc-sl__scroll-hint" @click="reveal">
-          <span>{{ str.scrollHint }}</span>
-          <span class="lc-sl__scroll-hint-arrow" aria-hidden="true">↓</span>
-        </button>
-      </div>
+    <!-- ── step 1-1：首屏主視覺（標題下方）──────────────── -->
+    <div class="lc-sl__visual-layer">
+      <!-- 主視覺插圖（含房價／公托／公園綠地等數據標註，依斷點換圖） -->
+      <picture class="lc-sl__visual">
+        <source media="(min-width: 1024px)" :srcset="visualSrc.pc" />
+        <source media="(min-width: 768px)" :srcset="visualSrc.pad" />
+        <img :src="visualSrc.mob" alt="" />
+      </picture>
 
-      <!-- 階段 2：4 內文 + 5 表單（兩塊分別 slide up，錯開時間） -->
-      <div class="lc-sl__form-layer">
+      <!-- 下滑提示（手機／平板置中下方；電腦靠右） -->
+      <button type="button" class="lc-sl__scroll-hint" @click="reveal">
+        <span class="lc-sl__scroll-hint-text">{{ str.scrollHint }}</span>
+        <span class="lc-sl__scroll-hint-line" aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <!-- ── step 1-2：內文＋表單（標題下方）──────────────── -->
+    <div class="lc-sl__form-layer">
+      <div class="lc-sl__content">
         <p class="lc-sl__intro">{{ str.intro }}</p>
+
         <div class="lc-sl__form">
           <p class="lc-sl__question">{{ str.question }}</p>
           <div class="lc-sl__selects">
@@ -119,11 +133,13 @@ function onCountySelect(val: string) {
             />
           </div>
           <button
+            type="button"
+            class="lc-sl__next"
             :disabled="!townCode"
             @click="$emit('next')"
-            class="lc-sl__next"
           >
-            {{ str.next }} ▶
+            <span>{{ str.next }}</span>
+            <UiIconArrowCircle />
           </button>
         </div>
       </div>
@@ -132,73 +148,35 @@ function onCountySelect(val: string) {
 </template>
 
 <style scoped lang="scss">
+@use '../assets/styles/mixins' as *;
+
+// 固定標題版位（各斷點）：top 偏移 + 標題區渲染高度（badge + gap + heading 行高）。
+// step 1-2 表單層 padding-top 由「title-top + title-h + title-gap」推導，與標題版位
+// 單一來源；改標題位置或間距時，下方留白自動跟著走，不用各自重算魔術數字。
+$title-top-mob: 77px;
+$title-top-pad: 87px;
+$title-top-pc: 100px;
+$title-h-mob: 124px; // badge 32 + gap 4 + heading 2 行（44×2）
+$title-h-pad: 120px; // badge 36 + gap 4 + heading 1 行 80
+$title-h-pc: 120px;
+$title-gap: 40px; // 標題 → 前言（對齊 Figma）
+
 // step-location
 .lc-sl {
   position: fixed;
   inset: 0;
   z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  padding: 24px;
-  background: var(--c-surface);
-  text-align: center;
+  background: $color-b01; // 最淺藍底（B01 #e6f5fa）
   overflow: hidden;
 
-  // step-location__header（標題區，固定於上方、兩階段共用）
-  &__header {
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    padding-top: 32px;
-  }
-
-  // step-location__badge（膠囊標籤）
-  &__badge {
-    padding: 6px 16px;
-    border-radius: 999px;
-    background: var(--c-primary);
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: var(--c-text);
-  }
-
-  // step-location__heading（主標題）
-  &__heading {
-    margin: 0;
-    font-size: clamp(28px, 4.5vw, 44px);
-    font-weight: 800;
-    line-height: 1.2;
-    color: var(--c-text);
-  }
-
-  // step-location__stage（兩階段疊放容器；填滿剩餘高度並置中內容）
-  &__stage {
-    position: relative;
-    flex: 1 1 auto;
-    width: 100%;
-    min-height: 0;
-    display: grid;
-    place-items: center;
-  }
-
-  // 兩個 layer 疊在同一格，彼此覆蓋
+  // 兩個 layer 疊放、互相覆蓋，靠 --revealed 做 cross-fade
   &__visual-layer,
   &__form-layer {
-    grid-area: 1 / 1;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 24px;
+    position: absolute;
+    inset: 0;
   }
 
-  // ── 階段 1：主視覺層 ──────────────────────────────
+  // ── step 1-1：首屏主視覺層 ──────────────────────────
   // step-location__visual-layer
   &__visual-layer {
     transition:
@@ -206,164 +184,331 @@ function onCountySelect(val: string) {
       transform 0.45s ease;
   }
 
-  // step-location__visual（灰底 placeholder）
+  // step-location__visual（全幅插圖；依斷點換圖、object-fit 裁切置中）
   &__visual {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: min(560px, 80vw);
-    aspect-ratio: 16 / 10;
-    border: none;
-    border-radius: 16px;
-    background: var(--c-surface-sunken);
-    color: var(--c-text-faint);
-    font-size: 20px;
-    font-weight: 700;
-    letter-spacing: 6px;
-    cursor: pointer;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center bottom;
+    }
   }
 
-  // step-location__scroll-hint（下滑提示）
-  &__scroll-hint {
-    display: inline-flex;
+  // ── 標題（badge + 主標題）────────────────────────────
+  // step-location__title
+  &__title {
+    display: flex;
     flex-direction: column;
     align-items: center;
     gap: 4px;
+    width: 100%;
+  }
+
+  // step-location__title--top（置頂固定；1-1／1-2 共用，疊在兩層之上）
+  &__title--top {
+    position: absolute;
+    top: $title-top-mob;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    width: min(362px, 90vw);
+    pointer-events: none; // 標題本身不含互動元件，避免擋住下方
+
+    @include rwd-min(pad) {
+      top: $title-top-pad;
+      width: 670px;
+    }
+
+    @include rwd-min(pc) {
+      top: $title-top-pc;
+    }
+  }
+
+  // step-location__badge（黃色膠囊標籤）
+  &__badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 70px;
+    background: $color-y01; // Y01 #f4cc34
+    font-size: 16px;
+    line-height: 24px;
+    color: #000;
+    white-space: nowrap;
+
+    @include rwd-min(pad) {
+      height: 36px;
+      font-size: 20px;
+      line-height: 32px;
+    }
+  }
+
+  // step-location__heading（主標題）
+  &__heading {
+    margin: 0;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 44px;
+    text-align: center;
+    color: #000;
+
+    @include rwd-min(pad) {
+      font-size: 48px;
+      line-height: 80px;
+    }
+  }
+
+  // ── 下滑提示 ────────────────────────────────────────
+  // step-location__scroll-hint
+  &__scroll-hint {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
     border: none;
     background: transparent;
-    font-size: 13px;
-    color: var(--c-text-muted);
-    cursor: pointer;
+    font-weight: 300;
+    color: #000;
+
+    // 電腦版：移到右側、文字直書
+    @include rwd-min(pc) {
+      bottom: 0;
+      left: auto;
+      right: 54px;
+      transform: none;
+    }
   }
 
-  // step-location__scroll-hint-arrow
-  &__scroll-hint-arrow {
-    animation: lc-sl-bounce 1.4s ease-in-out infinite;
+  // step-location__scroll-hint-text
+  &__scroll-hint-text {
+    font-size: 15px;
+
+    @include rwd-min(pc) {
+      writing-mode: vertical-rl;
+      letter-spacing: 2px;
+    }
   }
 
-  // ── 階段 2：內文＋表單層 ──────────────────────────
-  // step-location__form-layer
+  // step-location__scroll-hint-line（往下延伸的細線，做出「向下」暗示）
+  &__scroll-hint-line {
+    width: 1px;
+    height: 74px;
+    background: #000;
+    transform-origin: top;
+    animation: lc-sl-line 1.6s ease-in-out infinite;
+
+    @include rwd-min(pc) {
+      height: 130px;
+    }
+  }
+
+  // ── step 1-2：內文＋表單層 ──────────────────────────
+  // step-location__form-layer（前言＋表單置於固定標題下方）
+  // 預設收合：fade / slide 起點、不可互動；--revealed 時切入（見下方規則）
+  // 內容貼著固定標題下方（不整體置中），padding-top = 標題區高 + 40px，
+  // 對齊 Figma 標題→前言的 40px 間距（標題為 absolute、不佔流，故以斷點數值對齊）
   &__form-layer {
-    pointer-events: none; // 收合時不可互動，展開後開啟
-  }
-
-  // 內文與表單初始狀態：下移＋透明（slide up 起點）
-  &__intro,
-  &__form {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    // padding-top = 固定標題底部 + 標題→前言間距（由上方標題版位變數推導）
+    padding: ($title-top-mob + $title-h-mob + $title-gap) 26px 24px;
     opacity: 0;
     transform: translateY(48px);
+    pointer-events: none;
     transition:
-      opacity 0.5s ease,
-      transform 0.5s ease;
+      opacity 0.5s ease 0.1s,
+      transform 0.5s ease 0.1s;
+
+    @include rwd-min(pad) {
+      padding-top: $title-top-pad + $title-h-pad + $title-gap;
+    }
+
+    @include rwd-min(pc) {
+      padding-top: $title-top-pc + $title-h-pc + $title-gap;
+    }
   }
 
-  // step-location__intro
+  // step-location__content（置中欄）
+  &__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 362px;
+
+    @include rwd-min(pad) {
+      max-width: 620px;
+    }
+  }
+
+  // step-location__intro（前言；兩端對齊）
   &__intro {
-    max-width: 720px;
     margin: 0;
-    font-size: 16px;
-    line-height: 1.9;
-    text-align: left;
-    color: var(--c-text-secondary);
+    padding-bottom: 20px;
+    font-size: 18px;
+    line-height: 36px;
+    text-align: justify;
+    color: #404040; // B3
+
+    @include rwd-min(pc) {
+      padding-bottom: 40px;
+    }
   }
 
-  // step-location__form（5：問句＋下拉＋下一步）
+  // step-location__form
   &__form {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
-    width: min(560px, 100%);
+    gap: 8px;
+    width: 100%;
+    max-width: 360px;
+
+    @include rwd-min(pc) {
+      max-width: 400px;
+    }
   }
 
   // step-location__question
   &__question {
     margin: 0;
-    font-size: 20px;
+    padding-bottom: 8px;
+    font-size: 24px;
     font-weight: 700;
-    color: var(--c-text);
+    line-height: 1.4;
+    text-align: center;
+    color: #1e1e1e;
+
+    @include rwd-min(pad) {
+      font-size: 20px;
+      line-height: 38px;
+    }
+
+    @include rwd-min(pc) {
+      padding-bottom: 4px;
+    }
   }
 
-  // step-location__selects
+  // step-location__selects（兩個 select 等分並排）
   &__selects {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     width: 100%;
 
-    // 兩個 select 等分填滿（layout 屬於本容器，不外洩到共用的 .lc-sd）
     > * {
       flex: 1 1 0;
       min-width: 0;
     }
+
+    // 覆寫共用 SelectDropdown 外觀，對齊本頁設計（白底膠囊、0.5px 黑框）
+    :deep(.lc-sd__control) {
+      min-width: 0;
+      height: 40px;
+      padding: 9px 18px 9px 16px;
+      border: 0.5px solid #000;
+      border-radius: 20px;
+      background: #fff;
+      font-size: 15px;
+      line-height: 22px;
+      color: #000;
+    }
+
+    :deep(.lc-sd__chevron) {
+      color: #000;
+    }
+
+    // 開啟向上/向下展開時，去掉接縫側圓角（沿用共用元件規則，這裡同步圓角值）
+    :deep(.lc-sd:has(.lc-sd__menu[data-side='bottom']) .lc-sd__control) {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    :deep(.lc-sd:has(.lc-sd__menu[data-side='top']) .lc-sd__control) {
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
   }
 
-  // step-location__next
+  // step-location__next（黃色膠囊主按鈕）
   &__next {
-    padding: 12px 32px;
-    background: var(--c-surface-inverse);
-    color: var(--c-text-inverse);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    height: 50px;
     border: none;
-    border-radius: 6px;
-    font-size: 15px;
-    cursor: pointer;
+    border-radius: 50px;
+    background: $color-y01; // Y01 #f4cc34
+    font-size: 18px;
+    line-height: 28px;
+    color: #000;
     transition: opacity 0.2s;
 
+    @include rwd-min(pc) {
+      height: 60px;
+    }
+
     &:disabled {
-      opacity: 0.35;
+      opacity: 0.4;
       cursor: default;
     }
   }
 
-  // ── 展開狀態（階段 2）────────────────────────────
-  // 主視覺：上移 + fade out
+  // ── 展開狀態（切換到 step 1-2）────────────────────────
+  // 首屏：上移 + fade out
   &--revealed &__visual-layer {
     opacity: 0;
     transform: translateY(-48px);
     pointer-events: none;
   }
 
-  // 表單層恢復互動
+  // 首屏淡出後，下滑提示已不可見，停掉細線動畫省去無謂的 compositor 工作
+  &--revealed &__scroll-hint-line {
+    animation: none;
+  }
+
+  // 表單層：fade / slide in 並恢復互動
   &--revealed &__form-layer {
+    opacity: 1;
+    transform: translateY(0);
     pointer-events: auto;
-  }
-
-  // 內文先 slide up
-  &--revealed &__intro {
-    opacity: 1;
-    transform: translateY(0);
-    transition-delay: 0.15s;
-  }
-
-  // 表單後 slide up（與內文錯開）
-  &--revealed &__form {
-    opacity: 1;
-    transform: translateY(0);
-    transition-delay: 0.3s;
   }
 }
 
-@keyframes lc-sl-bounce {
+// 下滑提示細線：循環向下伸縮
+@keyframes lc-sl-line {
   0%,
   100% {
-    transform: translateY(0);
+    transform: scaleY(0.6);
     opacity: 0.5;
   }
   50% {
-    transform: translateY(4px);
+    transform: scaleY(1);
     opacity: 1;
   }
 }
 
-// 尊重「減少動態」偏好：關掉位移與彈跳，保留可用性
+// 尊重「減少動態」偏好
 @media (prefers-reduced-motion: reduce) {
   .lc-sl__visual-layer,
-  .lc-sl__intro,
-  .lc-sl__form {
+  .lc-sl__form-layer {
     transition-duration: 0.01ms;
     transform: none;
   }
 
-  .lc-sl__scroll-hint-arrow {
+  .lc-sl__scroll-hint-line {
     animation: none;
   }
 }

@@ -8,13 +8,14 @@
 // 階段資料為 null —— 屬刻意設計（資料量大、互動才需要，不阻塞首屏 SSR）。
 // 呼叫端請務必在 onMounted 或事件處理中呼叫，勿在 setup 同步階段使用結果。
 
-import type { GeoMeta } from '../types/geo'
+import type { GeoMeta, DisplayOrder } from '../types/geo'
 import type { FilterMeta, FilterDataset } from '../types/filter'
 
 // public/ 底下的相對檔名（不含 baseURL 前綴，由 assetUrl 補上）
 const ASSET = {
   geoMeta: 'tw-towns-meta.json',
   geoTopology: 'tw-towns-optimized.json',
+  displayOrder: 'data/order.json',
   filterIndex: 'data/index.json',
   filterDataset: (id: string) => `data/${id}.json`,
 } as const
@@ -41,6 +42,8 @@ async function fetchJson<T>(path: string): Promise<T> {
 export const dataSource = {
   /** 鄉鎮/縣市 metadata（tw-towns-meta.json） */
   geoMeta: () => fetchJson<GeoMeta>(ASSET.geoMeta),
+  /** 縣市/鄉鎮顯示順序（data/order.json） */
+  displayOrder: () => fetchJson<DisplayOrder>(ASSET.displayOrder),
   /** 地圖底圖 TopoJSON（tw-towns-optimized.json） */
   geoTopology: () => fetchJson<any>(ASSET.geoTopology),
   /** 篩選指標清單 manifest（data/index.json） */

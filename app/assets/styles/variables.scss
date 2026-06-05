@@ -12,6 +12,7 @@ $color-bg-cream: var(--color-bg-cream); // 米色底 cream
 
 // Layout
 $header-h: 80px; // 假數字：header 尚未實作，確定後再調整
+$app-header-h: 60px; // AppHeader 實際高度（Figma headerbar 60px）；各 step 內容上方留白依此推導
 $explore-sidebar-w: 420px; // explore-sidebar 寬度，同時是地圖左偏移量（Figma）
 
 $breakpoints: (

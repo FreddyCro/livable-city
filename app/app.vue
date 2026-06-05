@@ -8,20 +8,21 @@ import AppHeader from './components/AppHeader.vue';
 import { useGeoMeta } from './composables/useGeoMeta';
 import { useFilterData } from './composables/useFilterData';
 import { useResultTowns } from './composables/useResultTowns';
+import { useAssets } from './composables/useAssets';
 import type { TownThumb } from './composables/useTaiwanMap';
 import seoMeta from './locales/meta.json';
 
 // SEO meta（文案來自 locales/meta.json）
 const config = useRuntimeConfig();
 const APP_MODE = config.public.APP_MODE;
-const ASSETS_PATH = config.public.APP_ASSETS_PATH;
+const { img } = useAssets();
 
 useSeoMeta({
   title: seoMeta.metaTitle,
   description: seoMeta.metaDesc,
   ogTitle: seoMeta.metaTitle,
   ogDescription: seoMeta.metaXDesc,
-  ogImage: `${ASSETS_PATH}/img/${seoMeta.metaImage}`,
+  ogImage: img(seoMeta.metaImage),
   ogUrl: seoMeta.metaURL,
   twitterTitle: seoMeta.metaTitle,
   twitterDescription: seoMeta.metaXDesc,
@@ -120,7 +121,6 @@ watch(currentStep, async (step) => {
         :selected-town-thumb="selectedTownThumb"
         @update:selected-filters="selectedFilters = $event"
         @next="goToStep(3)"
-        @back="goToStep(1)"
       />
       <StepResult
         v-else-if="currentStep === 3"

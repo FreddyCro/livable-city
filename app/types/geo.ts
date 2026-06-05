@@ -21,4 +21,17 @@ export interface CountyMeta {
 export interface GeoMeta {
   towns: Record<string, TownMeta>
   counties: Record<string, CountyMeta>
+  /**
+   * 顯示順序 rank（縣市代碼 → 序、鄉鎮代碼 → 序），數字越小越前面。
+   * 來源：data/order.json（由「0. 各鄉鎮市區人口數」列序產生），於 useGeoMeta 載入時併入。
+   * 未載入或代碼不在排序表中時，呼叫端應以 Infinity 作 fallback（排到最後、維持穩定）。
+   */
+  countyRank?: Record<string, number>
+  townRank?: Record<string, number>
+}
+
+/** data/order.json 結構：依官方顯示順序排列的縣市 / 鄉鎮代碼陣列 */
+export interface DisplayOrder {
+  counties: string[]
+  towns: string[]
 }

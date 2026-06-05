@@ -1,6 +1,7 @@
 import { ref, computed, watch, type Ref, type ShallowRef } from 'vue'
 import type { GeoMeta } from '../types/geo'
 import type { FilterMeta, FilterDataCache } from '../types/filter'
+import { byRank } from '../utils/sort'
 
 export interface ResultTown {
   code: string
@@ -34,6 +35,7 @@ export function useResultTowns(opts: UseResultTownsOptions) {
     if (!selectedTownCode.value || !selectedFilters.value.length || !m) return []
     if (!selectedFilters.value.every(id => id in filterDataCache.value)) return []
     const filterMeta = Object.fromEntries(filterIndex.value.map(f => [f.id, f]))
+    const rank = m.townRank
     return Object.keys(m.towns)
       .filter(code => {
         if (code === selectedTownCode.value) return false
@@ -46,6 +48,8 @@ export function useResultTowns(opts: UseResultTownsOptions) {
           return filterMeta[fid]?.lowerIsBetter ? val < refVal : val > refVal
         })
       })
+      // 依 order.json 的官方順序排列，與 StepLocation 下拉一致（無 rank 者排到最後）
+      .sort(byRank(rank, (code) => code))
       .map(code => {
         const t = m.towns[code]
         const c = t ? m.counties[t.COUNTYCODE] : undefined

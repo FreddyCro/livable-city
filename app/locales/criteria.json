@@ -3,5 +3,22 @@
   "title": "與你現在居住的地區相比，你希望搬到什麼樣的地區？",
   "hint": "請選擇3項你最重視的居住條件",
   "selectedLabel": "已選",
-  "viewResults": "查看你的理想居住地區"
+  "viewResults": "查看你的理想居住地區",
+  "cards": {
+    "1": { "label": "購屋房價更低", "icon": "ic_house_price" },
+    "2": { "label": "房屋租金更低", "icon": "ic_house_rent" },
+    "3": { "label": "醫療資源更多", "icon": "ic_hospital" },
+    "4": { "label": "癌症發生率更低", "icon": "ic_disease" },
+    "5": { "label": "犯罪率更低", "icon": "ic_crime" },
+    "6": { "label": "交通事故死傷率更低", "icon": "ic_car_crash" },
+    "7": { "label": "公托覆蓋率更高", "icon": "ic_childcare" },
+    "8": { "label": "長照資源更多", "icon": "ic_elderly_care" },
+    "9": { "label": "圖書館資源更多", "icon": "ic_library" },
+    "10": { "label": "人口密度更低", "icon": "ic_population" },
+    "11": { "label": "青壯年人口比率更高", "icon": "ic_youth" },
+    "12": { "label": "超商密度更高", "icon": "ic_convenience_store" },
+    "13": { "label": "餐飲及住宿店家密度更高", "icon": "ic_dining" },
+    "14": { "label": "大規模崩塌災害風險更低", "icon": "ic_landslide" },
+    "15": { "label": "居住地綠地空間更大", "icon": "ic_tree" }
+  }
 }

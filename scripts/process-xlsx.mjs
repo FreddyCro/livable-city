@@ -1,79 +1,75 @@
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'fs';
-import { resolve, dirname, basename } from 'path';
-import { fileURLToPath } from 'url';
-import { default as XLSX } from 'xlsx';
+// 把來源 xlsx 轉成前端用的 public/data/{id}.json 與 index.json。
+// 比對規則與設定集中在 ./lib/sources.mjs，與 validate-sources.mjs 共用。
+// 注意：本腳本對不到的列只會 warn 並略過；要把關資料品質請跑 `node scripts/validate-sources.mjs`。
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const sourcesDir = resolve(__dirname, '../sources/xlsx');
-const outDir = resolve(__dirname, '../public/data');
-const metaPath = resolve(__dirname, '../public/tw-towns-meta.json');
+import { writeFileSync, mkdirSync } from 'fs';
+import { resolve } from 'path';
+import {
+  PATHS, DIRECTION, EXCLUDE_FROM_INDEX,
+  cleanName, parseVal, idOf, listXlsx, dataRows, loadLookup, matchRow,
+} from './lib/sources.mjs';
 
-const meta = JSON.parse(readFileSync(metaPath, 'utf-8'));
+const { lookup, countyNameToCode } = loadLookup();
+mkdirSync(PATHS.outDir, { recursive: true });
 
-const norm = (s) => String(s ?? '').replace(/臺/g, '台').trim();
+const files = listXlsx();
 
-// Build lookup: countyName -> townName -> TOWNSCODE
-const lookup = {};
-for (const [code, info] of Object.entries(meta.towns)) {
-  const county = meta.counties[info.COUNTYCODE];
-  if (!county) continue;
-  const c = norm(county.COUNTYNAME);
-  const t = norm(info.TOWNNAME);
-  if (!lookup[c]) lookup[c] = {};
-  lookup[c][t] = code;
-}
-
-mkdirSync(outDir, { recursive: true });
-
-const xlsxFiles = readdirSync(sourcesDir).filter(f => f.endsWith('.xlsx'));
-
-for (const file of xlsxFiles) {
-  const match = /^(\d+(?:-\d+)*)\./.exec(file);
-  if (!match) {
+for (const file of files) {
+  const id = idOf(file);
+  if (!id) {
     console.warn(`  skip (no number prefix): ${file}`);
     continue;
   }
-  const prefix = match[1];
-
-  const wb = XLSX.readFile(resolve(sourcesDir, file));
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
 
   const result = {};
   let missing = 0;
-
-  for (let i = 1; i < rows.length; i++) {
-    const [county, town, value] = rows[i];
-    if (county == null && town == null) continue;
-    const c = norm(county);
-    const t = norm(town);
-    const code = lookup[c]?.[t];
+  for (const { county, town, value } of dataRows(file)) {
+    const code = matchRow(lookup, county, town);
     if (!code) {
-      console.warn(`  [${prefix}] no match: "${c}" / "${t}"`);
+      console.warn(`  [${id}] no match: "${county}" / "${town}"`);
       missing++;
       continue;
     }
-    result[code] = value ?? null;
+    result[code] = parseVal(value);
   }
 
-  const outPath = resolve(outDir, `${prefix}.json`);
+  const outPath = resolve(PATHS.outDir, `${id}.json`);
   writeFileSync(outPath, JSON.stringify(result));
-  console.log(`${prefix}.json — ${Object.keys(result).length} entries, ${missing} unmatched → ${outPath}`);
+  console.log(`${id}.json — ${Object.keys(result).length} entries, ${missing} unmatched → ${outPath}`);
 }
 
-const index = xlsxFiles
+const index = files
   .map(file => {
-    const match = /^(\d+(?:-\d+)*)\./.exec(file);
-    if (!match) return null;
-    const id = match[1];
-    const name = file
-      .replace(/^\d+(?:-\d+)*\.\s*/, '')
-      .replace(/\s*的副本\.xlsx$/, '')
-      .replace(/\.xlsx$/, '');
-    return { id, name };
+    const id = idOf(file);
+    if (!id || EXCLUDE_FROM_INDEX.has(id)) return null;
+    if (!(id in DIRECTION)) {
+      console.warn(`  [index] no DIRECTION for id "${id}" (${file}) — defaulting lowerIsBetter=true`);
+    }
+    return { id, name: cleanName(file), lowerIsBetter: DIRECTION[id] ?? true };
   })
   .filter(Boolean);
 
-const indexPath = resolve(outDir, 'index.json');
-writeFileSync(indexPath, JSON.stringify(index));
-console.log(`index.json — ${index.length} entries → ${indexPath}`);
+writeFileSync(PATHS.indexPath, JSON.stringify(index));
+console.log(`index.json — ${index.length} entries → ${PATHS.indexPath}`);
+
+// 顯示順序的唯一依據：以「0. 各鄉鎮市區人口數」的列順序，產生縣市/鄉鎮碼的官方排序。
+// 前端（StepLocation 下拉、StepResult 結果清單）依此排，取代 JS 物件 key 的數值排序。
+const orderFile = files.find(file => idOf(file) === '0');
+if (!orderFile) {
+  console.warn('  [order] 找不到 id "0" 的檔案，略過 order.json（前端將回退為預設順序）');
+} else {
+  const counties = [];
+  const seenCounty = new Set();
+  const towns = [];
+  let orphan = 0;
+  for (const { county, town } of dataRows(orderFile)) {
+    const ccode = countyNameToCode[county];
+    if (ccode && !seenCounty.has(ccode)) { seenCounty.add(ccode); counties.push(ccode); }
+    const tcode = matchRow(lookup, county, town);
+    if (tcode) towns.push(tcode);
+    else orphan++;
+  }
+  const orderPath = resolve(PATHS.outDir, 'order.json');
+  writeFileSync(orderPath, JSON.stringify({ counties, towns }));
+  console.log(`order.json — ${counties.length} counties, ${towns.length} towns${orphan ? `, ${orphan} 列對不到(已略過)` : ''} → ${orderPath}`);
+}
