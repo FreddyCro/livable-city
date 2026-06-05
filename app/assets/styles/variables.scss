@@ -1,0 +1,29 @@
+// Theme colors
+// 實際色值定義於 theme.css（CSS 變數）。
+// 此處僅提供 Figma primitive 的 SCSS alias，讓既有 $color-* 寫法續用、命名對齊 Figma。
+// 元件新樣式請優先用 semantic：var(--c-text) / var(--c-primary) 等（見 theme.css）。
+$color-b01: var(--color-b01); // 最淺藍 lightest blue
+$color-b02: var(--color-b02); // 淺藍 light blue
+$color-b03: var(--color-b03); // 深藍 teal blue
+$color-y01: var(--color-y01); // 黃 yellow
+$color-g01: var(--color-g01); // 綠 green
+$color-r01: var(--color-r01); // 紅 red
+$color-bg-cream: var(--color-bg-cream); // 米色底 cream
+
+// Layout
+$header-h: 80px; // 假數字：header 尚未實作，確定後再調整
+$explore-sidebar-w: 420px; // explore-sidebar 寬度，同時是地圖左偏移量（Figma）
+
+$breakpoints: (
+  xxs: 375px,
+  xs: 414px,
+  mob: 414px,
+  sm: 768px,
+  pad: 768px,
+  md: 1024px,
+  pc: 1024px,
+  lg: 1280px,
+  xl: 1440px,
+  2xl: 1920px,
+  3xl: 2560px,
+);
