@@ -1,5 +1,6 @@
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { GeoMeta } from '../../types/geo';
+import { useAssets } from '../../composables/useAssets';
 import { byRank } from '../../utils/sort';
 
 export interface StepLocationProps {
@@ -73,16 +74,77 @@ export function useStepLocation(props: StepLocationProps, emit: StepLocationEmit
     emit('update:townCode', '');
   }
 
-  // 主視覺影片：前奏（0–4s）只在首播放一次；播到結尾後不回 0、而是回到 4s，
-  // 之後固定 loop「4s → 結尾」段落（故 <video> 不加原生 loop，改由 ended 接管）。
+  // ── 主視覺背景影片 ───────────────────────────────────
+  const { img } = useAssets();
+  type Bp = 'pc' | 'pad' | 'mob';
+  // poster 三斷點圖
+  const visualPoster: Record<Bp, string> = {
+    pc: img('step1-visual-pc.png'),
+    pad: img('step1-visual-pad.png'),
+    mob: img('step1-visual-mob.png'),
+  };
+  // 影片三斷點 × webm/mp4
+  const visualVideoSrc: Record<Bp, { webm: string; mp4: string }> = {
+    pc: { webm: img('livable_city_map_bg_pc.webm'), mp4: img('livable_city_map_bg_pc.mp4') },
+    pad: { webm: img('livable_city_map_bg_pad.webm'), mp4: img('livable_city_map_bg_pad.mp4') },
+    mob: { webm: img('livable_city_map_bg_mob.webm'), mp4: img('livable_city_map_bg_mob.mp4') },
+  };
+
+  // 依視窗寬度的斷點。<video> 的 <source media> 只在初次載入評估、resize 不會重挑來源，
+  // 故改由 JS 以 matchMedia 追蹤斷點，「跨斷點」時才換片並重載（同斷點 resize 不動，免閃爍）。
+  const bp = ref<Bp>('mob');
+  const activeVideo = computed(() => visualVideoSrc[bp.value]);
+  const activePoster = computed(() => visualPoster[bp.value]);
+
+  // 前奏（0–4s）只在首播放一次；播到結尾後不回 0、而是回到 4s，之後固定 loop「4s → 結尾」
+  // 段落（故 <video> 不加原生 loop，改由 ended 接管）。換片重載後若前奏已播畢，亦從 4s 續播。
   const VISUAL_LOOP_START = 4;
   const visualVideo = ref<HTMLVideoElement | null>(null);
+  const introDone = ref(false);
   function onVisualEnded() {
+    introDone.value = true;
     const el = visualVideo.value;
     if (!el) return;
     el.currentTime = VISUAL_LOOP_START;
     void el.play();
   }
+
+  // matchMedia 追蹤斷點
+  let mqlPad: MediaQueryList | null = null;
+  let mqlPc: MediaQueryList | null = null;
+  const resolveBp = (): Bp => (mqlPc?.matches ? 'pc' : mqlPad?.matches ? 'pad' : 'mob');
+  const syncBp = () => {
+    bp.value = resolveBp();
+  };
+
+  // 換片：等 DOM 更新完 <source> 後再 load()（flush: 'post'），重載後依前奏狀態決定起點。
+  watch(
+    bp,
+    () => {
+      const el = visualVideo.value;
+      if (!el) return;
+      el.load();
+      const onReady = () => {
+        el.currentTime = introDone.value ? VISUAL_LOOP_START : 0;
+        void el.play();
+        el.removeEventListener('loadeddata', onReady);
+      };
+      el.addEventListener('loadeddata', onReady);
+    },
+    { flush: 'post' },
+  );
+
+  onMounted(() => {
+    mqlPad = window.matchMedia('(min-width: 768px)');
+    mqlPc = window.matchMedia('(min-width: 1024px)');
+    bp.value = resolveBp();
+    mqlPad.addEventListener('change', syncBp);
+    mqlPc.addEventListener('change', syncBp);
+  });
+  onBeforeUnmount(() => {
+    mqlPad?.removeEventListener('change', syncBp);
+    mqlPc?.removeEventListener('change', syncBp);
+  });
 
   return {
     revealed,
@@ -96,5 +158,7 @@ export function useStepLocation(props: StepLocationProps, emit: StepLocationEmit
     onCountySelect,
     visualVideo,
     onVisualEnded,
+    activeVideo,
+    activePoster,
   };
 }

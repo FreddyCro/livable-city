@@ -41,8 +41,13 @@ $title-gap: 40px; // 標題 → 前言（對齊 Figma）
     pointer-events: none;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    object-position: center bottom;
+    object-fit: content;
+    object-position: center center;
+
+    @include rwd-min(pad) {
+      object-fit: cover;
+      object-position: center bottom;
+    }
   }
 
   // ── 標題（badge + 主標題）────────────────────────────
