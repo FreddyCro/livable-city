@@ -34,18 +34,15 @@ $title-gap: 40px; // 標題 → 前言（對齊 Figma）
       transform 0.45s ease;
   }
 
-  // step-location__visual（全幅插圖；依斷點換圖、object-fit 裁切置中）
+  // step-location__visual（全幅背景影片；依斷點換片、object-fit 裁切置中。poster 同樣套用 object-fit）
   &__visual {
     position: absolute;
     inset: 0;
     pointer-events: none;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center bottom;
-    }
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center bottom;
   }
 
   // ── 標題（badge + 主標題）────────────────────────────

@@ -73,6 +73,17 @@ export function useStepLocation(props: StepLocationProps, emit: StepLocationEmit
     emit('update:townCode', '');
   }
 
+  // 主視覺影片：前奏（0–4s）只在首播放一次；播到結尾後不回 0、而是回到 4s，
+  // 之後固定 loop「4s → 結尾」段落（故 <video> 不加原生 loop，改由 ended 接管）。
+  const VISUAL_LOOP_START = 4;
+  const visualVideo = ref<HTMLVideoElement | null>(null);
+  function onVisualEnded() {
+    const el = visualVideo.value;
+    if (!el) return;
+    el.currentTime = VISUAL_LOOP_START;
+    void el.play();
+  }
+
   return {
     revealed,
     reveal,
@@ -83,5 +94,7 @@ export function useStepLocation(props: StepLocationProps, emit: StepLocationEmit
     countyOptions,
     townOptions,
     onCountySelect,
+    visualVideo,
+    onVisualEnded,
   };
 }
