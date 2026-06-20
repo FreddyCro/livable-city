@@ -68,7 +68,6 @@ $title-gap: 40px; // 標題 → 前言（對齊 Figma）
     transform: translateX(-50%);
     z-index: 2;
     width: min(362px, 90vw);
-    pointer-events: none; // 標題本身不含互動元件，避免擋住下方
 
     @include rwd-min(pad) {
       top: $title-top-pad;
@@ -86,34 +85,24 @@ $title-gap: 40px; // 標題 → 前言（對齊 Figma）
     align-items: center;
     justify-content: center;
     height: 32px;
-    padding: 0 8px;
+    padding: 4px 20px;
     border-radius: 70px;
     background: $color-y01; // Y01 #f4cc34
-    font-size: 16px;
-    line-height: 24px;
     color: #000;
     white-space: nowrap;
 
     @include rwd-min(pad) {
       height: 36px;
-      font-size: 20px;
-      line-height: 32px;
+      padding: 2px 20px;
     }
   }
 
   // step-location__heading（主標題）
   &__heading {
     margin: 0;
-    font-size: 36px;
     font-weight: 700;
-    line-height: 44px;
     text-align: center;
     color: #000;
-
-    @include rwd-min(pad) {
-      font-size: 48px;
-      line-height: 80px;
-    }
   }
 
   // ── 下滑提示 ────────────────────────────────────────

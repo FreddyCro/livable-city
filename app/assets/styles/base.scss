@@ -74,7 +74,31 @@ canvas {
   }
 }
 
+// lc-h1 = 響應式標題（mob_H1 → pc_H1）
+.lc-h1 {
+  @include mixins.text-style(mob-h1);
+
+  @include mixins.rwd-min(pc) {
+    @include mixins.text-style(pc-h1);
+  }
+}
+
+// lc-h2 = 響應式標題（mob_H2 → pc_H2）
+.lc-h2 {
+  @include mixins.text-style(mob-h2);
+
+  @include mixins.rwd-min(pc) {
+    @include mixins.text-style(pc-h2);
+  }
+}
+
+// lc-h3 = Figma pc_H3（無 mob 對應，固定 20/32）
 .lc-h3 {
+  @include mixins.text-style(pc-h3);
+}
+
+// lc-article-h3 = 文章內文標題級距（非 Figma pc/mob，editorial scale）
+.lc-article-h3 {
   font-size: 22px;
   line-height: 30px;
   margin-bottom: 8px;
@@ -89,7 +113,8 @@ canvas {
   }
 }
 
-.lc-h4 {
+// lc-article-h4 = 文章內文標題級距（editorial scale）
+.lc-article-h4 {
   font-size: 24px;
   line-height: 36px;
 
@@ -103,7 +128,9 @@ canvas {
 .lc-h2,
 .lc-h3,
 .lc-h4,
-.lc-h5 {
+.lc-h5,
+.lc-article-h3,
+.lc-article-h4 {
   &--no-mb {
     margin-bottom: 0;
   }
@@ -139,6 +166,18 @@ p.lc-caption {
   font-size: 12px;
   line-height: 18px;
   font-weight: 400;
+}
+
+// lc-text--body     = main/P（內文段落）
+.lc-text--body {
+  @include mixins.text-style(p);
+  font-weight: 400;
+}
+
+// lc-text--annotation = 註解字-粗字（粗體註解）
+.lc-text--annotation {
+  @include mixins.text-style(annotation-bold);
+  font-weight: 700;
 }
 
 // 分隔線（對齊 Figma Line styles）

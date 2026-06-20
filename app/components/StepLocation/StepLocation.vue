@@ -36,8 +36,8 @@ const {
   >
     <!-- ── 固定標題（step 1-1／1-2 共用，切換時不動、不淡出）──── -->
     <header class="lc-sl__title lc-sl__title--top">
-      <span class="lc-sl__badge">{{ str.badge }}</span>
-      <h1 class="lc-sl__heading">{{ str.heading }}</h1>
+      <span class="lc-h2 lc-sl__badge">{{ str.badge }}</span>
+      <h1 class="lc-h1 lc-sl__heading">{{ str.heading }}</h1>
     </header>
 
     <!-- ── step 1-1：首屏主視覺（標題下方）──────────────── -->
@@ -100,4 +100,4 @@ const {
   </div>
 </template>
 
-<style scoped lang="scss" src="./StepLocation.scss"></style>
+<style lang="scss" src="./StepLocation.scss"></style>

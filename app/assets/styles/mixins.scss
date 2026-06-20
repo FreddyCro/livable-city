@@ -53,6 +53,17 @@
   color: $color;
 }
 
+// 依 key 套用 Figma Text style（size + line-height），對照 vars.$text-styles
+@mixin text-style($key) {
+  $style: map.get(vars.$text-styles, $key);
+  @if $style {
+    font-size: map.get($style, size);
+    line-height: map.get($style, line-height);
+  } @else {
+    @warn "Text style `#{$key}` not found in \$text-styles.";
+  }
+}
+
 @mixin blur($blur: 10px) {
   backdrop-filter: blur($blur);
   -webkit-backdrop-filter: blur($blur);
