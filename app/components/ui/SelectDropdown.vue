@@ -73,13 +73,10 @@ function onUpdate(val: string) {
         </span>
         <SelectValue class="lc-sd__label" :placeholder="placeholder" />
         <span class="lc-sd__chevron" aria-hidden="true">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <svg width="15" height="8" viewBox="0 0 15 8" fill="none">
             <path
-              d="M2.5 4.5 6 8l3.5-3.5"
-              stroke="currentColor"
-              stroke-width="1.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+              d="M7.5 1.09589L0.551471 8L0 7.45205L7.5 0L15 7.45205L14.4485 8L7.5 1.09589Z"
+              fill="currentColor"
             />
           </svg>
         </span>
@@ -124,7 +121,7 @@ function onUpdate(val: string) {
   </SelectRoot>
 </template>
 
-<style scoped lang="scss">
+<style lang="scss">
 // select-dropdown
 .lc-sd {
   position: relative;
@@ -147,12 +144,13 @@ function onUpdate(val: string) {
     align-items: center;
     gap: 8px;
     width: 100%;
-    min-width: 140px;
-    padding: 10px 14px;
+    min-width: 135px;
+    padding: 9px 14px;
     background: var(--c-surface);
     border: 1px solid var(--c-border);
-    border-radius: 8px;
-    font-size: 14px;
+    border-radius: 20px;
+    font-size: 15px;
+    line-height: 22px;
     color: var(--c-text);
     font-family: 'Noto Sans TC', sans-serif;
     cursor: pointer;
@@ -225,7 +223,7 @@ function onUpdate(val: string) {
     width: var(--reka-select-trigger-width);
     background: var(--c-surface);
     border: 1px solid $color-b03;
-    border-radius: 8px;
+    border-radius: 20px;
     box-shadow: 0 6px 20px rgb(var(--c-shadow) / 0.12);
     overflow: hidden;
 

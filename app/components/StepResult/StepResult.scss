@@ -303,7 +303,6 @@
     left: calc(#{$explore-sidebar-w} + (100% - #{$explore-sidebar-w}) / 2);
     transform: translateX(-50%);
     bottom: 24px;
-    width: min(760px, calc(100% - #{$explore-sidebar-w} - 40px));
     pointer-events: none; // 面板與按鈕各自開啟，縫隙仍可拖曳地圖
   }
 
@@ -326,8 +325,7 @@
   // step-result__paddle（左右切換鈕；對齊 Figma「左右按鈕」：白圓鈕＋1px 硬陰影＋chevron）
   &__paddle {
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
+    bottom: 0;
     width: 40px;
     height: 40px;
     display: flex;

@@ -29,6 +29,19 @@ export function useStepLocation(props: StepLocationProps, emit: StepLocationEmit
     revealed.value = false;
   };
 
+  // ── 區塊垂直置中位移（step2）───────────────────────────
+  // 量測「標題＋前言＋表單」整組高度與 wrapper（視窗）高度，算出整組置中所需 translateY。
+  // 區塊比 wrapper 高時回 0（貼頂、不裁切頂部）。值經 --lc-sl-block-y 餵給 block 的 transform。
+  const block = ref<HTMLElement | null>(null);
+  const centerY = ref(0);
+  function measureCenter() {
+    const el = block.value;
+    if (!el) return;
+    const wrapperH = el.parentElement?.clientHeight ?? window.innerHeight;
+    centerY.value = Math.max(0, Math.round((wrapperH - el.offsetHeight) / 2));
+  }
+  let blockRo: ResizeObserver | null = null;
+
   // 滾輪：向下展開、向上收回。lock 避免單一手勢的連續事件造成抖動。
   let wheelLock = false;
   function onWheel(e: WheelEvent) {
@@ -140,16 +153,26 @@ export function useStepLocation(props: StepLocationProps, emit: StepLocationEmit
     bp.value = resolveBp();
     mqlPad.addEventListener('change', syncBp);
     mqlPc.addEventListener('change', syncBp);
+
+    // 量測置中位移：初次 + block 尺寸變動（字體載入／斷點 reflow）+ 視窗高度變動
+    measureCenter();
+    blockRo = new ResizeObserver(measureCenter);
+    if (block.value) blockRo.observe(block.value);
+    window.addEventListener('resize', measureCenter);
   });
   onBeforeUnmount(() => {
     mqlPad?.removeEventListener('change', syncBp);
     mqlPc?.removeEventListener('change', syncBp);
+    blockRo?.disconnect();
+    window.removeEventListener('resize', measureCenter);
   });
 
   return {
     revealed,
     reveal,
     collapse,
+    block,
+    centerY,
     onWheel,
     onTouchStart,
     onTouchMove,

@@ -63,15 +63,9 @@ canvas {
   font-family: 'Montserrat', sans-serif;
 }
 
-.lc-article {
-  p {
-    font-size: 18px;
-    line-height: 36px;
-  }
-
-  p:not(.lc-caption) + p:not(.lc-caption) {
-    margin-top: 36px;
-  }
+.lc-p {
+  font-size: 18px;
+  line-height: 36px;
 }
 
 // lc-h1 = 響應式標題（mob_H1 → pc_H1）
@@ -136,7 +130,7 @@ canvas {
   }
 }
 
-p.lc-caption {
+.lc-caption {
   font-size: 15px;
   line-height: 22px;
   color: var(--c-text-muted);

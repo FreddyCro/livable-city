@@ -13,6 +13,8 @@ const emit = defineEmits<{
 const {
   revealed,
   reveal,
+  block,
+  centerY,
   onWheel,
   onTouchStart,
   onTouchMove,
@@ -34,13 +36,7 @@ const {
     @touchstart.passive="onTouchStart"
     @touchmove.passive="onTouchMove"
   >
-    <!-- ── 固定標題（step 1-1／1-2 共用，切換時不動、不淡出）──── -->
-    <header class="lc-sl__title lc-sl__title--top">
-      <span class="lc-h2 lc-sl__badge">{{ str.badge }}</span>
-      <h1 class="lc-h1 lc-sl__heading">{{ str.heading }}</h1>
-    </header>
-
-    <!-- ── step 1-1：首屏主視覺（標題下方）──────────────── -->
+    <!-- ── step 1-1：首屏主視覺（鋪底，step2 淡出）──────── -->
     <div class="lc-sl__visual-layer">
       <!-- 主視覺背景影片（依斷點換片，resize 跨斷點重載；poster 沿用插圖、object-fit 裁切置中） -->
       <video
@@ -63,10 +59,20 @@ const {
       </button>
     </div>
 
-    <!-- ── step 1-2：內文＋表單（標題下方）──────────────── -->
-    <div class="lc-sl__form-layer">
+    <!-- ── 共用區塊：標題（step1/2 皆顯示）＋前言＋表單 ──── -->
+    <!-- step1 貼頂只見標題；step2 整組向下位移置中（translateY 由 centerY 量測決定）-->
+    <div
+      ref="block"
+      class="lc-sl__block"
+      :style="revealed ? { '--lc-sl-block-y': `${centerY}px` } : null"
+    >
+      <header class="lc-sl__title">
+        <span class="lc-h2 lc-sl__badge">{{ str.badge }}</span>
+        <h1 class="lc-h1 lc-sl__heading">{{ str.heading }}</h1>
+      </header>
+
       <div class="lc-sl__content">
-        <p class="lc-sl__intro">{{ str.intro }}</p>
+        <p class="lc-p lc-sl__intro">{{ str.intro }}</p>
 
         <div class="lc-sl__form">
           <p class="lc-sl__question">{{ str.question }}</p>
@@ -92,7 +98,7 @@ const {
             @click="$emit('next')"
           >
             <span>{{ str.next }}</span>
-            <UiIconArrowCircle />
+            <UiIconArrowCircle v-if="townCode" />
           </button>
         </div>
       </div>
