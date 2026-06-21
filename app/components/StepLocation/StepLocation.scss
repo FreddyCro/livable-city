@@ -103,6 +103,11 @@ $title-gap: 40px; // 標題 → 前言（對齊 Figma）
     font-weight: 700;
     text-align: center;
     color: #000;
+
+    @include text-outline(
+      4px,
+      $color-b01
+    ); // 白底沿字形輪廓，壓在背景影片上仍清晰
   }
 
   // ── 下滑提示 ────────────────────────────────────────
