@@ -75,7 +75,7 @@ const {
         <p class="lc-p lc-sl__intro">{{ str.intro }}</p>
 
         <div class="lc-sl__form">
-          <p class="lc-sl__question">{{ str.question }}</p>
+          <p class="lc-h3 lc-sl__question">{{ str.question }}</p>
           <div class="lc-sl__selects">
             <UiSelectDropdown
               :model-value="countyCode || null"

@@ -41,8 +41,14 @@ $title-h-pc: 120px;
     pointer-events: none; // 不攔截互動，直接穿透到下方的 block content（step2）
 
     @include rwd-min(pc) {
+      top: -5%;
+    }
+
+    @include rwd-min(2xl) {
       top: -10%;
     }
+
+    
   }
 
   // ── 標題（badge + 主標題）────────────────────────────
@@ -213,9 +219,7 @@ $title-h-pc: 120px;
   &__question {
     margin: 0;
     padding-bottom: 10px;
-    font-size: 24px;
     font-weight: 700;
-    line-height: 1.4;
     text-align: center;
     color: #1e1e1e;
 
