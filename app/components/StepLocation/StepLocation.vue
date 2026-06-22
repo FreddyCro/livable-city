@@ -91,15 +91,11 @@ const {
               @update:model-value="$emit('update:townCode', $event)"
             />
           </div>
-          <button
-            type="button"
-            class="lc-sl__next"
+          <UiNextButton
+            :label="str.next"
             :disabled="!townCode"
             @click="$emit('next')"
-          >
-            <span>{{ str.next }}</span>
-            <UiIconArrowCircle v-if="townCode" />
-          </button>
+          />
         </div>
       </div>
     </div>

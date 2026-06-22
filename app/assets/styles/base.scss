@@ -72,7 +72,7 @@ canvas {
 .lc-h1 {
   @include mixins.text-style(mob-h1);
 
-  @include mixins.rwd-min(pc) {
+  @include mixins.rwd-min(pad) {
     @include mixins.text-style(pc-h1);
   }
 }
@@ -81,7 +81,7 @@ canvas {
 .lc-h2 {
   @include mixins.text-style(mob-h2);
 
-  @include mixins.rwd-min(pc) {
+  @include mixins.rwd-min(pad) {
     @include mixins.text-style(pc-h2);
   }
 }

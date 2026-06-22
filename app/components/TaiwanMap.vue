@@ -1,36 +1,45 @@
 <script setup lang="ts">
-import { ref, toRef, watch } from 'vue'
-import MapTooltip from './MapTooltip.vue'
-import { useTaiwanMap, type TownThumb } from '../composables/useTaiwanMap'
-import type { ResultTown } from '../composables/useResultTowns'
-import type { GeoMeta } from '../types/geo'
+import { ref, toRef, watch } from 'vue';
+// import MapTooltip from './MapTooltip.vue'
+import { useTaiwanMap, type TownThumb } from '../composables/useTaiwanMap';
+import type { ResultTown } from '../composables/useResultTowns';
+import type { GeoMeta } from '../types/geo';
 
 const props = defineProps<{
-  meta: GeoMeta | null
-  currentStep: 1 | 2 | 3
-  selectedTownCode: string
-  selectedResultCode: string | null
-  resultTowns: ResultTown[]
-}>()
+  meta: GeoMeta | null;
+  currentStep: 1 | 2 | 3;
+  selectedTownCode: string;
+  selectedResultCode: string | null;
+  resultTowns: ResultTown[];
+}>();
 
 // Step-2 縮圖往上同步給父層（StepCriteria 使用）
-const townThumb = defineModel<TownThumb | null>('townThumb', { default: null })
+const townThumb = defineModel<TownThumb | null>('townThumb', { default: null });
 
-const canvasRef = ref<HTMLCanvasElement | null>(null)
+const canvasRef = ref<HTMLCanvasElement | null>(null);
 
-const { hovered, selectedTownThumb, zoomBy, flyToCounty, flyToTaiwan, focusTown } = useTaiwanMap({
+const {
+  hovered,
+  selectedTownThumb,
+  zoomBy,
+  flyToCounty,
+  flyToTaiwan,
+  focusTown,
+} = useTaiwanMap({
   canvasRef,
   meta: toRef(props, 'meta'),
   currentStep: toRef(props, 'currentStep'),
   selectedTownCode: toRef(props, 'selectedTownCode'),
   selectedResultCode: toRef(props, 'selectedResultCode'),
   resultTowns: toRef(props, 'resultTowns'),
-})
+});
 
-watch(selectedTownThumb, (v) => { townThumb.value = v })
+watch(selectedTownThumb, (v) => {
+  townThumb.value = v;
+});
 
 // 命令式相機操作，由父層在 step 轉場 / 選結果時呼叫
-defineExpose({ zoomBy, flyToCounty, flyToTaiwan, focusTown })
+defineExpose({ zoomBy, flyToCounty, flyToTaiwan, focusTown });
 </script>
 
 <template>
@@ -40,7 +49,7 @@ defineExpose({ zoomBy, flyToCounty, flyToTaiwan, focusTown })
     class="lc-mv__canvas"
     :class="{ 'lc-mv__canvas--hidden': currentStep !== 3 }"
   />
-  <MapTooltip v-if="hovered && currentStep > 1" :info="hovered" />
+  <!-- <MapTooltip v-if="hovered && currentStep > 1" :info="hovered" /> -->
 </template>
 
 <style scoped lang="scss">

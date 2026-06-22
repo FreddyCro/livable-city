@@ -19,15 +19,12 @@ $title-h-pc: 120px;
   overflow: hidden;
 
   // 主視覺層滿版鋪底；共用區塊（標題＋前言＋表單）疊在其上
+  // ── step 1-1：首屏主視覺層 ──────────────────────────
+  // step-location__visual-layer
   &__visual-layer {
     position: absolute;
     inset: 0;
     z-index: 1;
-  }
-
-  // ── step 1-1：首屏主視覺層 ──────────────────────────
-  // step-location__visual-layer
-  &__visual-layer {
     transition:
       opacity 0.45s ease,
       transform 0.45s ease;
@@ -37,15 +34,14 @@ $title-h-pc: 120px;
   &__visual {
     position: absolute;
     inset: 0;
-    pointer-events: none;
     width: 100%;
     height: 100%;
-    object-fit: content;
+    object-fit: contain;
     object-position: center center;
+    pointer-events: none; // 不攔截互動，直接穿透到下方的 block content（step2）
 
-    @include rwd-min(pad) {
-      object-fit: cover;
-      object-position: center bottom;
+    @include rwd-min(pc) {
+      top: -10%;
     }
   }
 
@@ -76,7 +72,6 @@ $title-h-pc: 120px;
     align-items: center;
     gap: 20px;
     width: min(362px, 90vw);
-    pointer-events: none; // 容器不攔截；互動交給 revealed 後的 content
     transform: translate(-50%, var(--lc-sl-block-y));
     transition: transform 0.5s ease; // step1 貼頂 ↔ step2 置中 的向下位移
 
@@ -127,12 +122,12 @@ $title-h-pc: 120px;
   // step-location__scroll-hint
   &__scroll-hint {
     position: absolute;
-    bottom: 16px;
+    bottom: 0;
     left: 50%;
     transform: translateX(-50%);
     display: inline-flex;
     flex-direction: column;
-    align-items: center;
+    align-items: center; 
     gap: 8px;
     border: none;
     background: transparent;
@@ -246,34 +241,7 @@ $title-h-pc: 120px;
     }
   }
 
-  // step-location__next（黃色膠囊主按鈕）
-  &__next {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    width: 100%;
-    height: 50px;
-    border: none;
-    border-radius: 50px;
-    background: $color-y01; // Y01 #f4cc34
-    font-size: 18px;
-    line-height: 28px;
-    color: #000;
-    transition: opacity 0.2s;
-
-    @include rwd-min(pc) {
-      height: 60px;
-    }
-
-    &:disabled {
-      cursor: default;
-      border-radius: 50px;
-      border: 0.5px solid rgba(0, 0, 0, 0.4);
-      background: transparent;
-      color: rgba(0, 0, 0, 0.4);
-    }
-  }
+  // CTA 主按鈕（下一步）外觀已抽至共用 UiNextButton；版位由 &__form 控制。
 
   // ── 展開狀態（切換到 step 1-2）────────────────────────
   // 主視覺：上移 + fade out

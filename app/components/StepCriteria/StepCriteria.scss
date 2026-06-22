@@ -251,28 +251,10 @@
     font-weight: 700;
   }
 
-  // step-criteria__submit（黃色膠囊主按鈕）
+  // step-criteria__submit（CTA 鈕版位；外觀見共用 UiNextButton）
   &__submit {
     flex-shrink: 0;
     margin-top: 9px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
     width: 400px;
-    height: 60px;
-    border: none;
-    border-radius: 50px;
-    background: $color-y01; // Y01 #f4cc34
-    font-size: 18px;
-    line-height: 28px;
-    color: #000;
-    cursor: pointer;
-    transition: opacity 0.2s;
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: default;
-    }
   }
 }

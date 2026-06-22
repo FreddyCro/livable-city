@@ -56,6 +56,7 @@
 // 依 key 套用 Figma Text style（size + line-height），對照 vars.$text-styles
 @mixin text-style($key) {
   $style: map.get(vars.$text-styles, $key);
+
   @if $style {
     font-size: map.get($style, size);
     line-height: map.get($style, line-height);

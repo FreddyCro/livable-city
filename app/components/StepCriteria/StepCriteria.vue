@@ -96,15 +96,13 @@ const { countyName, townName, atMax, canProceed, hintText, toggleFilter, formatV
           </button>
         </div>
 
-        <button
-          type="button"
-          class="lc-sc__submit"
-          :disabled="!canProceed"
-          @click="$emit('next')"
-        >
-          <span>{{ str.viewResults }}</span>
-          <UiIconArrowCircle />
-        </button>
+        <div class="lc-sc__submit">
+          <UiNextButton
+            :label="str.viewResults"
+            :disabled="!canProceed"
+            @click="$emit('next')"
+          />
+        </div>
       </section>
     </div>
   </div>
