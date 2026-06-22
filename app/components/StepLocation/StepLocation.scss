@@ -159,16 +159,26 @@ $title-h-pc: 120px;
     }
   }
 
-  // step-location__scroll-hint-line（往下延伸的細線，做出「向下」暗示）
+  // step-location__scroll-hint-line（靜態細軌＋向下循環的亮段，做出「向下」暗示）
   &__scroll-hint-line {
-    width: 1px;
+    position: relative;
+    width: 0.5px;
     height: 74px;
-    background: #000;
-    transform-origin: top;
-    animation: lc-sl-line 1.6s ease-in-out infinite;
+    // background: rgba(0, 0, 0, 0.2); // 暗淡軌道
+    overflow: hidden;
 
     @include rwd-min(pc) {
       height: 130px;
+    }
+
+    // 亮段沿軌道由上往下跑（跑馬燈循環）
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto;
+      height: 70%;
+      background: #000;
+      animation: lc-sl-line 2.2s cubic-bezier(0.4, 0, 0.3, 1) infinite;
     }
   }
 
@@ -262,8 +272,8 @@ $title-h-pc: 120px;
     pointer-events: none;
   }
 
-  // 首屏淡出後，下滑提示已不可見，停掉細線動畫省去無謂的 compositor 工作
-  &--revealed &__scroll-hint-line {
+  // 首屏淡出後，下滑提示已不可見，停掉亮段動畫省去無謂的 compositor 工作
+  &--revealed &__scroll-hint-line::after {
     animation: none;
   }
 
@@ -286,16 +296,21 @@ $title-h-pc: 120px;
   }
 }
 
-// 下滑提示細線：循環向下伸縮
+// 下滑提示亮段：由軌道上方跑到下方並淡出，循環往復
 @keyframes lc-sl-line {
-  0%,
-  100% {
-    transform: scaleY(0.6);
-    opacity: 0.5;
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
   }
-  50% {
-    transform: scaleY(1);
+  20% {
     opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(250%);
+    opacity: 0;
   }
 }
 
@@ -315,7 +330,7 @@ $title-h-pc: 120px;
     transform: none;
   }
 
-  .lc-sl__scroll-hint-line {
+  .lc-sl__scroll-hint-line::after {
     animation: none;
   }
 }
