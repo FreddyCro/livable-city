@@ -182,11 +182,8 @@ $title-h-pc: 120px;
     width: 100%;
     max-width: 362px;
     opacity: 0;
-    transform: translateY(24px);
     pointer-events: none;
-    transition:
-      opacity 0.5s ease 0.1s,
-      transform 0.5s ease 0.1s;
+    // 容器本身不做轉場（瞬間切換）；淡入＋上滑改由 __intro / __form 各自分階段呈現
 
     @include rwd-min(pad) {
       max-width: 620px;
@@ -199,6 +196,11 @@ $title-h-pc: 120px;
     margin: 0;
     text-align: justify;
     color: var(--color-b03); // B3
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 0.5s ease 0.3s,
+      transform 0.5s ease 0.3s;
   }
 
   // step-location__form
@@ -209,6 +211,11 @@ $title-h-pc: 120px;
     gap: 8px;
     width: 100%;
     max-width: 360px;
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 0.5s ease 0.6s,
+      transform 0.5s ease 0.6s;
 
     @include rwd-min(pc) {
       max-width: 400px;
@@ -260,11 +267,22 @@ $title-h-pc: 120px;
     animation: none;
   }
 
-  // 前言＋表單：fade / slide in 並恢復互動（標題不淡出，整組由 block transform 向下位移置中）
+  // 容器：瞬間顯示並恢復互動（不淡入，標題不淡出，整組由 block transform 向下位移置中）
   &--revealed &__content {
     opacity: 1;
-    transform: none;
     pointer-events: auto;
+  }
+
+  // 前言：淡入＋上滑，delay 0.3s
+  &--revealed &__intro {
+    opacity: 1;
+    transform: none;
+  }
+
+  // 表單：淡入＋上滑，delay 0.6s（接在前言之後分階段呈現）
+  &--revealed &__form {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -285,13 +303,15 @@ $title-h-pc: 120px;
 @media (prefers-reduced-motion: reduce) {
   .lc-sl__visual-layer,
   .lc-sl__block,
-  .lc-sl__content {
+  .lc-sl__intro,
+  .lc-sl__form {
     transition-duration: 0.01ms;
   }
 
-  // block 的 transform 是定位用途，不可清除；僅視覺層與 content 的滑入位移可省略
+  // block 的 transform 是定位用途，不可清除；僅視覺層與前言／表單的滑入位移可省略
   .lc-sl__visual-layer,
-  .lc-sl__content {
+  .lc-sl__intro,
+  .lc-sl__form {
     transform: none;
   }
 

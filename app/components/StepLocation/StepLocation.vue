@@ -72,8 +72,10 @@ const {
       </header>
 
       <div class="lc-sl__content">
+        <!-- step 2 show 1 -->
         <p class="lc-p lc-sl__intro">{{ str.intro }}</p>
 
+        <!-- step 2 show 2 -->
         <div class="lc-sl__form">
           <p class="lc-h3 lc-sl__question">{{ str.question }}</p>
           <div class="lc-sl__selects">
