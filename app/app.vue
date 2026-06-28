@@ -5,6 +5,7 @@ import StepCriteria from './components/StepCriteria/StepCriteria.vue';
 import StepResult from './components/StepResult/StepResult.vue';
 import TaiwanMap from './components/TaiwanMap.vue';
 import AppHeader from './components/AppHeader.vue';
+import LoadingOverlay from './components/LoadingOverlay.vue';
 import { useGeoMeta } from './composables/useGeoMeta';
 import { useFilterData } from './composables/useFilterData';
 import { useResultTowns } from './composables/useResultTowns';
@@ -120,6 +121,7 @@ function resetSelections() {
 
 // 「重新選擇」：先重置再回到 step 1（重來一次）。
 function restart() {
+  closeOverlay(); // 關掉所有彈出視窗（載入 / 結果數 / 無結果）並取消待觸發計時器
   resetSelections();
   goToStep(1);
 }
@@ -143,6 +145,44 @@ watch(currentStep, async (step) => {
     if (first) mapRef.value?.focusTown(first.code);
     else mapRef.value?.flyToTaiwan();
   }
+});
+
+// ── Loading / 轉場視窗（wireflow §2.5 + 3.6/3.7）─────────────────
+// 先驗證「出現時機」：結果為同步 computed，故以計時器模擬載入時長顯示視窗（動態本身之後再做）。
+type Overlay = { variant: 'loading' | 'result-count' | 'empty'; dim: boolean };
+const overlay = ref<Overlay | null>(null);
+let overlayTimer: ReturnType<typeof setTimeout> | undefined;
+
+const TRANSITION_MS = 900; // 2.5a 載入視窗顯示時長（criteria→result）
+const RELOAD_MS = 600; // 3.6 explore-reloading 顯示時長（filter 切換）
+
+// 關閉所有彈出視窗並取消待觸發的計時器（✕ 關閉、reset 皆共用）。
+function closeOverlay() {
+  clearTimeout(overlayTimer);
+  overlay.value = null;
+}
+
+// criteria 點「查看你的理想居住地區」：2.5a 載入（刷暗）→ 依結果數切到 2.5b / 2.5c。
+function enterResult() {
+  overlay.value = { variant: 'loading', dim: true };
+  goToStep(3);
+  clearTimeout(overlayTimer);
+  overlayTimer = setTimeout(() => {
+    overlay.value = resultTowns.value.length > 0
+      ? { variant: 'result-count', dim: true }
+      : { variant: 'empty', dim: true };
+  }, TRANSITION_MS);
+}
+
+// explore 內每次切換 filter：3.6 載入視窗（不刷暗）→ 0 筆則 3.7 無結果視窗，有結果則收起。
+// 注意：restart() 會先清空 filters 再切回 step 1，watcher 為 flush 後執行，屆時 currentStep 已是 1，故自動略過。
+watch(selectedFilters, () => {
+  if (currentStep.value !== 3) return;
+  overlay.value = { variant: 'loading', dim: false };
+  clearTimeout(overlayTimer);
+  overlayTimer = setTimeout(() => {
+    overlay.value = resultTowns.value.length > 0 ? null : { variant: 'empty', dim: false };
+  }, RELOAD_MS);
 });
 </script>
 
@@ -181,7 +221,7 @@ watch(currentStep, async (step) => {
         :selected-filters="selectedFilters"
         :selected-town-thumb="selectedTownThumb"
         @update:selected-filters="selectedFilters = $event"
-        @next="goToStep(3)"
+        @next="enterResult()"
       />
       <StepResult
         v-else-if="currentStep === 3"
@@ -201,6 +241,15 @@ watch(currentStep, async (step) => {
         @zoom-out="mapRef?.zoomBy(-1)"
       />
     </Transition>
+
+    <!-- 轉場 / 載入視窗（2.5a/b/c 刷暗、3.6/3.7 浮卡不刷暗）；先驗證出現時機 -->
+    <LoadingOverlay
+      v-if="overlay"
+      :variant="overlay.variant"
+      :dim="overlay.dim"
+      :count="resultTowns.length"
+      @close="closeOverlay()"
+    />
   </div>
 </template>
 
