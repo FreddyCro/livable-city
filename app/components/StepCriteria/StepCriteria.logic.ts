@@ -64,6 +64,13 @@ export function useStepCriteria(props: StepCriteriaProps, emit: StepCriteriaEmit
     return val.toLocaleString();
   }
 
+  // 現居地區資訊面板：數值後緊接單位（如「51.02萬／坪」「12.5%」）；缺值僅顯示「—」不接單位。
+  function statText(f: FilterMeta): string {
+    const val = props.filterDataCache[f.id]?.[props.selectedTownCode];
+    if (val == null) return '—';
+    return `${val.toLocaleString()}${f.unit ?? ''}`;
+  }
+
   return {
     countyName,
     townName,
@@ -72,5 +79,6 @@ export function useStepCriteria(props: StepCriteriaProps, emit: StepCriteriaEmit
     hintText,
     toggleFilter,
     formatVal,
+    statText,
   };
 }

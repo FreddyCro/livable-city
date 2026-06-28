@@ -85,35 +85,68 @@
     gap: 12px;
   }
 
-  // step-result__card
+  // step-result__card（對齊 Figma result filter；與 criteria filter 同款黃色狀態）
   &__card {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    padding: 16px 18px;
-    border: 1px solid var(--c-border);
+    gap: 5px;
+    // grid item 預設 min-width:auto 會被長 label 撐破半欄；歸零讓每張卡固定為 aside 半寬
+    min-width: 0;
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 0.5px solid var(--c-line-main); // 主線條 #403a2c
     border-radius: 10px;
-    background: var(--c-surface);
+    background: transparent;
     font-size: 15px;
-    color: var(--c-text-secondary);
+    line-height: 22px;
+    color: #000;
     text-align: left;
     cursor: pointer;
     transition:
       border-color 0.15s,
       background 0.15s;
 
+    // hover（未選）：底部往上黃色放射漸層 @ 0.5 疊白底、黑框（對齊 State=hover）
     &:hover {
-      border-color: var(--c-border-hover);
+      border-color: #000;
+      background:
+        radial-gradient(
+          ellipse 100% 100% at 50% 100%,
+          rgb(255 242 193 / 0.5) 0%,
+          rgb(244 204 52 / 0.5) 100%
+        ),
+        #fff;
     }
 
-    // 已選：Reka CheckboxRoot 掛 data-state="checked"（樣式沿用原 --selected）
+    // 已選（activated）：實心黃 Y01、同色框佔位、粗體、顯示 X（對齊 State=activated）
     &[data-state='checked'] {
-      background: var(--c-primary);
-      border-color: var(--c-primary);
-      color: var(--c-text);
+      background: var(--color-y01); // 黃 #f4cc34
+      border-color: var(--color-y01);
       font-weight: 700;
+
+      // activated hover：全不透明黃漸層 + 黑框 + 還原非粗體，暗示點擊可移除（State=activated hover）
+      &:hover {
+        border-color: #000;
+        font-weight: 400;
+        background:
+          radial-gradient(
+            ellipse 100% 100% at 50% 100%,
+            rgb(255 242 193) 0%,
+            rgb(244 204 52) 100%
+          ),
+          var(--color-y01);
+      }
     }
+  }
+
+  // step-result__card-label（撐滿、過長截斷）
+  &__card-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   // step-result__card-x（已選卸除圖示，button_close／X circle）
@@ -132,7 +165,7 @@
 
   // step-result__banners（沿側邊欄底部滿版）
   &__banners {
-    margin: 24px -32px -24px;
+    margin: 24px -32px 0;
     display: flex;
     flex-direction: column;
   }
@@ -154,12 +187,12 @@
 
     // step-result__banner--data
     &--data {
-      background: var(--c-accent-teal);
+      background: var(--color-b03);
     }
 
     // step-result__banner--report
     &--report {
-      background: var(--c-accent-green);
+      background: var(--color-g01);
     }
   }
 
@@ -213,7 +246,9 @@
     // step-result__list-head--open（展開態：← 請選擇，靠左排）
     &--open {
       justify-content: flex-start;
-      color: var(--c-text-faint); // 對齊 Figma 灰字（BK-40%）；箭頭以 currentColor 跟隨
+      color: var(
+        --c-text-faint
+      ); // 對齊 Figma 灰字（BK-40%）；箭頭以 currentColor 跟隨
     }
   }
 
@@ -334,17 +369,26 @@
     padding: 0;
     border: 1px solid var(--c-line-main);
     border-radius: 999px;
-    background: var(--c-surface);
-    color: var(--c-text);
+    background: var(--c-surface); // default：白底
+    color: var(--c-text); // 箭頭深色，各態皆維持（不轉白）
     cursor: pointer;
     pointer-events: auto;
-    box-shadow: 1px 1px 0 var(--c-line-main);
+    box-shadow: 1px 1px 0 var(--c-line-main); // 1px 硬陰影
     transition:
       background 0.15s,
-      color 0.15s;
+      box-shadow 0.15s,
+      transform 0.15s;
 
+    // hover：黃底 Y01、保留硬陰影（對齊 Figma property1=hover）
     &:hover:not(:disabled) {
-      color: var(--c-text-inverse);
+      background: var(--color-y01);
+    }
+
+    // mouse down：黃底壓下、移除陰影並位移至陰影位置（對齊 Figma property1=mouse down）
+    &:active:not(:disabled) {
+      background: var(--color-y01);
+      box-shadow: none;
+      transform: translate(1px, 1px);
     }
 
     &:disabled {
@@ -356,19 +400,11 @@
     // step-result__paddle--prev（左：上一個地區）
     &--prev {
       left: -52px;
-
-      &:hover:not(:disabled) {
-        background: var(--c-accent-teal);
-      }
     }
 
     // step-result__paddle--next（右：下一個地區）
     &--next {
       right: -52px;
-
-      &:hover:not(:disabled) {
-        background: var(--c-accent-green);
-      }
     }
   }
 
@@ -474,7 +510,7 @@
 
   // step-result__metric-pct
   &__metric-pct {
-    background: var(--c-danger);
+    background: var(--color-r01);
     color: var(--c-text-inverse);
     font-size: 12px;
     font-weight: 700;

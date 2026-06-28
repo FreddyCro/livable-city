@@ -69,7 +69,7 @@ const {
             :value="f.id"
             class="lc-sr__card"
           >
-            <span class="lc-sr__card-label">{{ f.name }}</span>
+            <span class="lc-sr__card-label">{{ f.label ?? f.name }}</span>
             <!-- CheckboxIndicator 僅在勾選時 render（等同原本 ✕ 的 v-if）；圖示用 button_close（X circle） -->
             <CheckboxIndicator class="lc-sr__card-x">
               <img :src="iconUrl('button_close')" alt="" />

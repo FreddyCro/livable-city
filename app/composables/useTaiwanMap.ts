@@ -178,15 +178,15 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
         stroked: true,
         getFillColor: (d: any) => {
           const code = d.properties?.TOWNCODE
-          if (code === selectedTownCode.value) return [255, 165, 0, 220]
+          if (code === selectedTownCode.value) return [230, 245, 250] // 自己選取的現居地：B01 #e6f5fa
           if (code === selectedResultCode.value) return [59, 130, 246, 200]
           return [245, 245, 240]
         },
         getLineColor: [180, 180, 180],
         lineWidthMinPixels: 0.5,
         pickable: true,
-        autoHighlight: true,
-        highlightColor: [200, 220, 255, 160],
+        // 不對 hover 的鄉鎮做填色高亮（仍保留 pickable / onHover 供 tooltip 使用）
+        autoHighlight: false,
         updateTriggers: { getFillColor: [selectedTownCode.value, selectedResultCode.value] },
         onHover: ({ object, x, y }: any) => {
           if (object) {

@@ -41,6 +41,27 @@ export const DIRECTION = {
   '15': false, // 公園、綠地及廣場用地面積
 };
 
+// 篩選按鈕的顯示文字（label）：對使用者的「方向性」描述（更低／更多／更高／更大），
+// 對齊 Figma 居住條件按鈕。與 name（檔名衍生的原始指標名，用於比較面板/現居統計欄）刻意分開。
+// 改文案只需改這裡，criteria 卡片與 result chip 共用。
+export const LABELS = {
+  '1': '購屋房價更低',
+  '2': '房屋租金更低',
+  '3': '醫療資源更多',
+  '4': '癌症發生率更低',
+  '5': '犯罪率更低',
+  '6': '交通事故死傷率更低',
+  '7': '公托覆蓋率更高',
+  '8': '長照資源更多',
+  '9': '圖書館資源更多',
+  '10': '人口密度更低',
+  '11': '青壯年人口比率更高',
+  '12': '超商密度更高',
+  '13': '餐飲及住宿店家密度更高',
+  '14': '大規模崩塌災害風險更低',
+  '15': '居住地綠地空間更大',
+};
+
 // 產出資料檔但不列入篩選清單（index.json）的 id。
 // '0' 各鄉鎮市區人口數為背景/分母資料，非可勾選的宜居指標。
 export const EXCLUDE_FROM_INDEX = new Set(['0']);
@@ -73,6 +94,17 @@ export const idOf = (file) => {
   const m = /^(\d+(?:-\d+)*)\./.exec(file);
   return m ? m[1] : null;
 };
+
+// 讀第三欄表頭括號內的單位（"超商密度（間／平方公里）" → "間／平方公里"）。
+// 單位寫在來源 xlsx 第三欄表頭，而非檔名；無括號（如「人口數」）回空字串。
+export function headerUnit(file, dir = PATHS.sourcesDir) {
+  const wb = XLSX.readFile(resolve(dir, file));
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  const third = String(rows[0]?.[2] ?? '');
+  const m = /（(.+?)）/.exec(third);
+  return m ? m[1].trim() : '';
+}
 
 // 列出來源目錄的 xlsx，依數字 id 排序。
 export function listXlsx(dir = PATHS.sourcesDir) {

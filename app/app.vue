@@ -38,27 +38,27 @@ useSeoMeta({
 useHead(useTracking());
 
 // 第三方資源：UDN icons、nmd loading 動畫、protico
-useHead({
-  link: [
-    {
-      rel: 'stylesheet',
-      href: 'https://newmedia.udn.com.tw/cms_assets/icons_v4/icons.css',
-      tagPosition: 'bodyOpen',
-    },
-    {
-      rel: 'stylesheet',
-      href: `${ASSETS_PATH}/nmd-loading.css`,
-      tagPosition: 'bodyOpen',
-    },
-  ],
-  script: [
-    {
-      type: 'text/javascript',
-      src: `${ASSETS_PATH}/nmd-loading.min.js`,
-      tagPosition: 'bodyOpen',
-    },
-  ],
-});
+// useHead({
+//   link: [
+//     {
+//       rel: 'stylesheet',
+//       href: 'https://newmedia.udn.com.tw/cms_assets/icons_v4/icons.css',
+//       tagPosition: 'bodyOpen',
+//     },
+//     {
+//       rel: 'stylesheet',
+//       href: `${ASSETS_PATH}/nmd-loading.css`,
+//       tagPosition: 'bodyOpen',
+//     },
+//   ],
+//   script: [
+//     {
+//       type: 'text/javascript',
+//       src: `${ASSETS_PATH}/nmd-loading.min.js`,
+//       tagPosition: 'bodyOpen',
+//     },
+//   ],
+// });
 
 // JSON-LD 結構化資料（由 nuxt-jsonld 模組提供 useJsonld）
 useJsonld({

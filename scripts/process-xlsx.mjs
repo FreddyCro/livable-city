@@ -5,8 +5,8 @@
 import { writeFileSync, mkdirSync } from 'fs';
 import { resolve } from 'path';
 import {
-  PATHS, DIRECTION, EXCLUDE_FROM_INDEX,
-  cleanName, parseVal, idOf, listXlsx, dataRows, loadLookup, matchRow,
+  PATHS, DIRECTION, LABELS, EXCLUDE_FROM_INDEX,
+  cleanName, parseVal, idOf, listXlsx, dataRows, loadLookup, matchRow, headerUnit,
 } from './lib/sources.mjs';
 
 const { lookup, countyNameToCode } = loadLookup();
@@ -45,7 +45,11 @@ const index = files
     if (!(id in DIRECTION)) {
       console.warn(`  [index] no DIRECTION for id "${id}" (${file}) — defaulting lowerIsBetter=true`);
     }
-    return { id, name: cleanName(file), lowerIsBetter: DIRECTION[id] ?? true };
+    const name = cleanName(file);
+    if (!(id in LABELS)) {
+      console.warn(`  [index] no LABEL for id "${id}" (${file}) — falling back to name "${name}"`);
+    }
+    return { id, name, label: LABELS[id] ?? name, unit: headerUnit(file), lowerIsBetter: DIRECTION[id] ?? true };
   })
   .filter(Boolean);
 

@@ -147,27 +147,18 @@ function onUpdate(val: string) {
     min-width: 135px;
     padding: 9px 14px;
     background: var(--c-surface);
-    border: 1px solid var(--c-border);
+    // 不論什麼狀態都維持黑框黑字（依設計師要求純黑 #000）；hover / open 皆不改變外觀。
+    border: 1px solid #000;
     border-radius: 20px;
     font-size: 15px;
     line-height: 22px;
-    color: var(--c-text);
+    color: #000;
     font-family: 'Noto Sans TC', sans-serif;
     cursor: pointer;
-    transition: border-color 0.15s;
 
-    &:hover:not([data-disabled]) {
-      border-color: $color-b03;
-    }
-
-    // 展開時（Reka 在 trigger 掛 data-state="open"）
-    &[data-state='open'] {
-      border-color: $color-b03;
-    }
-
-    // 停用（Reka 掛 data-disabled）
+    // 停用（Reka 掛 data-disabled）：依設計師要求仍維持黑字
     &[data-disabled] {
-      color: var(--c-text-faint);
+      color: #000;
       cursor: default;
       background: var(--c-surface-sunken);
     }
@@ -190,9 +181,9 @@ function onUpdate(val: string) {
     text-overflow: ellipsis;
   }
 
-  // placeholder 態：Reka 在 trigger 掛 data-placeholder
+  // placeholder 態：Reka 在 trigger 掛 data-placeholder（依設計師要求亦為黑字）
   &__control[data-placeholder] &__label {
-    color: var(--c-text-faint);
+    color: #000;
   }
 
   // select-dropdown__chevron
@@ -200,7 +191,8 @@ function onUpdate(val: string) {
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
-    color: var(--c-text-muted);
+    // 跟隨文字色（#000）
+    color: inherit;
     transition: transform 0.18s ease;
   }
 
@@ -222,7 +214,7 @@ function onUpdate(val: string) {
     z-index: 50;
     width: var(--reka-select-trigger-width);
     background: var(--c-surface);
-    border: 1px solid $color-b03;
+    border: 1px solid #000;
     border-radius: 20px;
     box-shadow: 0 6px 20px rgb(var(--c-shadow) / 0.12);
     overflow: hidden;

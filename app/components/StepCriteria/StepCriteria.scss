@@ -20,8 +20,7 @@
     align-items: stretch;
     width: 100%;
     max-width: 904px;
-    height: 600px;
-    max-height: calc(100vh - 110px);
+    height: 100%;
   }
 
   // ── 左欄：資訊面板 ──────────────────────────────────
@@ -54,10 +53,10 @@
     height: 100%;
   }
 
-  // step-criteria__map-shape（被選取鄉鎮色塊）
+  // step-criteria__map-shape（被選取鄉鎮色塊；填色與描邊統一用 B03）
   &__map-shape {
-    fill: var(--c-accent-teal); // B03 teal
-    stroke: var(--c-accent-teal-dk);
+    fill: var(--color-b03);
+    stroke: var(--color-b03);
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
   }
@@ -204,17 +203,24 @@
       border-color 0.15s,
       background 0.15s;
 
+    // hover：底部往上的黃色放射漸層疊白底（對齊 Figma State=hover）
     &:hover {
-      background: rgb(255 255 255 / 0.6);
+      background:
+        radial-gradient(
+          ellipse 100% 100% at 50% 100%,
+          rgb(255 242 193 / 0.5) 0%,
+          rgb(244 204 52 / 0.5) 100%
+        ),
+        #fff;
     }
 
-    // step-criteria__card--selected（已選；註：Figma 未提供選中態，暫定淺藍底）
+    // step-criteria__card--selected（已選；對齊 Figma State=activated：實心黃 Y01、無框）
     &--selected {
-      background: var(--color-b02); // 淺藍
-      border-color: #000;
+      background: var(--color-y01); // 黃 #f4cc34
+      border-color: var(--color-y01); // 保留 0.5px 邊框佔位、視覺無框
 
       &:hover {
-        background: var(--color-b02);
+        background: var(--color-y01);
       }
     }
 

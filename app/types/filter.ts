@@ -4,7 +4,12 @@
 export interface FilterMeta {
   /** 指標代碼，對應 data/{id}.json 檔名 */
   id: string
+  /** 原始指標名（如「大樓平均單價」）；用於比較面板、現居統計欄 */
   name: string
+  /** 篩選按鈕顯示文字：對使用者的方向性描述（如「購屋房價更低」），對齊 Figma 居住條件按鈕 */
+  label: string
+  /** 數值單位（來源 xlsx 第三欄表頭括號內），如「萬元／坪」「%」；無單位為空字串 */
+  unit: string
   /** true=值越低越好（房價、租金…），false=值越高越好（超商密度…） */
   lowerIsBetter: boolean
 }

@@ -59,6 +59,7 @@ defineExpose({ zoomBy, flyToCounty, flyToTaiwan, focusTown });
   position: absolute;
   inset: $app-header-h 0 0 $explore-sidebar-w;
   display: block;
+  background: var(--color-b02);
   transition: opacity 0.4s ease;
 
   // map-view__canvas--hidden

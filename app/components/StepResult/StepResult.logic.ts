@@ -29,14 +29,19 @@ export interface StepResultEmit {
  */
 export function useStepResult(props: StepResultProps, emit: StepResultEmit) {
   const compareCollapsed = ref(false);
-  const listOpen = ref(true);
+  const listOpen = ref(false);
 
+  // 比較面板的指標標題：名稱後接括號單位（如「大樓平均單價（萬元／坪）」），單位空白時僅顯示名稱
   const filterNameMap = computed(() =>
-    Object.fromEntries(props.filterIndex.map((f) => [f.id, f.name])),
+    Object.fromEntries(
+      props.filterIndex.map((f) => [f.id, f.unit ? `${f.name}（${f.unit}）` : f.name]),
+    ),
   );
 
-  // explore-compare 顯示「全部指標」，不受 explore-sidebar 勾選影響
-  const allFilterIds = computed(() => props.filterIndex.map((f) => f.id));
+  // explore-compare 只顯示 explore-sidebar 有勾選的指標（依 filterIndex 原始順序排列）
+  const allFilterIds = computed(() =>
+    props.filterIndex.map((f) => f.id).filter((id) => props.selectedFilters.includes(id)),
+  );
 
   // Home (current) town name
   const homeCounty = computed(() => {

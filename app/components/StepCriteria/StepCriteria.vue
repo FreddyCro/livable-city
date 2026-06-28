@@ -15,11 +15,11 @@ const { img } = useAssets();
 const iconUrl = (name: string) => img(`icon/${name}.svg`);
 const pinSrc = iconUrl('map_pin');
 
-// 每個居住條件的呈現用 metadata（動作語句 label + 圖示檔名 icon），id 對應 index.json
-// 的篩選 id。label 與 icon 成對放一起，元件不再各自維護兩份 id 對照。
-const cards = str.cards as Record<string, { label: string; icon: string }>;
+// 每個居住條件的圖示（presentational，criteria 專用），id 對應 index.json 的篩選 id。
+// 顯示文字改由 filter data 的 label 提供（criteria 卡片與 result chip 共用同一來源）。
+const cards = str.cards as Record<string, { icon: string }>;
 function cardLabel(f: FilterMeta): string {
-  return cards[f.id]?.label ?? f.name;
+  return f.label ?? f.name;
 }
 function criteriaIcon(id: string): string {
   const slug = cards[id]?.icon;
@@ -27,7 +27,7 @@ function criteriaIcon(id: string): string {
 }
 
 // view 邏輯抽至 co-located 的 StepCriteria.logic.ts（單一元件專用）。
-const { countyName, townName, atMax, canProceed, hintText, toggleFilter, formatVal } =
+const { countyName, townName, atMax, canProceed, hintText, toggleFilter, statText } =
   useStepCriteria(props, emit);
 </script>
 
@@ -59,9 +59,7 @@ const { countyName, townName, atMax, canProceed, hintText, toggleFilter, formatV
         <div class="lc-sc__stats">
           <div v-for="f in filterIndex" :key="f.id" class="lc-sc__stat">
             <span class="lc-sc__stat-label">{{ f.name }}</span>
-            <span class="lc-sc__stat-val">{{
-              formatVal(filterDataCache[f.id]?.[selectedTownCode])
-            }}</span>
+            <span class="lc-sc__stat-val">{{ statText(f) }}</span>
           </div>
         </div>
       </aside>

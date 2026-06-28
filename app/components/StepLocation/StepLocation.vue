@@ -52,6 +52,9 @@ const {
         <source :src="activeVideo.mp4" type="video/mp4" />
       </video>
 
+      <!-- 影片來源標註（左下角） -->
+      <span class="lc-sl__visual-credit">{{ str.visualCredit }}</span>
+
       <!-- 下滑提示（手機／平板置中下方；電腦靠右） -->
       <button type="button" class="lc-sl__scroll-hint" @click="reveal">
         <span class="lc-sl__scroll-hint-text">{{ str.scrollHint }}</span>
