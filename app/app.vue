@@ -138,7 +138,10 @@ watch(currentStep, async (step) => {
     await preloadAllFilters();
     if (selectedCountyCode.value) mapRef.value?.flyToCounty(selectedCountyCode.value);
   } else if (step === 3) {
-    mapRef.value?.flyToTaiwan();
+    // 進入結果頁直接 zoom in 到結果清單第一筆（與 useResultTowns 預設選取一致）；無結果則回退全台視角
+    const first = resultTowns.value[0];
+    if (first) mapRef.value?.focusTown(first.code);
+    else mapRef.value?.flyToTaiwan();
   }
 });
 </script>
@@ -156,6 +159,7 @@ watch(currentStep, async (step) => {
       :selected-town-code="selectedTownCode"
       :selected-result-code="selectedResultCode"
       :result-towns="resultTowns"
+      @update:selected-result-code="selectResult($event)"
     />
 
     <Transition name="fade" mode="out-in">

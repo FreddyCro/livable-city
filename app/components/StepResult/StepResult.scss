@@ -214,7 +214,7 @@
   //   半透明白底＋0.5px 黑框＋backdrop-blur，收合為膠囊、展開為上下圓角卡片）
   &__list {
     position: absolute;
-    top: #{$app-header-h};
+    top: calc(#{$app-header-h} + 20px);
     left: calc(#{$explore-sidebar-w} + 16px);
     width: 140px;
     max-height: calc(100vh - #{$app-header-h} - 32px);
@@ -338,6 +338,8 @@
     left: calc(#{$explore-sidebar-w} + (100% - #{$explore-sidebar-w}) / 2);
     transform: translateX(-50%);
     bottom: 24px;
+    width: 100%;
+    max-width: 500px;
     pointer-events: none; // 面板與按鈕各自開啟，縫隙仍可拖曳地圖
   }
 
@@ -534,7 +536,7 @@
   // step-result__zoom（3.5 explore-zoom）
   &__zoom {
     position: absolute;
-    top: #{$app-header-h};
+    top: calc(#{$app-header-h} + 20px);
     right: 24px;
     display: flex;
     flex-direction: column;

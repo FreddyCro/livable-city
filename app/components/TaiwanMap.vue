@@ -13,6 +13,10 @@ const props = defineProps<{
   resultTowns: ResultTown[];
 }>();
 
+const emit = defineEmits<{
+  'update:selectedResultCode': [value: string];
+}>();
+
 // Step-2 縮圖往上同步給父層（StepCriteria 使用）
 const townThumb = defineModel<TownThumb | null>('townThumb', { default: null });
 
@@ -32,6 +36,7 @@ const {
   selectedTownCode: toRef(props, 'selectedTownCode'),
   selectedResultCode: toRef(props, 'selectedResultCode'),
   resultTowns: toRef(props, 'resultTowns'),
+  onSelectResult: (code) => emit('update:selectedResultCode', code),
 });
 
 watch(selectedTownThumb, (v) => {

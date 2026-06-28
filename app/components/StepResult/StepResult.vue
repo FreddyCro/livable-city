@@ -21,10 +21,12 @@ const emit = defineEmits<{
 
 // view 邏輯抽至 co-located 的 StepResult.logic.ts（單一元件專用）。
 const {
-  compareCollapsed,
+  compareState,
+  cycleCompare,
   listOpen,
   filterNameMap,
   allFilterIds,
+  visibleFilterIds,
   homeCounty,
   homeName,
   detailTown,
@@ -204,12 +206,10 @@ const {
               {{ str.population }}{{ detailPopulation.toLocaleString() }}
             </span>
           </div>
-          <button
-            class="lc-sr__compare-toggle"
-            @click="compareCollapsed = !compareCollapsed"
-          >
-            {{ compareCollapsed ? str.expand : str.collapse }}
-            <!-- chevron 取自 public/img/icon/menu_chevron_up/down.svg source；fill 用 currentColor 跟隨按鈕文字色 -->
+          <button class="lc-sr__compare-toggle" @click="cycleCompare">
+            {{ compareState === 'open' ? str.collapse : str.seeMore }}
+            <!-- chevron 取自 public/img/icon/menu_chevron_up/down.svg source；fill 用 currentColor 跟隨按鈕文字色。
+                 全開→向下（收合）；收合／半開→向上（看更多，面板自底部往上展開） -->
             <svg
               class="lc-sr__compare-chevron"
               viewBox="0 0 15 8"
@@ -218,18 +218,18 @@ const {
             >
               <path
                 :d="
-                  compareCollapsed
-                    ? 'M7.5 1.09589L0.551471 8L0 7.45205L7.5 0L15 7.45205L14.4485 8L7.5 1.09589Z'
-                    : 'M7.5 6.90411L14.4485 4.82111e-08L15 0.547945L7.5 8L-6.51479e-07 0.547946L0.55147 1.26313e-06L7.5 6.90411Z'
+                  compareState === 'open'
+                    ? 'M7.5 6.90411L14.4485 4.82111e-08L15 0.547945L7.5 8L-6.51479e-07 0.547946L0.55147 1.26313e-06L7.5 6.90411Z'
+                    : 'M7.5 1.09589L0.551471 8L0 7.45205L7.5 0L15 7.45205L14.4485 8L7.5 1.09589Z'
                 "
                 fill="currentColor"
               />
             </svg>
           </button>
         </div>
-        <div v-if="!compareCollapsed" class="lc-sr__compare-body">
+        <div v-if="compareState !== 'collapsed'" class="lc-sr__compare-body">
           <div v-if="!allFilterIds.length" class="lc-sr__compare-empty">—</div>
-          <div v-for="fid in allFilterIds" :key="fid" class="lc-sr__metric">
+          <div v-for="fid in visibleFilterIds" :key="fid" class="lc-sr__metric">
             <p class="lc-sr__metric-name">{{ filterNameMap[fid] ?? fid }}</p>
             <div class="lc-sr__metric-row">
               <span class="lc-sr__metric-area"

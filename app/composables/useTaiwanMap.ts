@@ -25,6 +25,8 @@ interface UseTaiwanMapOptions {
   selectedTownCode: Ref<string>
   selectedResultCode: Ref<string | null>
   resultTowns: Ref<ResultTown[]>
+  /** 點選「有黃色 pin（即結果清單內）」的鄉鎮時回呼，交由父層更新選取的結果地區 */
+  onSelectResult?: (code: string) => void
 }
 
 /**
@@ -35,9 +37,14 @@ interface UseTaiwanMapOptions {
  * （hovered / selectedTownThumb）。app.vue 不需要知道 setProps 的存在。
  */
 export function useTaiwanMap(opts: UseTaiwanMapOptions) {
-  const { canvasRef, meta, currentStep, selectedTownCode, selectedResultCode, resultTowns } = opts
+  const { canvasRef, meta, currentStep, selectedTownCode, selectedResultCode, resultTowns, onSelectResult } = opts
 
   const hovered = ref<HoverInfo | null>(null)
+  // 滑鼠是否正懸停在「有黃色 pin（結果清單內）」的鄉鎮上 → 決定游標是否為 pointer
+  const hoveringResult = ref(false)
+  // 該鄉鎮是否在結果清單內（有黃色 pin）
+  const isResultTown = (code: string | undefined) =>
+    !!code && resultTowns.value.some(t => t.code === code)
   // Step-2 small-map thumbnail: normalized SVG path of the selected town only
   const selectedTownThumb = ref<TownThumb | null>(null)
 
@@ -194,9 +201,16 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
             const townInfo = meta.value?.towns[code]
             const countyInfo = townInfo ? meta.value?.counties[townInfo.COUNTYCODE] : undefined
             hovered.value = { x, y, county: countyInfo?.COUNTYNAME ?? '', district: townInfo?.TOWNNAME ?? '' }
+            hoveringResult.value = isResultTown(code)
           } else {
             hovered.value = null
+            hoveringResult.value = false
           }
+        },
+        // 只有「有黃色 pin」的鄉鎮可被選取；點擊後交由父層更新結果並飛入
+        onClick: ({ object }: any) => {
+          const code = object?.properties?.TOWNCODE
+          if (isResultTown(code)) onSelectResult?.(code)
         },
       }),
       new GeoJsonLayerCtor({
@@ -309,6 +323,9 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
         deckInstance.value?.setProps({ viewState: next })
       },
       controller: true,
+      // 預設 deck 對任何 pickable 物件都顯示 pointer；改為僅「有黃色 pin」的鄉鎮顯示 pointer，其餘維持可拖曳的 grab
+      getCursor: ({ isDragging }: any) =>
+        isDragging ? 'grabbing' : hoveringResult.value ? 'pointer' : 'grab',
       layers: buildLayers(),
     })
   })

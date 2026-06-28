@@ -28,7 +28,14 @@ export interface StepResultEmit {
  * 注意：勿解構 props（會失去 reactivity）；此處統一在 computed getter 內讀 props.xxx。
  */
 export function useStepResult(props: StepResultProps, emit: StepResultEmit) {
-  const compareCollapsed = ref(false);
+  // compare 三態：'collapsed' 收合（只剩標題列）/ 'half' 半開（只顯示第一個指標）/ 'open' 全開（顯示全部）。
+  // criteria 進入 result 時元件重新掛載，預設即為 'half'（半開）。
+  const compareState = ref<'collapsed' | 'half' | 'open'>('half');
+  // 'half'（半開）只是進場一次性預設：第一次點 → 全開、再點 → 收合，之後僅在
+  // open ↔ collapsed 間切換，不再回到 half（直到元件重新掛載 = 重新進入 result 才 reset）。
+  function cycleCompare() {
+    compareState.value = compareState.value === 'open' ? 'collapsed' : 'open';
+  }
   const listOpen = ref(false);
 
   // 比較面板的指標標題：名稱後接括號單位（如「大樓平均單價（萬元／坪）」），單位空白時僅顯示名稱
@@ -41,6 +48,11 @@ export function useStepResult(props: StepResultProps, emit: StepResultEmit) {
   // explore-compare 只顯示 explore-sidebar 有勾選的指標（依 filterIndex 原始順序排列）
   const allFilterIds = computed(() =>
     props.filterIndex.map((f) => f.id).filter((id) => props.selectedFilters.includes(id)),
+  );
+
+  // compare body 實際渲染的指標：半開只取第一個，全開取全部（收合時 body 不渲染）
+  const visibleFilterIds = computed(() =>
+    compareState.value === 'half' ? allFilterIds.value.slice(0, 1) : allFilterIds.value,
   );
 
   // Home (current) town name
@@ -129,10 +141,12 @@ export function useStepResult(props: StepResultProps, emit: StepResultEmit) {
   }
 
   return {
-    compareCollapsed,
+    compareState,
+    cycleCompare,
     listOpen,
     filterNameMap,
     allFilterIds,
+    visibleFilterIds,
     homeCounty,
     homeName,
     detailTown,
