@@ -42,12 +42,9 @@ $title-h-pc: 120px;
     pointer-events: none; // 不攔截互動，直接穿透到下方的 block content（step2）
 
     @include rwd-min(pad) {
-      height: 90%;
-      top: 10%;
+      top: 120px;
+      height: calc(100vh - 120px);
     }
-
-    // @include rwd-min(2xl) {
-    // }
   }
 
   // step-location__visual-credit（影片來源標註；左下角）
