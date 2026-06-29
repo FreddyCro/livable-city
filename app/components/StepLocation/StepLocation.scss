@@ -33,20 +33,21 @@ $title-h-pc: 120px;
   // step-location__visual（全幅背景影片；依斷點換片、object-fit 裁切置中。poster 同樣套用 object-fit）
   &__visual {
     position: absolute;
-    inset: 0;
+    top: 10%;
+    left: 0;
     width: 100%;
-    height: 100%;
+    height: 90%;
     object-fit: contain;
     object-position: center center;
     pointer-events: none; // 不攔截互動，直接穿透到下方的 block content（step2）
 
-    @include rwd-min(pc) {
-      top: -5%;
+    @include rwd-min(pad) {
+      height: 90%;
+      top: 10%;
     }
 
-    @include rwd-min(2xl) {
-      top: -10%;
-    }
+    // @include rwd-min(2xl) {
+    // }
   }
 
   // step-location__visual-credit（影片來源標註；左下角）
@@ -68,6 +69,7 @@ $title-h-pc: 120px;
     align-items: center;
     gap: 4px;
     width: 100%;
+    padding: 0 20px;
   }
 
   // step-location__block（共用區塊：標題＋前言＋表單）
@@ -86,14 +88,13 @@ $title-h-pc: 120px;
     flex-direction: column;
     align-items: center;
     gap: 20px;
-    width: min(362px, 90vw);
+    width: 100%;
     transform: translate(-50%, var(--lc-sl-block-y));
     transition: transform 0.5s ease; // step1 貼頂 ↔ step2 置中 的向下位移
 
     @include rwd-min(pad) {
       --lc-sl-block-y: #{$title-top-pad};
 
-      width: 670px;
       gap: 40px;
     }
 
@@ -199,14 +200,19 @@ $title-h-pc: 120px;
     align-items: center;
     gap: 20px;
     width: 100%;
-    max-width: 362px;
+    padding: 0 20px;
     opacity: 0;
     pointer-events: none;
     // 容器本身不做轉場（瞬間切換）；淡入＋上滑改由 __intro / __form 各自分階段呈現
 
     @include rwd-min(pad) {
-      max-width: 620px;
+      max-width: 530px;
+      padding: 0;
       gap: 40px;
+    }
+
+    @include rwd-min(pc) {
+      max-width: 620px;
     }
   }
 
@@ -214,7 +220,7 @@ $title-h-pc: 120px;
   &__intro {
     margin: 0;
     text-align: justify;
-    color: #1E1E1E; 
+    color: #1e1e1e;
     opacity: 0;
     transform: translateY(24px);
     transition:

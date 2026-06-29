@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import type { AcceptableValue } from 'reka-ui';
 import type { GeoMeta } from '../../types/geo';
 import type { FilterMeta, FilterDataCache, FilterDataset } from '../../types/filter';
@@ -37,6 +37,30 @@ export function useStepResult(props: StepResultProps, emit: StepResultEmit) {
     compareState.value = compareState.value === 'open' ? 'collapsed' : 'open';
   }
   const listOpen = ref(false);
+
+  // RWD：MOB（< sm / <768）時，左側欄改為底部可展開 sheet（filter）。
+  // 桌機 / PAD 恆開（CollapsibleRoot :open=true、:disabled），故只在 MOB 追蹤開合與斷點。
+  // 斷點偵測沿用 StepLocation 的原生 matchMedia 模式（無 VueUse）。
+  const asideOpen = ref(false);
+  const isMobile = ref(false);
+  let mqlMob: MediaQueryList | null = null;
+  const syncMob = () => {
+    isMobile.value = mqlMob?.matches ?? false;
+    // 由 MOB 切回桌機時重置收合狀態，避免下次回到 MOB 仍記得展開
+    if (!isMobile.value) asideOpen.value = false;
+  };
+  // CollapsibleRoot @update:open：僅 MOB 可切換（桌機 disabled 不會觸發，仍防呆）
+  function onAsideOpenChange(value: boolean) {
+    if (isMobile.value) asideOpen.value = value;
+  }
+  onMounted(() => {
+    mqlMob = window.matchMedia('(max-width: 767.98px)');
+    isMobile.value = mqlMob.matches;
+    mqlMob.addEventListener('change', syncMob);
+  });
+  onBeforeUnmount(() => {
+    mqlMob?.removeEventListener('change', syncMob);
+  });
 
   // 比較面板的指標標題：名稱後接括號單位（如「大樓平均單價（萬元／坪）」），單位空白時僅顯示名稱
   const filterNameMap = computed(() =>
@@ -144,6 +168,9 @@ export function useStepResult(props: StepResultProps, emit: StepResultEmit) {
     compareState,
     cycleCompare,
     listOpen,
+    asideOpen,
+    isMobile,
+    onAsideOpenChange,
     filterNameMap,
     allFilterIds,
     visibleFilterIds,

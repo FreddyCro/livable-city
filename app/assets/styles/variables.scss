@@ -12,7 +12,9 @@ $color-bg-cream: var(--color-bg-cream); // 米色底 cream
 
 // Layout
 $app-header-h: 60px; // AppHeader 實際高度（Figma headerbar 60px）；各 step 內容上方留白依此推導
-$explore-sidebar-w: 420px; // explore-sidebar 寬度，同時是地圖左偏移量（Figma）
+// explore-sidebar 寬度，同時是地圖左偏移量。實際值定義於 theme.css 的 --explore-sidebar-w（單一來源）；
+// 此處保留 $explore-sidebar-w 別名讓既有 width / inset / calc 寫法續用，輸出即 var(--explore-sidebar-w)。
+$explore-sidebar-w: var(--explore-sidebar-w);
 
 $breakpoints: (
   xxs: 375px,

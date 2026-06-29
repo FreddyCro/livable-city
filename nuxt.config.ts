@@ -14,10 +14,10 @@ export default defineNuxtConfig({
   ],
 
   // 讓區網設備可以使用，例如手機
-  // devServer: {
-  //   host: "0.0.0.0",
-  //   port: 3000,
-  // },
+  devServer: {
+    host: "0.0.0.0",
+    port: 3000,
+  },
 
   ssr: true,
 

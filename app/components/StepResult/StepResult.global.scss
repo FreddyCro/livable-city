@@ -20,12 +20,16 @@
     display: flex;
     flex-direction: column;
     width: min(620px, calc(100vw - 32px));
-    max-height: min(820px, calc(100vh - 48px));
+    max-height: min(640px, calc(100vh - 80px));
     background: var(--c-surface);
     border: 0.5px solid var(--c-line-main);
     border-radius: 20px;
     box-shadow: 0 8px 32px rgb(var(--c-shadow) / 0.2);
     backdrop-filter: blur(2px);
     overflow: hidden; // 讓 footer 滿版且底部圓角能裁切；內距改由 InfoContent 各區塊自負
+
+    @include rwd-min(pad) {
+      max-height: 860px;
+    }
   }
 }

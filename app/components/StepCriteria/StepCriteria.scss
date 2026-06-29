@@ -92,6 +92,17 @@
     min-width: 0;
   }
 
+  // step-criteria__location-chevron（行動版底部 sheet 展開箭頭；桌機/pad 隱藏）
+  &__location-chevron {
+    display: none;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-left: auto;
+    color: var(--c-text-muted);
+    transition: transform 0.2s;
+  }
+
   // step-criteria__divider（面板內分隔線）
   &__divider {
     flex-shrink: 0;
@@ -150,6 +161,11 @@
     flex-direction: column;
     align-items: center;
     height: 100%;
+    padding-bottom: 80px;
+
+    @include rwd-min(pad) {
+      padding-bottom: 0;
+    }
   }
 
   // step-criteria__head（標題 + 提示）
@@ -262,5 +278,138 @@
     flex-shrink: 0;
     margin-top: 9px;
     width: 400px;
+  }
+
+  // ── RWD：PAD + MOB 共用（< md / <1024）──────────────
+  @include rwd-max(md) {
+    // A1 卡片改 2 欄
+    &__cards {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    // A2 標題列靠左
+    &__head {
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    // A3 CTA 滿版（pad 撐滿 380；mob 撐滿單欄）
+    &__submit {
+      width: 100%;
+    }
+  }
+
+  // ── RWD：PAD（sm–md / 768–1023）維持左右兩欄、縮窄 ──
+  @include rwd-between(sm, md) {
+    // B1 欄距與總寬縮小（面板 300 + 欄距 16 + 內容 380 = 696）
+    &__inner {
+      gap: 16px;
+      max-width: 696px;
+    }
+
+    // B2 右欄 580 → 380
+    &__main {
+      flex: 0 0 380px;
+    }
+
+    // B3 卡片變高（label 自然斷成 2 行）
+    &__card {
+      min-height: 80px;
+    }
+  }
+
+  // ── RWD：MOB（< sm / <768）改單欄；資訊面板改底部 sheet ──
+  @include rwd-max(sm) {
+    // C6 側邊留白對齊設計 27px；底部留白避開收合 bar（60px）
+    padding-left: 27px;
+    padding-right: 27px;
+    padding-bottom: 80px;
+
+    // C1 單欄：主內容直向排列、撐滿（max-width 解除）
+    &__inner {
+      flex-direction: column;
+      gap: 0;
+      max-width: none;
+    }
+
+    &__main {
+      flex: 1 1 auto;
+      width: 100%;
+      height: auto;
+    }
+
+    // C2 資訊面板 → 固定底部可展開 sheet（疊在卡片上、不加遮罩）
+    &__info {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 5; // 蓋過卡片內容；低於全域載入遮罩
+      gap: 0;
+      width: 100%;
+      height: auto;
+      max-height: 60px; // 收合：僅露出 location bar
+      padding: 0;
+      border: none;
+      border-top: 0.5px solid var(--c-line-main);
+      border-radius: 15px 15px 0 0;
+      background: var(--c-surface);
+      transition: max-height 0.3s ease;
+      overflow: hidden;
+    }
+
+    // step-criteria__info--open（展開：長高疊在卡片上、內部捲動）
+    &__info--open {
+      max-height: 72dvh;
+      overflow-y: auto;
+    }
+
+    // location 列＝置頂 sticky toggle bar
+    &__location {
+      order: -1;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      flex-shrink: 0;
+      height: 60px;
+      padding: 0 27px;
+      background: var(--c-surface);
+      cursor: pointer;
+    }
+
+    &__location-chevron {
+      display: block;
+    }
+
+    &__info--open &__location-chevron {
+      transform: rotate(180deg);
+    }
+
+    // 展開內容（地圖 + 分隔線 + 指標）橫向留白；隨整個 sheet 捲動
+    &__map {
+      margin: 10px auto 0;
+    }
+
+    &__divider {
+      margin: 0 27px;
+      width: auto;
+    }
+
+    &__stats {
+      flex: none; // 不自成捲動，交給整個 sheet 捲
+      overflow: visible;
+      padding: 0 27px 20px;
+    }
+
+    // C3 卡片隱藏 icon（手機只留文字 label）
+    &__card-icon {
+      display: none;
+    }
+
+    // C4 卡片文字靠左、降低高度（label 可 2 行）
+    &__card {
+      justify-content: flex-start;
+      min-height: 70px;
+    }
   }
 }

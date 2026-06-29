@@ -56,7 +56,19 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
   let geoTowns: any = null
   let geoCounties: any = null
   const townCentroids: Map<string, [number, number]> = new Map()
-  let deckViewState: any = { longitude: 120.9, latitude: 23.6, zoom: 7, minZoom: 5, maxZoom: 14 }
+  // 視角水平微調：右側留白把焦點像素往左推（內容約往左移 right/2 px），修正聚焦/初始畫面偏右的感覺。
+  // 僅桌機 / 平板套用；手機（無 sidebar、地圖全幅）歸零以免變成偏左。數值可依視覺微調。
+  const MAP_NUDGE_X = 360
+  let mapIsNarrow = false // < pad（手機）→ 不做水平微調
+  const viewPadding = () => ({ left: 0, top: 0, right: mapIsNarrow ? 0 : MAP_NUDGE_X, bottom: 0 })
+  let deckViewState: any = { longitude: 120.9, latitude: 23.6, zoom: 7, minZoom: 5, maxZoom: 14, padding: viewPadding() }
+  let mapMql: MediaQueryList | null = null
+  // 斷點切換時更新水平微調並重新套用（deck 會在新 canvas 尺寸下重新置中）
+  const onMapMqlChange = () => {
+    mapIsNarrow = mapMql?.matches ?? false
+    deckViewState = { ...deckViewState, padding: viewPadding() }
+    deckInstance.value?.setProps({ viewState: deckViewState })
+  }
 
   function getFeatureBbox(feature: any): [number, number, number, number] {
     let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity
@@ -168,9 +180,10 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
   }
 
   // Step-3 zoom buttons (explore-zoom 3.5) → adjust deck zoom within bounds
+  // 每次縮放幅度為傳入 delta 的一半（放慢按鈕縮放速度 ×0.5）
   function zoomBy(delta: number) {
     if (!deckInstance.value) return
-    const z = Math.min(14, Math.max(5, (deckViewState.zoom ?? 7) + delta))
+    const z = Math.min(14, Math.max(5, (deckViewState.zoom ?? 7) + delta * 0.5))
     deckViewState = { ...deckViewState, zoom: z }
     deckInstance.value.setProps({ viewState: deckViewState })
   }
@@ -307,6 +320,13 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
     // Init step-2 thumbnail in case a town was already chosen before geo loaded
     selectedTownThumb.value = buildTownThumb(selectedTownCode.value)
 
+    // 水平微調的斷點偵測：手機（<pad）歸零、其餘套用。建 Deck 前先定好初始 padding，
+    // 斷點切換時更新並重新套用 viewState（deck 會在新 canvas 尺寸下重新置中）。
+    mapMql = window.matchMedia('(max-width: 767.98px)')
+    mapIsNarrow = mapMql.matches
+    deckViewState = { ...deckViewState, padding: viewPadding() }
+    mapMql.addEventListener('change', onMapMqlChange)
+
     deckInstance.value = new Deck({
       canvas: canvasRef.value!,
       views: new MapView({ repeat: false }),
@@ -319,6 +339,7 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
         delete next.transitionInterpolator
         delete next.transitionEasing
         delete next.transitionInterruption
+        next.padding = viewPadding() // 拖曳/縮放後仍保留水平微調，否則互動一次就跑掉
         deckViewState = next
         deckInstance.value?.setProps({ viewState: next })
       },
@@ -331,6 +352,7 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
   })
 
   onBeforeUnmount(() => {
+    mapMql?.removeEventListener('change', onMapMqlChange)
     deckInstance.value?.finalize()
   })
 

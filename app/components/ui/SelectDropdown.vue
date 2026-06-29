@@ -160,7 +160,7 @@ function onUpdate(val: string) {
     &[data-disabled] {
       color: #000;
       cursor: default;
-      background: var(--c-surface-sunken);
+      // background: var(--c-surface-sunken);
     }
   }
 

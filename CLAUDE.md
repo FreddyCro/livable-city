@@ -14,7 +14,8 @@
 
 ## Figma
 
-- 設計稿來源：Figma「宜居城市指南」（file key `5AQSXYi86R8w7bgzTjqnaU`）。
+- 設計稿來源：Figma「宜居城市指南_clone」（file key `4n4QX8IuoXVpcDe4yKUnPD`）。
+  - 舊檔「宜居城市指南」（file key `5AQSXYi86R8w7bgzTjqnaU`）已不是現行來源。
 - Figma personal access token 放在 `temp/figma-token.txt`（已 gitignore，不進 git）。它是給工具抓設計稿用的憑證，**不是 app 的 runtime 設定**，所以不放 `.env`。
 - 取得設計內容時：若 Figma MCP 無法使用，改用 Figma REST API，例如
   `curl -H "X-Figma-Token: $(cat temp/figma-token.txt)" "https://api.figma.com/v1/files/<file_key>/nodes?ids=<node_id>"`。
