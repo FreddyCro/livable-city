@@ -39,6 +39,7 @@ CSS / SCSS class 命名規範：
 
 ### RWD
 
+- **優先使用 mobile first**：預設樣式寫手機版，再用 `rwd-xxx` mixin 往較大斷點加樣式（min-width）。
 - RWD 寫在 BEM element 內部，用 `rwd-xxx` mixin 包住，不要按斷點把整份 scss 切成多區。
 - 同一個 class 只定義一次，其各斷點樣式集中在同一處。
 
@@ -55,7 +56,7 @@ CSS / SCSS class 命名規範：
     width: 100%;
 
     // RWD 集中在 element 內，用 rwd-xxx mixin 包住
-    @include rwd-md {
+    @include rwd-min(md) {
       width: 50%;
     }
   }

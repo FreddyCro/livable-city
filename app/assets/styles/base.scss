@@ -15,9 +15,10 @@
 @include mixins.rwd-between(sm, md) {
   // PAD：側欄縮為 240
   :root {
-    --explore-sidebar-w: 240px;
+    --explore-sidebar-w: 246px;
   }
 }
+
 @include mixins.rwd-max(sm) {
   // MOB：側欄改底部 sheet，不再佔左側 → 0，使地圖滿版
   :root {

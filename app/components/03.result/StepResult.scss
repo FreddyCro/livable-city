@@ -1,12 +1,15 @@
 // step-result
 .lc-sr {
-  // ── RWD 策略（斷點樣式一律內嵌於各 element 的 rwd-* mixin，不另切分區）──
-  //   PAD（sm–md / 768–1023，設計稿 633-11031）：維持 PC 架構，只縮窄側欄內距＋卡片改單欄。
-  //   MOB（< sm / <768，設計稿 633-17957 / 414×736）：側欄改底部 filter sheet、
+  // ── RWD 策略：mobile-first；斷點樣式一律內嵌於各 element 的 rwd-min mixin，同一 class 只出現一次 ──
+  //   base（MOB / < sm / <768，設計稿 633-17957 / 414×736）：側欄＝底部可展開 filter sheet、
   //     banners 移頂部橫列（y=59 h=44）、工具列 y=113（pill x=10 / reselect x=154 / zoom 右）、
-  //     compare 底部 sheet（x=48 w=320 距底 70）、filter bar 滿版 y=676 h=60。
-  //   __sidebar / __list / __compare-wrap 等寬度與左偏移由 base.scss 覆寫
-  //   --explore-sidebar-w（PAD=240 / MOB=0）自動跟著縮，故沿用 $explore-sidebar-w 者不需重寫寬度。
+  //     compare 底部 sheet（w=320 距底 70）、filter bar 滿版。
+  //   rwd-min(pad)（≥ sm / 768，設計稿 633-11031）：還原 PC 架構（常駐左側欄＋右側浮層），
+  //     PAD 只縮窄側欄內距、filter 卡片改單欄。
+  //   rwd-min(pc)（≥ md / 1024）：僅 __cards 由 PAD 單欄改回 2 欄，其餘與 PAD 相同。
+  //   __sidebar / __list / __compare-wrap 的寬度與左偏移沿用 $explore-sidebar-w
+  //   （＝var(--explore-sidebar-w)，base.scss 依斷點覆寫 PC 420 / PAD 240 / MOB 0），
+  //   會自動跟著縮，故不必逐斷點重寫寬度。
   $mob-toolbar-top: calc(
     #{$app-header-h} + 53px
   ); // 60 + banners 44 + 9 間距 ≈ 113
@@ -16,51 +19,61 @@
   z-index: 10;
   pointer-events: none; // panels re-enable; map stays draggable in the gaps
 
-  // step-result__sidebar（3.1 explore-sidebar）
+  // step-result__sidebar（3.1 explore-sidebar；MOB＝底部 filter sheet，PAD/PC＝常駐左側欄）
   &__sidebar {
     position: absolute;
-    top: $app-header-h;
     left: 0;
-    width: $explore-sidebar-w;
-    height: calc(100vh - #{$app-header-h});
-    max-height: 1080px;
     display: flex;
     justify-content: space-between;
     flex-direction: column;
-    padding: 24px 20px 0;
     pointer-events: auto;
     background: var(--c-surface);
-    box-shadow: 2px 0 12px rgb(var(--c-shadow) / 0.06);
-    overflow-y: auto;
-
     // MOB：C1/C2 側欄 → 底部可展開 filter sheet（Collapsible）
-    @include rwd-max(sm) {
-      top: auto;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      width: auto;
-      height: auto;
-      max-height: 80vh;
-      padding: 0;
-      border-radius: 20px 20px 0 0;
-      box-shadow: 0 -4px 16px rgb(var(--c-shadow) / 0.12);
-      overflow: visible; // banners / reselect 以 fixed 抽離；捲動交給 cards-body
-      z-index: 30; // C8：filter sheet 疊在 compare sheet 之上
+    top: auto;
+    bottom: 0;
+    right: 0;
+    width: auto;
+    height: auto;
+    max-height: 80vh;
+    padding: 0;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 16px rgb(var(--c-shadow) / 0.12);
+    overflow: visible; // banners / reselect 以 fixed 抽離；捲動交給 cards-body
+    z-index: 30; // C8：filter sheet 疊在 compare sheet 之上
+
+    @include rwd-min(pad) {
+      // PAD/PC：常駐左側欄
+      top: $app-header-h;
+      bottom: auto;
+      right: auto;
+      width: $explore-sidebar-w;
+      height: calc(100vh - #{$app-header-h});
+      max-height: 1080px;
+      padding: 24px 20px 0;
+      border-radius: 0;
+      box-shadow: 2px 0 12px rgb(var(--c-shadow) / 0.06);
+      overflow-y: auto;
+      z-index: auto;
     }
   }
 
   // step-result__sidebar-top（MOB：filter sheet 內容包裹層，撐滿並讓 cards-body 捲動）
   &__sidebar-top {
-    height: 100%;
     display: flex;
     flex-direction: column;
+    height: 100%;
+    // MOB：撐滿 sheet 剩餘高度
+    min-height: 0;
+    flex: 1;
 
-    @include rwd-max(sm) {
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      flex: 1;
+    @include rwd-min(pad) {
+      flex: 0 1 auto;
+      height: auto;
+      min-height: auto;
+    }
+
+    @include rwd-min(pc) {
+      height: 100%;
     }
   }
 
@@ -83,40 +96,47 @@
     }
   }
 
-  // step-result__head
+  // step-result__head（MOB＝收合態 bar；PAD/PC＝側欄內標題列）
   &__head {
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding-bottom: 16px;
-    margin-bottom: 18px;
-    border-bottom: 1px solid var(--c-border-subtle);
-
     // MOB：收合態 bar（標題 + chevron），固定 60px 高
-    @include rwd-max(sm) {
-      height: 60px;
-      padding: 0 16px;
-      margin: 0;
-      border-bottom: none;
-      flex-shrink: 0;
+    height: 60px;
+    padding: 0 16px;
+    margin: 0;
+    border-bottom: none;
+
+    @include rwd-min(pad) {
+      // PAD/PC：底線分隔的標題列
+      height: auto;
+      padding: 0 0 16px;
+      margin: 0 0 18px;
+      border-bottom: 1px solid var(--c-border-subtle);
+    }
+
+    @include rwd-between(pad, pc) {
+      // PAD 窄側欄：改 block 讓 reselect 用 float 卡進標題換行尾端（flex 失效，
+      // 原 justify-content 一併移除）；標題文字繞著 float 排。
+      display: block;
     }
   }
 
   // step-result__title
   &__title {
     margin: 0;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--c-text);
 
-    @include rwd-max(sm) {
-      font-size: 16px;
+    @include rwd-min(pad) {
+      font-size: 18px;
     }
   }
 
-  // step-result__head-toggle（CollapsibleTrigger；桌機 disabled，外觀＝純標題；MOB＝整條可點 bar）
+  // step-result__head-toggle（CollapsibleTrigger；MOB＝整條可點 bar，PAD/PC 桌機 disabled＝純標題）
   &__head-toggle {
     flex: 1;
     min-width: 0;
@@ -129,33 +149,37 @@
     background: transparent;
     text-align: left;
     color: inherit;
-    cursor: default; // 桌機恆開、不可點
+    cursor: pointer; // MOB：整條 bar 可點開合
 
     &:disabled {
       cursor: default;
     }
 
-    // MOB：整條 bar 可點開合
-    @include rwd-max(sm) {
-      cursor: pointer;
+    @include rwd-min(pad) {
+      cursor: default; // 桌機恆開、不可點
+    }
+
+    @include rwd-between(pad, pc) {
+      // 盒子消失，內含 __title 升格為 __head 的 inline 內容，可繞 __reselect 的 float。
+      // pad 斷點本就 disabled 純裝飾，離開 a11y 樹影響極小。
+      display: contents;
     }
   }
 
   // step-result__head-chevron（filter sheet 開合箭頭；僅 MOB 顯示）
   &__head-chevron {
-    display: none;
+    display: block; // C2：MOB 顯示開合箭頭
     width: 13px;
     height: auto;
     flex-shrink: 0;
     color: var(--c-text-muted);
 
-    // C2：MOB 顯示開合箭頭
-    @include rwd-max(sm) {
-      display: block;
+    @include rwd-min(pad) {
+      display: none;
     }
   }
 
-  // step-result__reselect
+  // step-result__reselect（MOB 抽離到頂部工具列；PAD/PC 回側欄 head 內流排）
   &__reselect {
     height: 30px;
     display: flex;
@@ -169,50 +193,65 @@
     color: var(--c-text-muted);
     cursor: pointer;
     white-space: nowrap;
+    // C3：MOB 抽離到頂部工具列（pill 右側）
+    position: fixed;
+    top: $mob-toolbar-top;
+    left: 154px;
+    margin: 0;
+    z-index: 31;
 
     &:hover {
       border-color: var(--c-border-hover);
     }
 
-    // C3：MOB 抽離到頂部工具列（pill 右側）
-    @include rwd-max(sm) {
-      position: fixed;
-      top: $mob-toolbar-top;
-      left: 154px;
-      margin: 0;
-      z-index: 31;
+    @include rwd-min(pad) {
+      // PAD/PC：回側欄 head 內流排
+      position: static;
+      top: auto;
+      left: auto;
+      z-index: auto;
+    }
+
+    @include rwd-between(pad, pc) {
+      // PAD 窄側欄：浮到右側，讓標題文字繞著它換行、按鈕落在文字尾端（見 __head）。
+      float: right;
     }
   }
 
   // step-result__cards-body（CollapsibleContent；MOB 展開時可捲動）
   &__cards-body {
     height: 100%;
+    // MOB：展開時撐滿並捲動
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 16px;
 
-    @include rwd-max(sm) {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      padding: 0 16px;
+    @include rwd-min(pad) {
+      flex: 0 1 auto;
+      min-height: auto;
+      overflow-y: visible;
+      padding: 0;
     }
   }
 
-  // step-result__cards
+  // step-result__cards（MOB 2 欄；PAD 單欄；PC 回 2 欄）
   &__cards {
     height: 100%;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
+    padding-bottom: 16px; // MOB：sheet 內底部留白
 
-    // PAD：B2 filter 卡片 2 欄 → 1 欄
-    @include rwd-between(sm, md) {
+    @include rwd-min(pad) {
+      // B2：PAD filter 卡片 2 欄 → 1 欄
       grid-template-columns: 1fr;
+      padding-bottom: 0;
     }
 
-    // C2：MOB 卡片回 2 欄
-    @include rwd-max(sm) {
+    @include rwd-min(pc) {
+      // PC：filter 卡片 2 欄
       grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      padding-bottom: 16px;
     }
   }
 
@@ -294,21 +333,24 @@
     }
   }
 
-  // step-result__banners（沿側邊欄底部滿版）
+  // step-result__banners（MOB＝頂部橫列；PAD/PC＝沿側欄底部滿版直向）
   &__banners {
-    margin: 24px -20px 0;
     display: flex;
-    flex-direction: column;
-
     // C6：MOB → 頂部橫列（2 欄等寬），抽離 sheet
-    @include rwd-max(sm) {
-      position: fixed;
-      top: $app-header-h;
-      left: 0;
-      right: 0;
-      margin: 0;
-      flex-direction: row;
-      z-index: 30;
+    position: fixed;
+    top: $app-header-h;
+    left: 0;
+    right: 0;
+    margin: 0;
+    flex-direction: row;
+    z-index: 30;
+
+    @include rwd-min(pad) {
+      // PAD/PC：沿側欄底部滿版、直向堆疊
+      position: static;
+      margin: 24px -20px 0;
+      flex-direction: column;
+      z-index: auto;
     }
   }
 
@@ -318,10 +360,22 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 16px 24px;
     color: var(--c-text-inverse);
     text-decoration: none;
     font-size: 14px;
+    // MOB：等寬填滿頂部橫列、單行 44px 高
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    padding: 0 16px;
+
+    @include rwd-min(pad) {
+      // PAD/PC：側欄底部區塊、標準內距
+      flex: 0 1 auto;
+      min-width: auto;
+      height: auto;
+      padding: 16px 24px;
+    }
 
     strong {
       font-weight: 700;
@@ -336,29 +390,27 @@
     &--report {
       background: var(--color-g01);
     }
-
-    // MOB：等寬填滿頂部橫列、單行 44px 高
-    @include rwd-max(sm) {
-      flex: 1;
-      min-width: 0;
-      height: 44px;
-      padding: 0 16px;
-    }
   }
 
-  // step-result__banner-sub（副標；MOB 44px 單行容不下故隱藏）
+  // step-result__banner-sub（副標；MOB/PAD 窄版容不下故隱藏，PC 才顯示）
   &__banner-sub {
-    @include rwd-max(sm) {
-      display: none;
+    display: none;
+
+    @include rwd-min(pc) {
+      display: inline;
     }
   }
 
-  // step-result__banner-text
+  // step-result__banner-text（MOB/PAD 窄版單行截斷，PC 才還原多行）
   &__banner-text {
-    @include rwd-max(sm) {
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    @include rwd-min(pc) {
+      overflow: visible;
+      white-space: normal;
+      text-overflow: clip;
     }
   }
 
@@ -377,12 +429,11 @@
   }
 
   // step-result__list（3.2 explore-result-bar；對齊 Figma 結果搜尋元件：
-  //   半透明白底＋0.5px 黑框＋backdrop-blur，收合為膠囊、展開為上下圓角卡片）
+  //   半透明白底＋0.5px 黑框＋backdrop-blur，收合為膠囊、展開為上下圓角卡片。
+  //   MOB＝頂部工具列左側，PAD/PC＝側欄右側浮層）
   &__list {
     position: absolute;
     z-index: 10;
-    top: calc(#{$app-header-h} + 20px);
-    left: calc(#{$explore-sidebar-w} + 16px);
     width: 140px;
     max-height: calc(100vh - #{$app-header-h} - 32px);
     display: flex;
@@ -393,11 +444,14 @@
     border-radius: 15px; // 收合 30px 高即為膠囊；展開時上下圓角
     overflow: hidden;
     pointer-events: auto;
-
     // C3：MOB → 頂部工具列左側
-    @include rwd-max(sm) {
-      top: $mob-toolbar-top;
-      left: 10px;
+    top: $mob-toolbar-top;
+    left: 10px;
+
+    @include rwd-min(pad) {
+      // PAD/PC：側欄右側浮層
+      top: calc(#{$app-header-h} + 20px);
+      left: calc(#{$explore-sidebar-w} + 16px);
     }
   }
 
@@ -509,21 +563,17 @@
     position: absolute;
     left: calc(#{$explore-sidebar-w} + (100% - #{$explore-sidebar-w}) / 2);
     transform: translateX(-50%);
-    bottom: 24px;
-    width: 100%;
     max-width: 500px;
     pointer-events: none; // 面板與按鈕各自開啟，縫隙仍可拖曳地圖
-
-    // pad 以上（含 pad / pc）：sidebar 佔住左側，故寬度扣掉 sidebar 寬，讓面板只佔地圖區
-    @include rwd-min(pad) {
-      width: calc(100% - #{$explore-sidebar-w} - 120px);
-    }
-
     // C4：MOB → 底部近滿版 sheet（量測 w=320、距底 70，置中由 base var=0 達成）
     // 兩側各留 48px（10 邊距＋30 paddle＋8 間距）給左右鈕，窄螢幕卡片自動縮，paddle 不溢出視窗
-    @include rwd-max(sm) {
-      bottom: 70px;
-      width: calc(100% - 96px);
+    bottom: 70px;
+    width: calc(100% - 96px);
+
+    @include rwd-min(pad) {
+      // PAD/PC：sidebar 佔住左側，寬度扣掉 sidebar，讓面板只佔地圖區
+      bottom: 24px;
+      width: calc(100% - #{$explore-sidebar-w} - 120px);
     }
   }
 
@@ -541,19 +591,21 @@
     box-shadow: 0 4px 16px rgb(var(--c-shadow) / 0.1);
     overflow: hidden;
     pointer-events: auto;
+    position: relative; // C4b：MOB 收合鈕改絕對定位置中，故容器設為定位參考
 
-    // C4b：MOB 收合鈕改絕對定位置中，故容器設為定位參考
-    @include rwd-max(sm) {
-      position: relative;
+    @include rwd-min(pad) {
+      position: static;
     }
   }
 
-  // step-result__paddle（左右切換鈕；對齊 Figma「左右按鈕」：白圓鈕＋1px 硬陰影＋chevron）
+  // step-result__paddle（左右切換鈕；對齊 Figma「左右按鈕」：白圓鈕＋1px 硬陰影＋chevron。
+  //   MOB＝30px 小圓鈕、貼卡片兩側外緣；PAD/PC＝40px、外緣 -52px）
   &__paddle {
     position: absolute;
     bottom: 0;
-    width: 40px;
-    height: 40px;
+    // C5：MOB 30px 小圓鈕（設計稿 633-18758）
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -569,6 +621,11 @@
       background 0.15s,
       box-shadow 0.15s,
       transform 0.15s;
+
+    @include rwd-min(pad) {
+      width: 40px;
+      height: 40px;
+    }
 
     // hover：黃底 Y01、保留硬陰影（對齊 Figma property1=hover）
     &:hover:not(:disabled) {
@@ -588,28 +645,21 @@
       box-shadow: none;
     }
 
-    // step-result__paddle--prev（左：上一個地區）
+    // step-result__paddle--prev（左：上一個地區；MOB 外緣 -38px、PAD/PC -52px）
     &--prev {
-      left: -52px;
-    }
+      left: -38px;
 
-    // step-result__paddle--next（右：下一個地區）
-    &--next {
-      right: -52px;
-    }
-
-    // C5：MOB 改 30px 小圓鈕、貼在卡片兩側外緣（設計稿 633-18758；wrap≡卡片320px，
-    // offset -38px 使 30px 鈕外緣距卡片邊約 8px，與量測一致且不依賴視窗寬）
-    @include rwd-max(sm) {
-      width: 30px;
-      height: 30px;
-
-      &--prev {
-        left: -38px;
+      @include rwd-min(pad) {
+        left: -52px;
       }
+    }
 
-      &--next {
-        right: -38px;
+    // step-result__paddle--next（右：下一個地區；MOB 外緣 -38px、PAD/PC -52px）
+    &--next {
+      right: -38px;
+
+      @include rwd-min(pad) {
+        right: -52px;
       }
     }
   }
@@ -620,12 +670,11 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 18px 22px;
     border-bottom: 1px solid var(--c-border-subtle);
+    padding: 56px 22px 18px; // C4b：MOB 讓出 pt 空間給置中的收合鈕
 
-    // C4b：MOB 讓出 pt 空間給置中的收合鈕
-    @include rwd-max(sm) {
-      padding-top: 56px;
+    @include rwd-min(pad) {
+      padding: 18px 22px;
     }
   }
 
@@ -651,7 +700,7 @@
     white-space: nowrap;
   }
 
-  // step-result__compare-toggle
+  // step-result__compare-toggle（MOB 置中吸附卡片頂端；PAD/PC 回標題列內流排）
   &__compare-toggle {
     display: inline-flex;
     align-items: center;
@@ -661,14 +710,16 @@
     font-size: 13px;
     color: var(--c-text-muted);
     cursor: pointer;
-
     // C4b：MOB 收合/看更多鈕置中吸附卡片頂端（設計稿 633-18758 node 633:24434：top≈14.5、水平置中）
-    @include rwd-max(sm) {
-      position: absolute;
-      top: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1;
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+
+    @include rwd-min(pad) {
+      position: static;
+      transform: none;
     }
   }
 
@@ -751,20 +802,20 @@
     color: var(--c-text-muted);
   }
 
-  // step-result__zoom（3.5 explore-zoom）
+  // step-result__zoom（3.5 explore-zoom；MOB 移到工具列同列右側）
   &__zoom {
     position: absolute;
-    top: calc(#{$app-header-h} + 20px);
-    right: 24px;
     display: flex;
     flex-direction: column;
     gap: 8px;
     pointer-events: auto;
+    // MOB：工具列同列右側
+    top: $mob-toolbar-top;
+    right: 10px;
 
-    // MOB：移到工具列同列右側
-    @include rwd-max(sm) {
-      top: $mob-toolbar-top;
-      right: 10px;
+    @include rwd-min(pad) {
+      top: calc(#{$app-header-h} + 20px);
+      right: 24px;
     }
   }
 

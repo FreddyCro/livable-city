@@ -70,5 +70,5 @@
   /* ---------- Layout ---------- */
   /* explore-sidebar 寬度＝地圖左偏移量。此為 PC 預設 420px；
      PAD（240px）與 MOB（0，改用底部 sheet）的響應式覆寫集中在 base.scss。 */
-  --explore-sidebar-w: 420px;
+  --explore-sidebar-w: 426px;
 }
