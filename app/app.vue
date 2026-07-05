@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import StepLocation from './components/StepLocation/StepLocation.vue';
-import StepCriteria from './components/StepCriteria/StepCriteria.vue';
-import StepResult from './components/StepResult/StepResult.vue';
+import StepLocation from './components/01.location/StepLocation.vue';
+import StepCriteria from './components/02.criteria/StepCriteria.vue';
+import StepResult from './components/03.result/StepResult.vue';
 import TaiwanMap from './components/TaiwanMap.vue';
 import AppHeader from './components/AppHeader.vue';
-import LoadingOverlay from './components/LoadingOverlay.vue';
+import LoadingOverlay from './components/LoadingOverlay/LoadingOverlay.vue';
 import { useGeoMeta } from './composables/useGeoMeta';
 import { useFilterData } from './composables/useFilterData';
 import { useResultTowns } from './composables/useResultTowns';

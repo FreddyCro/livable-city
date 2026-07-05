@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import dataSource from '../locales/dataSource.json';
-import AppFooter from './AppFooter.vue';
+import dataSource from '../../locales/dataSource.json';
+import AppFooter from '../AppFooter.vue';
 </script>
 
 <template>

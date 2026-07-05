@@ -82,13 +82,13 @@ const {
         <div class="lc-sl__form">
           <p class="lc-h3 lc-sl__question">{{ str.question }}</p>
           <div class="lc-sl__selects">
-            <UiSelectDropdown
+            <SelectDropdown
               :model-value="countyCode || null"
               :options="countyOptions"
               :placeholder="str.countyPlaceholder"
               @update:model-value="onCountySelect"
             />
-            <UiSelectDropdown
+            <SelectDropdown
               :model-value="townCode || null"
               :options="townOptions"
               :placeholder="str.townPlaceholder"

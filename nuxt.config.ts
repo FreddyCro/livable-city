@@ -7,6 +7,18 @@ export default defineNuxtConfig({
 
   modules: ["reka-ui/nuxt", "nuxt-jsonld"],
 
+  // 元件掃描：三個 step 目錄加 01/02/03 編號前綴（對齊流程順序），
+  // pathPrefix: false 讓「目錄名（含編號）不進入 component 名稱」，
+  // 故 StepLocation / StepCriteria / StepResult 名稱不變，各自的專屬子元件
+  // （SelectDropdown、IconArrow、InfoContent）也以無前綴短名註冊。
+  // 最後的 "~/components" 沿用預設前綴規則（ui/ → Ui*、AppHeader…）。
+  components: [
+    { path: "~/components/01.location", pathPrefix: false },
+    { path: "~/components/02.criteria", pathPrefix: false },
+    { path: "~/components/03.result", pathPrefix: false },
+    "~/components",
+  ],
+
   css: [
     "~/assets/styles/theme.css", // 色彩 token（CSS 變數，data-theme 切換）；需早於使用它的樣式
     "~/assets/styles/tailwind.css",
@@ -14,10 +26,10 @@ export default defineNuxtConfig({
   ],
 
   // 讓區網設備可以使用，例如手機
-  devServer: {
-    host: "0.0.0.0",
-    port: 3000,
-  },
+  // devServer: {
+  //   host: "0.0.0.0",
+  //   port: 3000,
+  // },
 
   ssr: true,
 

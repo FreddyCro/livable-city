@@ -13,7 +13,8 @@ export type SelectItems = SelectOption[] | SelectOptionGroup[];
 </script>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, useTemplateRef } from 'vue';
+import { useClickOutside } from '../../composables/useClickOutside';
 
 const props = withDefaults(
   defineProps<{
@@ -54,6 +55,15 @@ const renderGroups = computed<
 function onUpdate(val: string) {
   emit('update:modelValue', val);
 }
+
+// 接管 open 狀態，讓 click-outside 能主動關閉選單。
+// 選單為 inline 渲染（見 template），root 元素同時包住 control 與選單，
+// 故點在選單內不算「外部」，只有點到 .lc-sd 之外才會關閉。
+const root = useTemplateRef<HTMLElement>('root');
+const open = ref(false);
+useClickOutside(root, () => {
+  open.value = false;
+});
 </script>
 
 <template>
@@ -61,11 +71,12 @@ function onUpdate(val: string) {
        選單刻意「不」用 SelectPortal：inline 渲染才能讓 .lc-sd 以 :has() 偵測選單方向，
        把 control 與選單接縫側的圓角去掉，呈現 Reka 前的連續容器外觀。 -->
   <SelectRoot
+    v-model:open="open"
     :model-value="modelValue ?? undefined"
     :disabled="disabled"
     @update:model-value="onUpdate"
   >
-    <div class="lc-sd">
+    <div ref="root" class="lc-sd">
       <!-- control -->
       <SelectTrigger class="lc-sd__control">
         <span v-if="$slots.icon || icon" class="lc-sd__icon">

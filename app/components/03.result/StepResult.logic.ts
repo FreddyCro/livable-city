@@ -1,5 +1,6 @@
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, useTemplateRef } from 'vue';
 import type { AcceptableValue } from 'reka-ui';
+import { useClickOutside, unrefElement } from '../../composables/useClickOutside';
 import type { GeoMeta } from '../../types/geo';
 import type { FilterMeta, FilterDataCache, FilterDataset } from '../../types/filter';
 import type { ResultTown } from '../../composables/useResultTowns';
@@ -28,13 +29,12 @@ export interface StepResultEmit {
  * 注意：勿解構 props（會失去 reactivity）；此處統一在 computed getter 內讀 props.xxx。
  */
 export function useStepResult(props: StepResultProps, emit: StepResultEmit) {
-  // compare 三態：'collapsed' 收合（只剩標題列）/ 'half' 半開（只顯示第一個指標）/ 'open' 全開（顯示全部）。
-  // criteria 進入 result 時元件重新掛載，預設即為 'half'（半開）。
+  // compare 狀態：'half' 半開（只顯示第一個指標）/ 'open' 全開（顯示全部）；預設 'half'。
+  // 'collapsed'（只剩標題列）功能保留於型別與 template 判斷，但目前流程不會進入此狀態。
   const compareState = ref<'collapsed' | 'half' | 'open'>('half');
-  // 'half'（半開）只是進場一次性預設：第一次點 → 全開、再點 → 收合，之後僅在
-  // open ↔ collapsed 間切換，不再回到 half（直到元件重新掛載 = 重新進入 result 才 reset）。
+  // 切換鈕僅在 half ↔ open 間來回：half → open（看更多）、open → half（收合為半開）。
   function cycleCompare() {
-    compareState.value = compareState.value === 'open' ? 'collapsed' : 'open';
+    compareState.value = compareState.value === 'open' ? 'half' : 'open';
   }
   const listOpen = ref(false);
 
@@ -163,6 +163,34 @@ export function useStepResult(props: StepResultProps, emit: StepResultEmit) {
     if (val == null) return '—';
     return typeof val === 'number' ? val.toLocaleString() : String(val);
   }
+
+  // ── click-outside 收合 ─────────────────────────────────────────
+  // 三個面板都是 .lc-sr（fixed 全螢幕、pointer-events:none）內的浮層，地圖在其後。
+  // 點地圖時事件 target 不落在任何面板內，即視為「外部」→ 收合對應面板。
+  // 三塊面板已抽為子元件（ExploreSidebar/ResultBar/Compare），ref 掛在子元件實例上，
+  // 透過 $el 取其根 DOM（單一根元素）；unrefElement 會處理元件實例 → $el（見 useClickOutside）。
+  const sidebarEl = useTemplateRef<{ $el?: HTMLElement }>('sidebarEl');
+  const listEl = useTemplateRef<{ $el?: HTMLElement }>('listEl');
+  const compareEl = useTemplateRef<{ $el?: HTMLElement }>('compareEl');
+
+  // 3.1 explore-sidebar：僅 MOB 的底部 filter sheet 會開合（桌機恆開），點外部收合
+  useClickOutside(sidebarEl, () => {
+    if (isMobile.value && asideOpen.value) asideOpen.value = false;
+  });
+
+  // 3.2 explore-result-bar：點清單外部即收合；點清單項目屬「內部」，維持展開可連續瀏覽
+  useClickOutside(listEl, () => {
+    if (listOpen.value) listOpen.value = false;
+  });
+
+  // 3.4 explore-compare：點外部收合為 half（半開；collapsed 已停用，最小狀態改為 half）。
+  // 但點在結果清單內是「切換要比較的鄉鎮」（MOB 隱藏左右鈕、正靠清單切換），不收合。
+  useClickOutside(compareEl, (event) => {
+    const node = event.target as Node | null;
+    const list = unrefElement(listEl.value);
+    if (node && list?.contains(node)) return;
+    if (compareState.value !== 'half') compareState.value = 'half';
+  });
 
   return {
     compareState,
