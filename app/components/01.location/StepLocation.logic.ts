@@ -7,6 +7,11 @@ export interface StepLocationProps {
   meta: GeoMeta | null;
   countyCode: string;
   townCode: string;
+  /**
+   * 掛載時的初始階段：預設 false（首屏主視覺）。app.vue 在「重新選擇」回程傳 true，
+   * 讓使用者直接落在縣市/鄉鎮選單，跳過封面（仍可往上滑 collapse 回封面）。
+   */
+  startRevealed?: boolean;
 }
 
 export interface StepLocationEmit {
@@ -24,7 +29,8 @@ export function useStepLocation(
   emit: StepLocationEmit,
 ) {
   // 兩階段：false = 首屏主視覺（step 1-1），true = 內文＋表單（step 1-2）。可逆。
-  const revealed = ref(false);
+  // 初值由 startRevealed 決定（僅掛載時取一次）：首次進站 false，重新選擇回程 true。
+  const revealed = ref(props.startRevealed ?? false);
   const reveal = () => {
     revealed.value = true;
   };

@@ -35,6 +35,27 @@ $title-h-pc: 120px;
 
   // step-location__visual（全幅背景影片；依斷點換片、object-fit 裁切置中。poster 同樣套用 object-fit）
   &__visual {
+    // ── 羽化可調參數（只改這幾個）─────────────────────
+    // 距離：左右邊（x）與上下邊（y）的淡出過渡範圍寬度，可分開設定（越大過渡越寬）。
+    --lc-sl-feather-x: 50px;
+    --lc-sl-feather-y: 5px;
+    // 強度：淡出曲線的凹度 0～1（x／y 共用）。0＝線性（最弱、均勻淡出）；
+    //   1＝最凹（最外緣幾乎全透明、僅內側拉回實心，最能吃掉色差）。
+    --lc-sl-feather-strength: 1;
+
+    // ── 以下為推導值，勿手動改 ─────────────────────────
+    // 中繼色標位置（各佔對應軸 size 的 30%／60%／80%）
+    --lc-sl-feather-x-p1: calc(var(--lc-sl-feather-x) * 0.3);
+    --lc-sl-feather-x-p2: calc(var(--lc-sl-feather-x) * 0.6);
+    --lc-sl-feather-x-p3: calc(var(--lc-sl-feather-x) * 0.8);
+    --lc-sl-feather-y-p1: calc(var(--lc-sl-feather-y) * 0.3);
+    --lc-sl-feather-y-p2: calc(var(--lc-sl-feather-y) * 0.6);
+    --lc-sl-feather-y-p3: calc(var(--lc-sl-feather-y) * 0.8);
+    // 中繼色標不透明度：由強度在「線性(強度0)↔最凹(強度1)」間內插（x／y 共用）
+    --lc-sl-feather-a1: calc(0.3 - 0.27 * var(--lc-sl-feather-strength));
+    --lc-sl-feather-a2: calc(0.6 - 0.45 * var(--lc-sl-feather-strength));
+    --lc-sl-feather-a3: calc(0.8 - 0.3 * var(--lc-sl-feather-strength));
+
     position: absolute;
     top: 10%;
     left: 0;
@@ -44,9 +65,53 @@ $title-h-pc: 120px;
     object-position: center center;
     pointer-events: none; // 不攔截互動，直接穿透到下方的 block content（step2）
 
+    // 水平＋垂直兩道漸層取交集 → 四邊皆羽化的矩形遮罩（角落自然雙重淡出）。
+    // 中繼色標用 rgb(.. / calc) 帶入強度推導的 alpha：過渡寬度＝size，凹度＝strength，
+    // 兩者互不影響，改上面兩個變數即可分別調整羽化的「距離」與「強度」。
+    mask-image:
+      linear-gradient(
+        to right,
+        rgb(0 0 0 / 0) 0,
+        rgb(0 0 0 / var(--lc-sl-feather-a1)) var(--lc-sl-feather-x-p1),
+        rgb(0 0 0 / var(--lc-sl-feather-a2)) var(--lc-sl-feather-x-p2),
+        rgb(0 0 0 / var(--lc-sl-feather-a3)) var(--lc-sl-feather-x-p3),
+        #000 var(--lc-sl-feather-x),
+        #000 calc(100% - var(--lc-sl-feather-x)),
+        rgb(0 0 0 / var(--lc-sl-feather-a3))
+          calc(100% - var(--lc-sl-feather-x-p3)),
+        rgb(0 0 0 / var(--lc-sl-feather-a2))
+          calc(100% - var(--lc-sl-feather-x-p2)),
+        rgb(0 0 0 / var(--lc-sl-feather-a1))
+          calc(100% - var(--lc-sl-feather-x-p1)),
+        rgb(0 0 0 / 0) 100%
+      ),
+      linear-gradient(
+        to bottom,
+        rgb(0 0 0 / 0) 0,
+        rgb(0 0 0 / var(--lc-sl-feather-a1)) var(--lc-sl-feather-y-p1),
+        rgb(0 0 0 / var(--lc-sl-feather-a2)) var(--lc-sl-feather-y-p2),
+        rgb(0 0 0 / var(--lc-sl-feather-a3)) var(--lc-sl-feather-y-p3),
+        #000 var(--lc-sl-feather-y),
+        #000 calc(100% - var(--lc-sl-feather-y)),
+        rgb(0 0 0 / var(--lc-sl-feather-a3))
+          calc(100% - var(--lc-sl-feather-y-p3)),
+        rgb(0 0 0 / var(--lc-sl-feather-a2))
+          calc(100% - var(--lc-sl-feather-y-p2)),
+        rgb(0 0 0 / var(--lc-sl-feather-a1))
+          calc(100% - var(--lc-sl-feather-y-p1)),
+        rgb(0 0 0 / 0) 100%
+      );
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in; // Safari 舊語法對應 intersect
+
     @include rwd-min(pad) {
+      --lc-sl-feather-x: 120px;
       top: 120px;
       height: calc(100vh - 120px);
+    }
+
+    @include rwd-min(pc) {
+      --lc-sl-feather-x: 180px;
     }
   }
 

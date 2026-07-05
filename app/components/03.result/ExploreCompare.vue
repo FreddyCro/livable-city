@@ -31,8 +31,9 @@ defineEmits<{
 </script>
 
 <template>
-  <!-- 外層 wrap 負責定位＋容納左右切換鈕；面板本身可圓角裁切 -->
   <div class="lc-sr__compare-wrap">
+    <!-- 外層 wrap 負責定位＋容納左右切換鈕；面板本身可圓角裁切。
+         ⚠ 註解須置於根元素內（頂層 HTML 註解→多根 fragment→$el 失效→click-outside 失效）。 -->
     <!-- paddle nav：上一個地區（對齊 Figma「左右按鈕」） -->
     <button
       class="lc-sr__paddle lc-sr__paddle--prev"

@@ -50,6 +50,11 @@ useJsonld({
 // Step state
 const currentStep = ref<1 | 2 | 3>(1);
 
+// 「重新選擇」回程時讓 step 1 直接開在縣市/鄉鎮選單（跳過封面首屏）。
+// 首次進站為 false（維持封面）；restart() 後恆為 true。StepLocation 走 v-if 重掛，
+// 於 setup 取此值當初始 revealed（之後仍可往上滑 collapse 回封面）。
+const locateStartRevealed = ref(false);
+
 // 步驟轉場方向：前進（1→2→3）由右往左 PUSH（300ms）；後退（restart 3→1）反向。
 // watch flush 預設 'pre'（早於重繪），故切 step 時 transition name 會先於 <Transition> 更新。
 const stepTransition = ref<'push-forward' | 'push-back'>('push-forward');
@@ -154,6 +159,7 @@ function resetSelections() {
 function restart() {
   closeOverlay(); // 關掉所有彈出視窗（載入 / 結果數 / 無結果）並取消待觸發計時器
   resetSelections();
+  locateStartRevealed.value = true; // 回程直接開選單、跳過封面（見宣告處說明）
   goToStep(1);
 }
 
@@ -209,6 +215,7 @@ function enterResult() {
         :meta="meta"
         :county-code="selectedCountyCode"
         :town-code="selectedTownCode"
+        :start-revealed="locateStartRevealed"
         @update:county-code="selectedCountyCode = $event"
         @update:town-code="selectedTownCode = $event"
         @next="goToStep(2)"

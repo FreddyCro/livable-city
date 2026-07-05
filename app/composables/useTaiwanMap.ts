@@ -53,9 +53,12 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
   let ScatterplotLayerCtor: any = null
   let IconLayerCtor: any = null
   let FlyToInterpolatorCtor: any = null
+  let polylabelFn: typeof import('polylabel').default | null = null
   let geoTowns: any = null
   let geoCounties: any = null
-  const townCentroids: Map<string, [number, number]> = new Map()
+  // 每個鄉鎮的 pin 落點（黃點 + 大 pin 共用）。用 pole of inaccessibility 而非
+  // bbox/重心，確保凹形（彎月形沿海區）也一定落在區界內，不會跑到隔壁區。
+  const townPinPoints: Map<string, [number, number]> = new Map()
   // 視角水平微調：右側留白把焦點像素往左推（內容約往左移 right/2 px），修正聚焦/初始畫面偏右的感覺。
   // 僅桌機 / 平板套用；手機（無 sidebar、地圖全幅）歸零以免變成偏左。數值可依視覺微調。
   const MAP_NUDGE_X = 360
@@ -84,6 +87,50 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
     if (type === 'Polygon') coordinates.forEach(visit)
     else if (type === 'MultiPolygon') coordinates.forEach((poly: [number, number][][]) => poly.forEach(visit))
     return [minLng, minLat, maxLng, maxLat]
+  }
+
+  // 外環面積（shoelace 絕對值），用來在 MultiPolygon 裡挑「最大的一塊」放 pin。
+  function ringArea(ring: [number, number][]): number {
+    let sum = 0
+    let prev = ring[ring.length - 1]
+    for (const cur of ring) {
+      if (prev) sum += (prev[0] + cur[0]) * (cur[1] - prev[1])
+      prev = cur
+    }
+    return Math.abs(sum) / 2
+  }
+
+  // 求一個鄉鎮的 pin 落點：pole of inaccessibility（多邊形內離邊界最遠的點）。
+  // 對凹形／彎月形也保證落在區界內，且視覺上落在最大內接圓心，最自然。
+  // MultiPolygon（離島等）取面積最大的那塊來算。polylabelFn 尚未載入時回傳 null。
+  function labelPoint(feature: any): [number, number] | null {
+    if (!feature || !polylabelFn) return null
+    const { type, coordinates } = feature.geometry
+    let polygon: [number, number][][] | null = null
+    if (type === 'Polygon') {
+      polygon = coordinates
+    } else if (type === 'MultiPolygon') {
+      let best = -Infinity
+      for (const poly of coordinates as [number, number][][][]) {
+        const outer = poly[0]
+        if (!outer) continue
+        const a = ringArea(outer)
+        if (a > best) { best = a; polygon = poly }
+      }
+    }
+    if (!polygon || !polygon[0]?.length) return null
+
+    // precision 以區塊大小縮放（約數十公尺），兼顧精度與 mount 時的運算量。
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const [x, y] of polygon[0]) {
+      if (x < minX) minX = x
+      if (y < minY) minY = y
+      if (x > maxX) maxX = x
+      if (y > maxY) maxY = y
+    }
+    const precision = Math.max(Math.max(maxX - minX, maxY - minY) / 1000, 1e-5)
+    const p = polylabelFn(polygon, precision)
+    return [p[0], p[1]]
   }
 
   // Build a normalized SVG path for a single town, used as the step-2 thumbnail.
@@ -240,7 +287,7 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
     // Result + selected markers (step 3 only)
     if (currentStep.value === 3 && ScatterplotLayerCtor) {
       const resultPoints = resultTowns.value
-        .map(t => ({ code: t.code, position: townCentroids.get(t.code) }))
+        .map(t => ({ code: t.code, position: townPinPoints.get(t.code) }))
         .filter(d => d.position) as Array<{ code: string; position: [number, number] }>
 
       layers.push(
@@ -260,7 +307,7 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
         }),
       )
 
-      const selectedPosition = townCentroids.get(selectedTownCode.value)
+      const selectedPosition = townPinPoints.get(selectedTownCode.value)
       if (selectedPosition && IconLayerCtor) {
         layers.push(
           new IconLayerCtor({
@@ -294,27 +341,35 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
   })
 
   onMounted(async () => {
-    const [{ Deck, MapView, FlyToInterpolator }, { GeoJsonLayer, ScatterplotLayer, IconLayer }, { feature }] = await Promise.all([
+    const [{ Deck, MapView, FlyToInterpolator }, { GeoJsonLayer, ScatterplotLayer, IconLayer }, { feature }, { default: polylabel }] = await Promise.all([
       import('@deck.gl/core'),
       import('@deck.gl/layers'),
       import('topojson-client'),
+      import('polylabel'),
     ])
     GeoJsonLayerCtor = GeoJsonLayer
     ScatterplotLayerCtor = ScatterplotLayer
     IconLayerCtor = IconLayer
     FlyToInterpolatorCtor = FlyToInterpolator
+    polylabelFn = polylabel
 
     // meta 由 useGeoMeta 載入；這裡只取地圖底圖 topology
     const topo = await dataSource.geoTopology()
     geoTowns = (feature as any)(topo, topo.objects.towns)
     geoCounties = (feature as any)(topo, topo.objects.counties)
 
-    // Precompute town centroids (bbox center)
+    // Precompute per-town pin points (pole of inaccessibility, guaranteed inside
+    // the polygon). Falls back to bbox centre only if polylabel yields nothing.
     for (const f of geoTowns.features) {
       const code = f.properties?.TOWNCODE
       if (!code) continue
+      const pin = labelPoint(f)
+      if (pin) {
+        townPinPoints.set(code, pin)
+        continue
+      }
       const [minLng, minLat, maxLng, maxLat] = getFeatureBbox(f)
-      townCentroids.set(code, [(minLng + maxLng) / 2, (minLat + maxLat) / 2])
+      townPinPoints.set(code, [(minLng + maxLng) / 2, (minLat + maxLat) / 2])
     }
 
     // Init step-2 thumbnail in case a town was already chosen before geo loaded

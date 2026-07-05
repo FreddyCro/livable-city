@@ -242,7 +242,7 @@ criteria 送出後：
 
 ## 地圖引擎（explore-map）
 
-[TaiwanMap.vue](../app/components/TaiwanMap.vue) 為薄殼（掛 `<canvas>`、轉接 props、`defineExpose` 相機 API），引擎邏輯在 [useTaiwanMap.ts](../app/composables/useTaiwanMap.ts)。deck.gl 依賴（`@deck.gl/core`、`@deck.gl/layers`、`topojson-client`）於 `onMounted` 動態 import。
+[TaiwanMap.vue](../app/components/TaiwanMap.vue) 為薄殼（掛 `<canvas>`、轉接 props、`defineExpose` 相機 API），引擎邏輯在 [useTaiwanMap.ts](../app/composables/useTaiwanMap.ts)。deck.gl 依賴（`@deck.gl/core`、`@deck.gl/layers`、`topojson-client`）與 `polylabel`（pin 落點計算，見下方 ⚠️）於 `onMounted` 動態 import。
 
 **對外相機 API（`defineExpose`，app.vue 命令式呼叫）**
 
@@ -259,13 +259,14 @@ criteria 送出後：
 | --- | --- | --- | --- |
 | `towns` | GeoJsonLayer | 全程 | 填色：現居地=淺藍、`selectedResultCode`=藍、其餘=米白。`pickable`；`onClick` 僅對「有黃點（在結果清單內）」的鄉鎮觸發 `update:selectedResultCode`。 |
 | `counties` | GeoJsonLayer | 全程 | 僅描邊，不可點。 |
-| `result-markers` | ScatterplotLayer | **僅 step 3** | 結果鄉鎮質心黃點（`#F4CC34` + 黑描邊）。 |
-| `selected-pin` | IconLayer | **僅 step 3** | 現居地淚滴 pin（`#D62E29`，尖端錨定該鄉鎮；icon 為內聯 data-URI SVG，見 [mapMarkers.ts](../app/utils/mapMarkers.ts)）。 |
+| `result-markers` | ScatterplotLayer | **僅 step 3** | 結果鄉鎮黃點（`#F4CC34` + 黑描邊）。落點為 pole of inaccessibility（共用 `townPinPoints`，見下方 ⚠️），保證在區界內。 |
+| `selected-pin` | IconLayer | **僅 step 3** | 現居地淚滴 pin（`#D62E29`，尖端錨定該鄉鎮；落點同 `result-markers`（`townPinPoints`）；icon 為內聯 data-URI SVG，見 [mapMarkers.ts](../app/utils/mapMarkers.ts)）。 |
 
 - **v-model `townThumb`**：step 2 用的現居鄉鎮正規化 SVG 縮圖，由地圖產出、上傳給 [StepCriteria.vue](../app/components/02.criteria/StepCriteria.vue) 的小地圖。
 - **canvas 可見性**：僅 `currentStep === 3` 顯示；非 step 3 時加 `.lc-mv__canvas--hidden`（`opacity:0` + `pointer-events:none` 淡出，非 `display:none`）。
 - ⚠️ **flyTo 殘留清除**：使用者拖曳／縮放時 `onViewStateChange` 必須清掉 `transitionDuration/Interpolator/...`，否則每步都被重新動畫而「卡住／彈回」；並每次重設 `padding`。
 - ⚠️ **視角水平微調**（`MAP_NUDGE_X`）：桌機／平板右側留白把焦點往左推修正偏右感，手機（<768）歸零，斷點切換以 `matchMedia` 重套。
+- ⚠️ **pin 落點用 pole of inaccessibility**（`polylabel`；`useTaiwanMap.ts` 的 `labelPoint`，mount 時預算成 `townPinPoints`，黃點與現居 pin 共用）：早期用 **bbox 中心**（等同質心），在**凹形／彎月形沿海區**（如蘇澳、番路、南化、貢寮）與**離島 MultiPolygon**（如馬公、南竿）會落到區界**外**（實測 368 區中 19 區出包）。改取多邊形內離邊界最遠的點（MultiPolygon 取面積最大那塊），保證落在區內；僅極端情況 fallback 回 bbox 中心。`precision` 依區塊 bbox 大小縮放（約數十公尺）。
 - **游標**：僅「有黃點」的鄉鎮顯示 `pointer`，其餘 `grab` / 拖曳中 `grabbing`。
 
 ---

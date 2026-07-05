@@ -189,6 +189,16 @@
     line-height: 32px;
   }
 
+  // step-criteria__title-pc（桌機/pad 完整標題；預設顯示，手機隱藏）
+  &__title-pc {
+    display: inline;
+  }
+
+  // step-criteria__title-mob（手機精簡標題；預設隱藏，<sm 才顯示）
+  &__title-mob {
+    display: none;
+  }
+
   // step-criteria__hint（選取提示，含已選計數）
   &__hint {
     margin: 0;
@@ -212,7 +222,6 @@
     align-items: center;
     justify-content: center;
     gap: 5px;
-    min-height: 60px;
     padding: 10px;
     border: 0.5px solid #000;
     border-radius: 10px;
@@ -341,6 +350,15 @@
       height: auto;
     }
 
+    // C1-1 標題改用手機精簡版（現居地區…）；pad 仍維持完整版
+    &__title-pc {
+      display: none;
+    }
+
+    &__title-mob {
+      display: inline;
+    }
+
     // C2 資訊面板 → 固定底部可展開 sheet（疊在卡片上、不加遮罩）
     &__info {
       position: fixed;
@@ -412,7 +430,6 @@
     // C4 卡片文字靠左、降低高度（label 可 2 行）
     &__card {
       justify-content: flex-start;
-      min-height: 70px;
     }
   }
 

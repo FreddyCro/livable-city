@@ -92,13 +92,16 @@
 
   // step-result__reselect
   &__reselect {
+    height: 30px;
+    display: flex;
+    align-items: center;
     flex-shrink: 0;
-    border: 1px solid var(--c-border);
+    border: 1px solid var(--c-text-muted);
     border-radius: 999px;
-    padding: 6px 14px;
+    padding: 4px 20px;
     background: var(--c-surface);
-    font-size: 13px;
-    color: var(--c-text-secondary);
+    font-size: 12px;
+    color: var(--c-text-muted);
     cursor: pointer;
     white-space: nowrap;
 
@@ -243,6 +246,7 @@
   //   半透明白底＋0.5px 黑框＋backdrop-blur，收合為膠囊、展開為上下圓角卡片）
   &__list {
     position: absolute;
+    z-index: 10;
     top: calc(#{$app-header-h} + 20px);
     left: calc(#{$explore-sidebar-w} + 16px);
     width: 140px;
@@ -264,7 +268,7 @@
     justify-content: space-between;
     gap: 5px;
     width: 100%;
-    height: 30px;
+    height: 28px; // 30 = 28 + 2px border
     padding: 0 10px;
     border: none;
     background: transparent;
@@ -312,7 +316,6 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    padding: 4px 0;
   }
 
   // step-result__listbox（ListboxRoot；可聚焦容器，移除預設外框）
@@ -593,6 +596,10 @@
     justify-content: center;
     transition: box-shadow 0.15s;
 
+    &--info {
+      margin-top: 8px;
+    }
+
     img {
       width: 100%;
       height: 100%;
@@ -630,7 +637,9 @@
   //   banners 列 y=59 h=44（兩個各 207 寬）；工具列 y=113（pill x=10 / reselect x=154）；
   //   zoom 右側 y=113；compare x=48 w=320 底邊≈666（距底 70）；filter bar 滿版 y=676 h=60。
   // base.scss 已把 --explore-sidebar-w 覆寫為 0：地圖滿版、__list/__compare-wrap 左偏移自動歸零置中。
-  $mob-toolbar-top: calc(#{$app-header-h} + 53px); // 60 + banners 44 + 9 間距 ≈ 113
+  $mob-toolbar-top: calc(
+    #{$app-header-h} + 53px
+  ); // 60 + banners 44 + 9 間距 ≈ 113
   @include rwd-max(sm) {
     // C1/C2 側欄 → 底部可展開 filter sheet（Collapsible）
     &__sidebar {
@@ -690,13 +699,14 @@
       flex: 1;
       min-height: 0;
       overflow-y: auto;
-      padding: 0 16px 16px;
+      padding: 0 16px;
     }
 
     // C2 卡片 2 欄
     &__cards {
       grid-template-columns: repeat(2, 1fr);
       gap: 12px;
+      padding-bottom: 16px;
     }
 
     // C6 banners → 頂部橫列（2 欄等寬），抽離 sheet
@@ -741,14 +751,44 @@
     }
 
     // C4 compare → 底部近滿版 sheet（量測 w=320、距底 70，置中由 base var=0 達成）
+    // 兩側各保留 48px（10 邊距＋30 paddle＋8 間距）給左右鈕，窄螢幕時卡片自動縮，paddle 不溢出視窗
     &__compare-wrap {
       bottom: 70px;
-      max-width: 320px;
+      width: calc(100% - 96px);
     }
 
-    // C5 隱藏左右切換鈕（改由點地圖／清單切換）
+    // C4b 收合/看更多鈕：置中吸附卡片頂端（對齊設計稿 633-18758 node 633:24434：top≈14.5、水平置中）
+    // 桌機是標題列右側（space-between）；手機改為絕對定位置中於卡片頂，標題列讓出 pt-40 空間
+    &__compare {
+      position: relative;
+    }
+
+    &__compare-head {
+      padding-top: 56px;
+    }
+
+    &__compare-toggle {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+    }
+
+    // C5 左右切換鈕（對齊設計稿 633-18758）：改為 30px 小圓鈕、貼在卡片兩側外緣，底邊對齊卡片底
+    // 量測（414 frame）：左鈕 x=10、右鈕 x=375（右緣 405）、size=30、底邊 666＝卡片底（bottom:0 已達成）
+    // wrap≡卡片(320px)：offset -38px 使 30px 鈕外緣距卡片邊約 8px，與量測一致且不依賴視窗寬
     &__paddle {
-      display: none;
+      width: 30px;
+      height: 30px;
+
+      &--prev {
+        left: -38px;
+      }
+
+      &--next {
+        right: -38px;
+      }
     }
   }
 }

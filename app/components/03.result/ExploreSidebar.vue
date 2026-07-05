@@ -25,9 +25,6 @@ const iconUrl = (name: string) => img(`icon/${name}.svg`);
 </script>
 
 <template>
-  <!-- MOB（<768）：整個側欄改為底部可展開 filter sheet，故用 Reka Collapsible。
-       桌機 / PAD：恆開（:open=true、:disabled），CollapsibleTrigger 失效、chevron 隱藏，外觀同原側欄。
-       unmount-on-hide=false：收合時保留卡片 DOM。 -->
   <CollapsibleRoot
     as="aside"
     class="lc-sr__sidebar"
@@ -36,6 +33,10 @@ const iconUrl = (name: string) => img(`icon/${name}.svg`);
     :unmount-on-hide="false"
     @update:open="$emit('aside-open-change', $event)"
   >
+    <!-- MOB（<768）：整個側欄改為底部可展開 filter sheet，故用 Reka Collapsible。
+         桌機 / PAD：恆開（:open=true、:disabled），CollapsibleTrigger 失效、chevron 隱藏，外觀同原側欄。
+         unmount-on-hide=false：收合時保留卡片 DOM。
+         ⚠ 註解須置於根元素內（頂層 HTML 註解→多根 fragment→$el 失效→click-outside 失效）。 -->
     <div class="lc-sr__sidebar-top">
       <div class="lc-sr__head">
         <!-- 標題列＝MOB 收合 sheet 的可點 bar（trigger）；reselect 另置（避免 button 巢套） -->

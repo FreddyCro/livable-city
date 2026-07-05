@@ -33,7 +33,7 @@ const iconUrl = (name: string) => img(`icon/${name}.svg`);
     </button>
 
     <DialogRoot>
-      <DialogTrigger class="lc-sr__zoom-btn" :aria-label="str.info">
+      <DialogTrigger class="lc-sr__zoom-btn lc-sr__zoom-btn--info" :aria-label="str.info">
         <img :src="iconUrl('button_information')" alt="" />
       </DialogTrigger>
       <DialogPortal>

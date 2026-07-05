@@ -26,6 +26,9 @@ importers:
       nuxt-jsonld:
         specifier: ^2.2.1
         version: 2.2.1
+      polylabel:
+        specifier: ^2.1.0
+        version: 2.1.0
       reka-ui:
         specifier: ^2.9.8
         version: 2.9.8(vue@3.5.34(typescript@6.0.3))
@@ -4039,6 +4042,9 @@ packages:
   polylabel@1.1.0:
     resolution: {integrity: sha512-bxaGcA40sL3d6M4hH72Z4NdLqxpXRsCFk8AITYg6x1rn1Ei3izf00UMLklerBZTO49aPA3CYrIwVulx2Bce2pA==}
 
+  polylabel@2.1.0:
+    resolution: {integrity: sha512-ZCL9pc/BpnyBB1Es5Eh6baziBhZFS0fTlEXGarLMqbMYbAyawqGAjyo2+MfignMggSubmllMgRGcR0L0liOugg==}
+
   postcss-calc@10.1.1:
     resolution: {integrity: sha512-NYEsLHh8DgG/PRH2+G9BTuUdtf9ViS+vdoQ0YA5OQdGsfN4ztiwtDWNtBl9EKeqNMFnIu8IKZ0cLxEQ5r5KVMw==}
     engines: {node: ^18.12 || ^20.9 || >=22.0}
@@ -4648,6 +4654,9 @@ packages:
 
   tinyqueue@2.0.3:
     resolution: {integrity: sha512-ppJZNDuKGgxzkHihX8v9v9G5f+18gzaTfrukGrq6ueg0lmH4nqVnA2IPG0AEH3jKEk2GRJCUhDoqpoiw3PHLBA==}
+
+  tinyqueue@3.0.0:
+    resolution: {integrity: sha512-gRa9gwYU3ECmQYv3lslts5hxuIa90veaEcxDYuu3QGOIAEM2mOZkVHp48ANJuu1CURtRdHKUBY5Lm1tHV+sD4g==}
 
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
@@ -9571,6 +9580,10 @@ snapshots:
     dependencies:
       tinyqueue: 2.0.3
 
+  polylabel@2.1.0:
+    dependencies:
+      tinyqueue: 3.0.0
+
   postcss-calc@10.1.1(postcss@8.5.14):
     dependencies:
       postcss: 8.5.14
@@ -10205,6 +10218,8 @@ snapshots:
       picomatch: 4.0.4
 
   tinyqueue@2.0.3: {}
+
+  tinyqueue@3.0.0: {}
 
   to-regex-range@5.0.1:
     dependencies:

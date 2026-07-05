@@ -27,14 +27,16 @@ const iconUrl = (name: string) => img(`icon/${name}.svg`);
 </script>
 
 <template>
-  <!-- 收合用 Reka Collapsible、選取用 Reka Listbox。
-       unmount-on-hide=false：收合時以 hidden 保留 DOM（不卸載），維持清單捲動位置。 -->
   <CollapsibleRoot
     :open="listOpen"
     :unmount-on-hide="false"
     class="lc-sr__list"
     @update:open="$emit('update:listOpen', $event)"
   >
+    <!-- 收合用 Reka Collapsible、選取用 Reka Listbox。
+         unmount-on-hide=false：收合時以 hidden 保留 DOM（不卸載），維持清單捲動位置。
+         ⚠ 說明性註解須置於根元素「內」：頂層 HTML 註解會讓 SFC 變多根 fragment，
+         $el 指向錨點（空 text node）而非根元素，導致 parent 的 useClickOutside 失效（點外部無法收合）。 -->
     <CollapsibleTrigger
       class="lc-sr__list-head"
       :class="{ 'lc-sr__list-head--open': listOpen }"

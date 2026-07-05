@@ -93,7 +93,11 @@ const { countyName, townName, atMax, canProceed, hintText, toggleFilter, statTex
       <!-- ── 右：條件選擇 ──────────────────────────────── -->
       <section class="lc-sc__main">
         <header class="lc-sc__head">
-          <h2 class="lc-sc__title">{{ str.title }}</h2>
+          <!-- 標題：桌機/pad 用完整版；手機（<sm）改用精簡版，兩者以 CSS 切換 -->
+          <h2 class="lc-sc__title">
+            <span class="lc-sc__title-pc">{{ str.title }}</span>
+            <span class="lc-sc__title-mob">{{ str.titleMob }}</span>
+          </h2>
           <p class="lc-sc__hint">{{ hintText }}</p>
         </header>
 
