@@ -8,39 +8,98 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  // top 留白避開 AppHeader（= header 高 + 26px，Figma 內容起點 y86）
-  padding: ($app-header-h + 26px) 24px 24px;
   background: $color-b01; // B01 #e6f5fa
   overflow-y: auto;
   // 父層 .lc-mv 被 deck.gl 設為 pointer-events:none 且會「繼承」；
   // 整頁面板須自行宣告 auto，否則所有卡片/按鈕不可點。
   pointer-events: auto;
+  // MOB：側邊留白 27、底部留白避開收合 bar（top 避開 AppHeader＝header 高 + 26px）
+  padding: ($app-header-h + 26px) 27px 80px;
 
-  // step-criteria__inner（置中兩欄：面板 300 + 欄距 24 + 內容 580 = 904）
+  @include rwd-min(pad) {
+    // PAD/PC：側邊與底部 24（Figma 內容起點 y86）
+    padding: ($app-header-h + 26px) 24px 24px;
+  }
+
+  // step-criteria__inner（MOB 單欄直向；PAD/PC 置中兩欄）
   &__inner {
     display: flex;
-    gap: 24px;
+    flex-direction: column;
     align-items: stretch;
+    gap: 0;
     width: 100%;
-    max-width: 904px;
+    max-width: none;
     height: 100%;
+
+    @include rwd-min(pad) {
+      // PAD：左右兩欄（面板 300 + 欄距 16 + 內容 380 = 696）
+      flex-direction: row;
+      gap: 16px;
+      max-width: 696px;
+    }
+
+    @include rwd-min(pc) {
+      // PC：面板 300 + 欄距 24 + 內容 580 = 904
+      gap: 24px;
+      max-width: 904px;
+    }
   }
 
   // ── 左欄：資訊面板 ──────────────────────────────────
-  // step-criteria__info（毛玻璃面板）
+  // step-criteria__info（MOB＝底部可展開 sheet；PAD/PC＝左欄毛玻璃面板）
   &__info {
-    flex: 0 0 300px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px;
-    height: 100%;
-    padding: 20px;
-    border: 0.5px solid var(--c-line-main); // 主線條 #403a2c
-    border-radius: 10px;
-    background: rgb(255 255 255 / 0.8);
-    @include blur(10px);
     overflow: hidden;
+    @include blur(10px);
+    // MOB：固定底部可展開 sheet（疊在卡片上、不加遮罩）
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5; // 蓋過卡片內容；低於全域載入遮罩
+    gap: 0;
+    width: 100%;
+    height: auto;
+    max-height: 60px; // 收合：僅露出 location bar
+    padding: 0;
+    border-top: 0.5px solid var(--c-line-main);
+    border-radius: 15px 15px 0 0;
+    background: var(--c-surface);
+    transition: max-height 0.3s ease;
+
+    @include rwd-min(pad) {
+      // PAD/PC：靜態左欄毛玻璃面板
+      position: static;
+      flex: 0 0 300px;
+      gap: 15px;
+      width: auto;
+      height: 100%;
+      max-height: none;
+      padding: 20px;
+      border: 0.5px solid var(--c-line-main); // 主線條 #403a2c
+      border-radius: 10px;
+      background: rgb(255 255 255 / 0.8);
+      transition: none;
+    }
+
+    @include rwd-min(pc) {
+      // 進場①：面板 fade up（push 300ms 後）
+      animation: lc-sc-fadeup 500ms ease 300ms both;
+    }
+  }
+
+  // step-criteria__info--open（MOB 展開：長高疊在卡片上、內部捲動）
+  &__info--open {
+    max-height: 72dvh;
+    overflow-y: auto;
+
+    @include rwd-min(pad) {
+      // PAD/PC 面板恆為靜態，--open 無作用
+      max-height: none;
+      overflow-y: hidden;
+    }
   }
 
   // step-criteria__map（小地圖：只顯示被選取鄉鎮）
@@ -48,6 +107,11 @@
     flex-shrink: 0;
     width: 191px;
     height: 160px;
+    margin: 10px auto 0; // MOB：sheet 內上方置中留白
+
+    @include rwd-min(pad) {
+      margin: 0;
+    }
   }
 
   // step-criteria__map-svg
@@ -64,7 +128,7 @@
     vector-effect: non-scaling-stroke;
   }
 
-  // step-criteria__location（pin + 標籤 + 地區名）
+  // step-criteria__location（MOB＝sheet 置頂 sticky toggle bar；PAD/PC＝靜態資訊列）
   &__location {
     display: flex;
     align-items: center;
@@ -73,6 +137,26 @@
     font-size: 15px;
     line-height: 22px;
     color: #000;
+    // MOB：置頂 sticky toggle bar
+    order: -1;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    flex-shrink: 0;
+    height: 60px;
+    padding: 0 27px;
+    background: var(--c-surface);
+    cursor: pointer;
+
+    @include rwd-min(pad) {
+      // PAD/PC：panel 內靜態資訊列
+      order: 0;
+      position: static;
+      height: auto;
+      padding: 0;
+      background: none;
+      cursor: default;
+    }
   }
 
   // step-criteria__location-pin（定位圖示，public/img/icon/map_pin.svg）
@@ -95,35 +179,58 @@
     min-width: 0;
   }
 
-  // step-criteria__location-chevron（行動版底部 sheet 展開箭頭；桌機/pad 隱藏）
+  // step-criteria__location-chevron（MOB 底部 sheet 展開箭頭；PAD/PC 隱藏）
   &__location-chevron {
-    display: none;
+    display: block;
     flex-shrink: 0;
     width: 18px;
     height: 18px;
     margin-left: auto;
     color: var(--c-text-muted);
     transition: transform 0.2s;
+
+    @include rwd-min(pad) {
+      display: none;
+    }
+  }
+
+  // 展開時箭頭旋轉 180°（僅 MOB 可見；PAD/PC chevron 為 display:none）
+  &__info--open &__location-chevron {
+    transform: rotate(180deg);
   }
 
   // step-criteria__divider（面板內分隔線）
   &__divider {
     flex-shrink: 0;
-    width: 100%;
+    width: auto;
     height: 0;
+    margin: 0 27px; // MOB：sheet 內橫向留白
     border-top: 0.5px solid #000;
+
+    @include rwd-min(pad) {
+      width: 100%;
+      margin: 0;
+    }
   }
 
-  // step-criteria__stats（指標清單；超出時內部捲動）
+  // step-criteria__stats（指標清單）
   &__stats {
-    width: calc(100% + 8px);
-    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding-right: 8px;
+    width: calc(100% + 8px);
     margin-right: -8px;
-    overflow-y: auto;
+    // MOB：不自成捲動，交給整個 sheet 捲；橫向留白 27
+    flex: none;
+    padding: 0 27px 20px;
+    overflow: visible;
+
+    @include rwd-min(pad) {
+      // PAD/PC：面板內獨立捲動；padding-right + 負 margin 把捲軸推到面板外
+      flex: 1;
+      padding: 0 8px 0 0;
+      overflow-y: auto;
+    }
   }
 
   // step-criteria__stat
@@ -159,28 +266,46 @@
   }
 
   // ── 右欄：條件選擇 ──────────────────────────────────
-  // step-criteria__main
+  // step-criteria__main（MOB 單欄撐滿；PAD/PC 右欄定寬）
   &__main {
-    flex: 0 0 580px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    height: 100%;
+    // MOB：撐滿、隨頁面捲動
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
     padding-bottom: 80px;
 
     @include rwd-min(pad) {
+      // PAD：右欄 380 定寬、滿高
+      flex: 0 0 380px;
+      width: auto;
+      height: 100%;
       padding-bottom: 0;
+    }
+
+    @include rwd-min(pc) {
+      // PC：右欄 580
+      flex: 0 0 580px;
     }
   }
 
-  // step-criteria__head（標題 + 提示）
+  // step-criteria__head（標題 + 提示；MOB/PAD 靠左，PC 置中）
   &__head {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     width: 100%;
-    text-align: center;
+    text-align: left;
     color: #000;
+
+    @include rwd-min(pc) {
+      align-items: center;
+      text-align: center;
+      // 進場②：與卡片格同時 fade up
+      animation: lc-sc-fadeup 500ms ease 600ms both;
+    }
   }
 
   // step-criteria__title（主問句）
@@ -191,14 +316,22 @@
     line-height: 32px;
   }
 
-  // step-criteria__title-pc（桌機/pad 完整標題；預設顯示，手機隱藏）
+  // step-criteria__title-pc（PAD/PC 完整標題；MOB 隱藏）
   &__title-pc {
-    display: inline;
+    display: none;
+
+    @include rwd-min(pad) {
+      display: inline;
+    }
   }
 
-  // step-criteria__title-mob（手機精簡標題；預設隱藏，<sm 才顯示）
+  // step-criteria__title-mob（MOB 精簡標題；PAD/PC 隱藏）
   &__title-mob {
-    display: none;
+    display: inline;
+
+    @include rwd-min(pad) {
+      display: none;
+    }
   }
 
   // step-criteria__hint（選取提示，含已選計數）
@@ -209,26 +342,32 @@
     line-height: 36px;
   }
 
-  // step-criteria__cards（3 欄居住條件多選 grid）
+  // step-criteria__cards（MOB/PAD 2 欄；PC 3 欄並撐高）
   &__cards {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    // 5 列等高，卡片 align-self:stretch 撐滿列高 → 盡量拉高卡片
-    grid-template-rows: repeat(5, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
     width: 100%;
-    // 撐滿 __main 剩餘空間，上限 460 / 下限 400（對齊 Figma h460/max460/min400）
-    flex: 1 1 auto;
-    min-height: 400px;
-    max-height: 460px;
     padding: 10px 0;
+
+    @include rwd-min(pc) {
+      // PC：3 欄、5 列等高，撐滿 __main 剩餘空間，上限 460／下限 400
+      // （對齊 Figma h460/max460/min400；卡片 align-self:stretch 撐滿列高）
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      flex: 1 1 auto;
+      min-height: 400px;
+      max-height: 460px;
+      // 進場②：與標題同時 fade up
+      animation: lc-sc-fadeup 500ms ease 600ms both;
+    }
   }
 
-  // step-criteria__card（單張條件按鈕）
+  // step-criteria__card（單張條件按鈕；MOB 文字靠左、PAD/PC 置中）
   &__card {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 5px;
     padding: 10px;
     border: 0.5px solid #000;
@@ -238,6 +377,17 @@
     transition:
       border-color 0.15s,
       background 0.15s;
+
+    @include rwd-min(pad) {
+      // PAD：置中、加高（label 自然斷成 2 行）
+      justify-content: center;
+      min-height: 80px;
+    }
+
+    @include rwd-min(pc) {
+      // PC：由 __cards 5 列撐高，不需固定 min-height
+      min-height: 0;
+    }
 
     // hover：底部往上的黃色放射漸層疊白底（對齊 Figma State=hover）
     &:hover {
@@ -271,12 +421,17 @@
     }
   }
 
-  // step-criteria__card-icon（指標圖示，public/img/icon/ic_*.svg）
+  // step-criteria__card-icon（指標圖示，public/img/icon/ic_*.svg；MOB 隱藏只留文字）
   &__card-icon {
+    display: none;
     flex-shrink: 0;
     width: 40px;
     height: 40px;
     object-fit: contain;
+
+    @include rwd-min(pad) {
+      display: block;
+    }
   }
 
   // step-criteria__card-label
@@ -293,180 +448,26 @@
     font-weight: 700;
   }
 
-  // step-criteria__submit（CTA 鈕版位；外觀見共用 UiNextButton）
+  // step-criteria__submit（CTA 鈕版位；外觀見共用 UiNextButton；MOB/PAD 滿版，PC 400）
   &__submit {
     flex-shrink: 0;
     margin-top: 9px;
-    width: 400px;
-  }
+    width: 100%;
 
-  // ── RWD：PAD + MOB 共用（< md / <1024）──────────────
-  @include rwd-max(md) {
-    // A1 卡片改 2 欄；還原 PC 的撐高設定（2 欄列數不固定、隨內容自動列高與捲動）
-    &__cards {
-      grid-template-columns: repeat(2, 1fr);
-      grid-template-rows: none;
-      flex: 0 1 auto;
-      min-height: 0;
-      max-height: none;
-    }
-
-    // A2 標題列靠左
-    &__head {
-      align-items: flex-start;
-      text-align: left;
-    }
-
-    // A3 CTA 滿版（pad 撐滿 380；mob 撐滿單欄）
-    &__submit {
-      width: 100%;
-    }
-  }
-
-  // ── RWD：PAD（sm–md / 768–1023）維持左右兩欄、縮窄 ──
-  @include rwd-between(sm, md) {
-    // B1 欄距與總寬縮小（面板 300 + 欄距 16 + 內容 380 = 696）
-    &__inner {
-      gap: 16px;
-      max-width: 696px;
-    }
-
-    // B2 右欄 580 → 380
-    &__main {
-      flex: 0 0 380px;
-    }
-
-    // B3 卡片變高（label 自然斷成 2 行）
-    &__card {
-      min-height: 80px;
-    }
-  }
-
-  // ── RWD：MOB（< sm / <768）改單欄；資訊面板改底部 sheet ──
-  @include rwd-max(sm) {
-    // C6 側邊留白對齊設計 27px；底部留白避開收合 bar（60px）
-    padding-left: 27px;
-    padding-right: 27px;
-    padding-bottom: 80px;
-
-    // C1 單欄：主內容直向排列、撐滿（max-width 解除）
-    &__inner {
-      flex-direction: column;
-      gap: 0;
-      max-width: none;
-    }
-
-    &__main {
-      flex: 1 1 auto;
-      width: 100%;
-      height: auto;
-    }
-
-    // C1-1 標題改用手機精簡版（現居地區…）；pad 仍維持完整版
-    &__title-pc {
-      display: none;
-    }
-
-    &__title-mob {
-      display: inline;
-    }
-
-    // C2 資訊面板 → 固定底部可展開 sheet（疊在卡片上、不加遮罩）
-    &__info {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 5; // 蓋過卡片內容；低於全域載入遮罩
-      gap: 0;
-      width: 100%;
-      height: auto;
-      max-height: 60px; // 收合：僅露出 location bar
-      padding: 0;
-      border: none;
-      border-top: 0.5px solid var(--c-line-main);
-      border-radius: 15px 15px 0 0;
-      background: var(--c-surface);
-      transition: max-height 0.3s ease;
-      overflow: hidden;
-    }
-
-    // step-criteria__info--open（展開：長高疊在卡片上、內部捲動）
-    &__info--open {
-      max-height: 72dvh;
-      overflow-y: auto;
-    }
-
-    // location 列＝置頂 sticky toggle bar
-    &__location {
-      order: -1;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      flex-shrink: 0;
-      height: 60px;
-      padding: 0 27px;
-      background: var(--c-surface);
-      cursor: pointer;
-    }
-
-    &__location-chevron {
-      display: block;
-    }
-
-    &__info--open &__location-chevron {
-      transform: rotate(180deg);
-    }
-
-    // 展開內容（地圖 + 分隔線 + 指標）橫向留白；隨整個 sheet 捲動
-    &__map {
-      margin: 10px auto 0;
-    }
-
-    &__divider {
-      margin: 0 27px;
-      width: auto;
-    }
-
-    &__stats {
-      flex: none; // 不自成捲動，交給整個 sheet 捲
-      overflow: visible;
-      padding: 0 27px 20px;
-    }
-
-    // C3 卡片隱藏 icon（手機只留文字 label）
-    &__card-icon {
-      display: none;
-    }
-
-    // C4 卡片文字靠左、降低高度（label 可 2 行）
-    &__card {
-      justify-content: flex-start;
-    }
-  }
-
-  // ── 電腦版進場（≥ pc / 1024）：PUSH 轉場（300ms）走完後，三區塊依序 fade up ──
-  // 各 500ms、間隔 300ms；delay = push 300ms + stagger（0 / 300 / 600）。
-  // animation-fill-mode: both → delay 期間先維持起始態（隱藏），故 push 進行中三區塊不顯示，
-  // 待面板推入定位後才依序淡入上移。
-  @include rwd-min(pc) {
-    // ① 居住地資訊
-    &__info {
-      animation: lc-sc-fadeup 500ms ease 300ms both;
-    }
-    // ② 想改善選項（標題 + 卡片格）
-    &__head,
-    &__cards {
-      animation: lc-sc-fadeup 500ms ease 600ms both;
-    }
-    // ③ 下一步按鈕
-    &__submit {
+    @include rwd-min(pc) {
+      width: 400px;
+      // 進場③：下一步按鈕 fade up
       animation: lc-sc-fadeup 500ms ease 900ms both;
     }
   }
 }
 
-// step-criteria 進場：fade up（淡入 + 由下上移）
+// ── 電腦版進場（≥ pc / 1024）動畫：PUSH 轉場（300ms）走完後，
+//    ① 資訊面板 → ②（標題＋卡片格）→ ③ 下一步按鈕 依序 fade up。
+//    各 500ms；delay = push 300ms + stagger（0 / 300 / 600）= 300 / 600 / 900ms。
+//    animation-fill-mode: both → delay 期間先維持起始（隱藏）態，
+//    故 push 進行中三區塊不顯示，待面板推入定位後才依序淡入上移。
+//    ↑ 動畫宣告已分散至各 element 的 @include rwd-min(pc) 區塊。
 @keyframes lc-sc-fadeup {
   from {
     opacity: 0;

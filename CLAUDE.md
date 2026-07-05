@@ -21,7 +21,9 @@
   `curl -H "X-Figma-Token: $(cat temp/figma-token.txt)" "https://api.figma.com/v1/files/<file_key>/nodes?ids=<node_id>"`。
 - 注意：`/files/.../nodes` 這類讀檔 endpoint 是成本制限流，**不要短時間連續重試**，否則會被 429 並拉長冷卻時間。
 
-## Class Name Guidelines
+## SCSS
+
+### 命名
 
 CSS / SCSS class 命名規範：
 
@@ -33,7 +35,14 @@ CSS / SCSS class 命名規範：
   - ✅ `block__list`、`block__list-item`
   - ❌ `block__list__item`
 
-範例：
+對照：`.location-selects` => `.lc-ls`（上方註解 `// location-selects`）。
+
+### RWD
+
+- RWD 寫在 BEM element 內部，用 `rwd-xxx` mixin 包住，不要按斷點把整份 scss 切成多區。
+- 同一個 class 只定義一次，其各斷點樣式集中在同一處。
+
+### 範例
 
 ```scss
 // location-selects
@@ -42,11 +51,18 @@ CSS / SCSS class 命名規範：
   gap: 12px;
 
   // location-selects__item
-  &__item { ... }
+  &__item {
+    width: 100%;
+
+    // RWD 集中在 element 內，用 rwd-xxx mixin 包住
+    @include rwd-md {
+      width: 50%;
+    }
+  }
 
   // location-selects__item--disabled
-  &__item--disabled { ... }
+  &__item--disabled {
+    opacity: 0.5;
+  }
 }
 ```
-
-對照：`.location-selects` => `.lc-ls`（上方註解 `// location-selects`）。
