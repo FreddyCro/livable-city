@@ -116,11 +116,13 @@
 
   // step-criteria__stats（指標清單；超出時內部捲動）
   &__stats {
+    width: calc(100% + 8px);
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    width: 100%;
+    padding-right: 8px;
+    margin-right: -8px;
     overflow-y: auto;
   }
 
@@ -211,8 +213,14 @@
   &__cards {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    // 5 列等高，卡片 align-self:stretch 撐滿列高 → 盡量拉高卡片
+    grid-template-rows: repeat(5, 1fr);
     gap: 8px;
     width: 100%;
+    // 撐滿 __main 剩餘空間，上限 460 / 下限 400（對齊 Figma h460/max460/min400）
+    flex: 1 1 auto;
+    min-height: 400px;
+    max-height: 460px;
     padding: 10px 0;
   }
 
@@ -294,9 +302,13 @@
 
   // ── RWD：PAD + MOB 共用（< md / <1024）──────────────
   @include rwd-max(md) {
-    // A1 卡片改 2 欄
+    // A1 卡片改 2 欄；還原 PC 的撐高設定（2 欄列數不固定、隨內容自動列高與捲動）
     &__cards {
       grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: none;
+      flex: 0 1 auto;
+      min-height: 0;
+      max-height: none;
     }
 
     // A2 標題列靠左
