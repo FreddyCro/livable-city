@@ -415,4 +415,36 @@
       min-height: 70px;
     }
   }
+
+  // ── 電腦版進場（≥ pc / 1024）：PUSH 轉場（300ms）走完後，三區塊依序 fade up ──
+  // 各 500ms、間隔 300ms；delay = push 300ms + stagger（0 / 300 / 600）。
+  // animation-fill-mode: both → delay 期間先維持起始態（隱藏），故 push 進行中三區塊不顯示，
+  // 待面板推入定位後才依序淡入上移。
+  @include rwd-min(pc) {
+    // ① 居住地資訊
+    &__info {
+      animation: lc-sc-fadeup 500ms ease 300ms both;
+    }
+    // ② 想改善選項（標題 + 卡片格）
+    &__head,
+    &__cards {
+      animation: lc-sc-fadeup 500ms ease 600ms both;
+    }
+    // ③ 下一步按鈕
+    &__submit {
+      animation: lc-sc-fadeup 500ms ease 900ms both;
+    }
+  }
+}
+
+// step-criteria 進場：fade up（淡入 + 由下上移）
+@keyframes lc-sc-fadeup {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

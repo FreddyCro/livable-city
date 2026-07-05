@@ -19,13 +19,13 @@
 
 ## 結果頁（explore）
 
-- [ ] **彈跳視窗**（F1「還沒做上去」→ *現已用 [LoadingOverlay.vue](../app/components/LoadingOverlay.vue) 做出視窗與時序*），剩下：
-  - [ ] **點畫面任何一處都可關閉**（F2）— *目前僅右上 ✕ 鈕；dim 遮罩無 click 關閉。*
-  - [ ] **進場動畫**（F2）— *目前無，設計稿為 fade-up 300ms。*
+- [ ] **彈跳視窗**（F1「還沒做上去」→ *現已用 [LoadingOverlay/](../app/components/LoadingOverlay/)（薄殼 + 三變體子元件）做出視窗、時序與視覺——放大鏡公轉 / pin 浮動 / empty 圖示*），剩下：
+  - [x] **點畫面任何一處都可關閉**（F2）— *result-count / empty 已支援點視窗外關閉（`useClickOutside`，[OverlayResultCount.vue](../app/components/LoadingOverlay/OverlayResultCount.vue) / [OverlayEmpty.vue](../app/components/LoadingOverlay/OverlayEmpty.vue)）；loading 為過場、無關閉。*
+  - [ ] **浮卡進場動畫 fade-up 300ms**（F2）— *彈窗**本身**出現時的 fade-up 尚未做（目前直接出現）。註：桌機 step 2 三區塊 fade-up 進場已做（另案）。*
 - [ ] **左側選單按鈕高度與 Figma 不同 / 有些按鈕文字沒有完全顯示**（F2）— *結果側欄 filter cards（`.lc-sr__card`）。*
 - [ ] **地圖有些地區的標點跑到地區外**（F2）— *質心目前取 bbox 中心，凹形/不規則區會落在多邊形外；需改真正的 point-on-surface。*
 - [ ] **結果列表跑版**（F2）— *待重現確認斷點與情境。*
-- [ ] **資訊卡片（compare）點按收合後仍要顯示一項數據**（F2）— *目前三態 collapsed 完全不顯示指標、half 才顯示一項；需讓收合態保留一項。*
+- [x] **資訊卡片（compare）點按收合後仍要顯示一項數據**（F2）— *已改為兩態：收合＝`half`（顯示首個指標），`collapsed`（不顯示）停用（[StepResult.logic.ts](../app/components/03.result/StepResult.logic.ts) `cycleCompare`）。*
 - [ ] **「重新選擇地區」直接跳到首頁的縣市/地區選單處**（F2）— *目前 `restart()` 回 step 1 主視覺（hero），需改為直接落在定位表單（form）。*
 - [ ] **result B4｜PAD compare 寬度上限**（RWD）— *`__compare-wrap` base `max-width:500`、PAD 無覆寫（[StepResult.scss:371](../app/components/03.result/StepResult.scss#L371)）；設計稿標 ≈400，PAD 應降為 `400px`。*
 

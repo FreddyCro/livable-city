@@ -3,11 +3,11 @@
 > 2026 九合一選舉 ‧ 聯合報互動專題
 > 三步驟流程：**定位現居地 → 選擇條件 → 探索結果**
 >
-> 本文以「產品需求」角度整理現行 codebase；流程細節（mermaid、逐節點時序）見 [wireflow.md](./wireflow.md)，狀態欄以本文為準。狀態標記：✅=已實作、🟡=部分、⬜=待建、⚠️=注意事項。
+> 本文以「產品需求」角度整理現行 codebase，涵蓋流程（mermaid）、UI（各節點 wireframe/功能）與轉場設計規格（Figma）。狀態標記：✅=已實作、🟡=部分、⬜=待建、⚠️=注意事項。
 
 ## 概述
 
-單一頁面、以 **step 狀態機**驅動的互動式工具型專題。全站只有一個正式頁面（`/`），畫面依 `currentStep: 1 | 2 | 3` 在三個步驟元件間 fade 切換，背後疊一張**常駐的台灣地圖**（deck.gl）作為背景與第三步的主舞台。切分原則：**Page → Step → Panel → Component**，每個 panel／元件的功能以表格條列；跨步驟共用的功能另立區塊。
+單一頁面、以 **step 狀態機**驅動的互動式工具型專題。全站只有一個正式頁面（`/`），畫面依 `currentStep: 1 | 2 | 3` 在三個步驟元件間以 **PUSH 轉場**（300ms、右→左）切換，背後疊一張**常駐的台灣地圖**（deck.gl）作為背景與第三步的主舞台。切分原則：**Page → Step → Panel → Component**，每個 panel／元件的功能以表格條列；跨步驟共用的功能另立區塊。
 
 - 正式頁面：`/`（[app.vue](../app/app.vue)，本專案未用 `pages/`，`app.vue` 即根元件並持有所有共享狀態）
 - 三個步驟元件：[StepLocation.vue](../app/components/01.location/StepLocation.vue)、[StepCriteria.vue](../app/components/02.criteria/StepCriteria.vue)、[StepResult.vue](../app/components/03.result/StepResult.vue)
@@ -41,23 +41,66 @@
 
 ## Page：首頁 `/`（[app.vue](../app/app.vue)）
 
-由 `currentStep` 在三個步驟元件間切換（`<Transition name="fade" mode="out-in">`），地圖 [TaiwanMap.vue](../app/components/TaiwanMap.vue) 常駐於底層。app.vue 另負責 SEO／追蹤／JSON-LD（`useSeoMeta` + `useHead(useTracking())` + `useJsonld`，文案自 [meta.json](../app/locales/meta.json)）。
+由 `currentStep` 在三個步驟元件間切換（`<Transition :name="stepTransition">` **方向感知 PUSH 轉場**：前進 1→2、2→3 由右往左推入、restart 3→1 反向，各 **300ms**；以 CSS `@keyframes` 驅動，避免 step 切換的重繪卡住轉場起始），地圖 [TaiwanMap.vue](../app/components/TaiwanMap.vue) 常駐於底層。app.vue 另負責 SEO／追蹤／JSON-LD（`useSeoMeta` + `useHead(useTracking())` + `useJsonld`，文案自 [meta.json](../app/locales/meta.json)）。
 
+```mermaid
+flowchart TD
+    Start([使用者進入頁面]) --> P11
+
+    subgraph STEP1 ["① 定位現居地 locate"]
+        P11["<b>1.1 locate-hero</b><br/>主視覺：大標 + 導言"]
+        P11 == 往下滑 scroll ==> P12
+        P12["<b>1.2 locate-form</b><br/>你現在住在哪裡？縣市 / 鄉鎮市區"]
+        P12 -. 選縣市 .-> P12a["鄉鎮市區下拉解鎖、依縣市過濾"]
+        P12a -. 選鄉鎮市區 .-> P12b["「下一步」啟用"]
+    end
+
+    P12b -- 點「下一步 ▶」（PUSH） --> P2
+
+    subgraph STEP2 ["② 選擇條件 criteria"]
+        P2["<b>2 criteria</b><br/>2.1 criteria-stats（左：現居地數據）<br/>2.2 criteria-cards（右：條件卡片格）"]
+        P2 -. 點卡片 toggle .-> P2a["卡片選取/取消（上限 3 項）"]
+        P2a -. 選滿 3 項 .-> P2b["「查看你的理想居住地區」啟用"]
+    end
+
+    P2b -- 點「查看你的理想居住地區 ▶」（PUSH + loading 浮卡） --> P3
+
+    subgraph STEP3 ["③ 探索結果 explore"]
+        P3["<b>3 explore</b><br/>3.1 explore-sidebar｜3.2 explore-result-bar<br/>3.3 explore-map｜3.4 explore-compare｜3.5 explore-zoom"]
+        P3 -. 點「共 N 項結果」 .-> P3r["3.2 explore-result-bar 展開<br/>結果清單（Collapsible + Listbox）"]
+        P3r -. 選一筆/收合 .-> P3
+        P3 -. 點結果項/地圖標點 .-> P3a["3.3→3.4 地圖飛入該地區<br/>explore-compare 顯示（現居 vs 該地區，預設 half）"]
+        P3a -. 點「看更多 ∧」 .-> P3a2["explore-compare 展開 open<br/>完整指標比較"]
+        P3a2 -. 點「收合 ∨」 .-> P3a
+        P3a -. 點 ◀ ▶ paddle .-> P3a3["切換上/下一筆結果<br/>（依 explore-result-bar 順序）"]
+        P3a3 -. 同步飛入 .-> P3a
+        P3 -. 點 ⓘ（3.5 explore-zoom） .-> P3i["<b>3.8 explore-info-dialog</b><br/>資料來源 + 製作團隊"]
+        P3i -. 關閉 .-> P3
+        P3 -. 勾選/取消條件（3.1 explore-sidebar） .-> P3b["重算 resultTowns<br/>3.6 explore-reloading：loading 浮卡（不刷暗）"]
+        P3b -- 有結果 --> P3
+        P3b -- 0 筆結果 --> P3c["<b>3.7 explore-empty</b><br/>無結果浮卡（紅✕，與 2.5c 共用）"]
+        P3c -. 調整條件 .-> P3
+    end
+
+    P3 -- 點「重新選擇 ↺」（explore-sidebar；PUSH 反向） --> RESET["restart()：清空全部選取 → 回 ① locate"]
+    RESET --> P11
 ```
-使用者進入 → ① 定位現居地 ──下一步──▶ ② 選擇條件 ──查看理想居住地區──▶ ③ 探索結果
-                                    ◀── （返回 step 2 目前停用） ──┘
-   探索結果任一處點「重新選擇 ↺」→ restart()：清空全部選取 → 回 ①
-```
+
+> **導覽備註**
+> - ①→②、②→③ 為 **PUSH 轉場**（300ms、右→左）；restart（3→1）反向。②→③ 另疊 loading → result-count / empty 浮卡（見 §2.5）。
+> - step 2「◀ 返回」設計稿有、目前**註解停用**；全域回退是「**重新選擇 ↺**」＝ `restart()`（清空 county/town/filters/result → 回 step 1 主視覺）。
+> - step 2 → step 3 為**硬性條件：需選滿 3 項**（`canProceed = length === 3`）。
 
 **導覽 / 轉場行為**
 
 | 事件 | 行為 | 程式 |
 | --- | --- | --- |
-| ①→② 下一步 | `goToStep(2)`；watcher 觸發 `preloadAllFilters()` + `flyToCounty(縣市)` | [app.vue](../app/app.vue) `watch(currentStep)` |
-| ②→③ 查看理想居住地區 | `enterResult()`：疊 `loading`（刷暗）視窗 → 900ms 後依結果數切 `result-count` / `empty` | [app.vue](../app/app.vue) `enterResult` |
-| ③ 進入時相機 | 有結果 → `focusTown(第一筆)`；無結果 → `flyToTaiwan()` | `watch(currentStep)` step 3 |
+| 步驟切換動畫 | 方向感知 **PUSH**（300ms、右→左；restart 反向），CSS `@keyframes`；`stepTransition` 依 `to > from` 設 `push-forward` / `push-back` | [app.vue](../app/app.vue) `watch(currentStep)` + `<Transition>` |
+| ①→② 下一步 | `goToStep(2)`；watcher `preloadAllFilters()` + `flyToCounty(縣市)`（**延後 320ms**，避免 deck setProps 卡住轉場；step 2 地圖隱藏、看不到）。**桌機（≥1024）**：轉場後三區塊依序 fade-up（見 ② criteria） | [app.vue](../app/app.vue) `watch(currentStep)` |
+| ②→③ 查看理想居住地區 | `enterResult()`：`goToStep(3)`（PUSH 播於下方）+ 疊 `loading`（刷暗）→ 900ms 後依結果數切 `result-count` / `empty`。⚠️ **PUSH 目前播在 loading 遮罩底下**（半透明可見） | [app.vue](../app/app.vue) `enterResult` |
+| ③ 進入時相機 | 有結果 → `focusTown(第一筆)`；無結果 → `flyToTaiwan()`（皆**延後 320ms**，轉場後才飛） | `watch(currentStep)` step 3 |
 | ③ 切換 filter | `watch(selectedFilters)`：疊 `loading`（**不**刷暗）→ 600ms 後 0 筆則 `empty`、有結果則收起 | [app.vue](../app/app.vue) `watch(selectedFilters)` |
-| ③ 重新選擇 ↺ | `restart()`：`closeOverlay()` + 清空全部選取 + 回 step 1 | [app.vue](../app/app.vue) `restart` |
+| ③ 重新選擇 ↺ | `restart()`：`closeOverlay()` + 清空全部選取 + 回 step 1（PUSH 反向） | [app.vue](../app/app.vue) `restart` |
 
 > ⚠️ deck.gl v9 會在 canvas 父層 `.lc-mv` 加上 class `.deck-widget-container` 並吃掉拖曳／縮放；[app.vue](../app/app.vue) 以全域樣式把它設為 `pointer-events: none` 讓拖曳穿透到 canvas。各元素（canvas / 各 step 面板）的可互動性由**各自宣告** pointer-events 控制，**不可批次開啟**——詳見下方「[pointer-events 分層](#pointer-events-分層各-step-的地圖可互動性)」。
 
@@ -117,14 +160,15 @@
 | 2.1 | `criteria-stats`（`.lc-sc__info`） | ✅ | 現居地數據面板 | 頂部小地圖（僅渲染被選鄉鎮輪廓，`selectedTownThumb` 正規化 SVG path 由地圖產出）＋現居地名稱＋**全 15 指標數據**逐項（`statText(f)`）。行動版（<768）改為底部可展開 sheet，location 列當 toggle（`infoOpen`）。 |
 | 2.2 | `criteria-cards`（`.lc-sc__cards`） | ✅ | 居住條件卡片格 | 每個 `filterIndex` 一張卡（圖示 + `label` 方向性文字）。點擊 `toggleFilter(id)` 進 `selectedFilters`。 |
 | — | 選取上限與啟用條件 | ✅ | 硬性選滿 3 項 | 達上限（`atMax`）後未選卡片加 `--disabled`；`canProceed = selectedFilters.length === 3` 才啟用「查看你的理想居住地區」（[UiNextButton](../app/components/ui/NextButton.vue)）。提示文字 `hintText` 隨已選數更新。 |
+| — | 桌機進場動畫 | ✅ | fade-up 依序進場 | **僅桌機（≥1024）**：1→2 PUSH（300ms）走完後，① `.lc-sc__info` → ② `.lc-sc__head`+`.lc-sc__cards` → ③ `.lc-sc__submit` 依序 fade-up（各 500ms、間隔 300ms；`@keyframes lc-sc-fadeup`）。pad / 手機不套用。 |
 
 **去向**：查看理想居住地區 → ②→③ 轉場 → ③ 探索結果。（設計稿「◀ 返回」step 1 目前未接。）
 
 ---
 
-### 2.5 ②→③ 轉場 / Loading（[LoadingOverlay.vue](../app/components/LoadingOverlay.vue)）
+### 2.5 ②→③ 轉場 / Loading（[LoadingOverlay/](../app/components/LoadingOverlay/)）
 
-由 [app.vue](../app/app.vue) 以計時器編排（`TRANSITION_MS = 900`）。三種變體共用一張置中卡片（白底 + `blur(2px)` + `0.5px #403a2c` 框 + `radius 20px`）；`dim=true` 時整面刷暗＋模糊（`rgb(216 216 216 / 0.5)` + `blur(5px)`）、`dim=false` 時僅浮卡、背景仍可互動。
+由 [app.vue](../app/app.vue) 以計時器編排（`TRANSITION_MS = 900`）。**薄殼 [LoadingOverlay.vue](../app/components/LoadingOverlay/LoadingOverlay.vue) 負責 `.lc-lo` 容器 + `dim` 遮罩，依 `variant` 切換三個內容子元件**（[OverlayLoading](../app/components/LoadingOverlay/OverlayLoading.vue) / [OverlayResultCount](../app/components/LoadingOverlay/OverlayResultCount.vue) / [OverlayEmpty](../app/components/LoadingOverlay/OverlayEmpty.vue)，各持外部 SVG + 自走 CSS 動畫）。三變體共用一張置中卡片（白底 + `blur(2px)` + `0.5px #403a2c` 框 + `radius 20px`）；`dim=true` 時整面刷暗＋模糊（`rgb(216 216 216 / 0.5)` + `blur(5px)`）、`dim=false` 時僅浮卡、背景仍可互動。**result-count / empty 支援點視窗外任一處關閉**（`useClickOutside`）；loading 為過場、無關閉鈕。
 
 ```
 criteria 送出後：
@@ -136,17 +180,30 @@ criteria 送出後：
 
 | 編號 | 變體 | 狀態 | 功能 | 說明 |
 | --- | --- | :--: | --- | --- |
-| 2.5a | `loading` | 🟡 | 載入視窗（刷暗） | 出現時機＋卡片已實作；**放大鏡 + 台灣輪廓 loading 動畫尚未做**（`LoadingOverlay.vue` TODO，目前僅文字「載入中…」）。與 3.6 共用同一變體。 |
-| 2.5b | `result-count` | 🟡 | 符合條件視窗 | 「全台共有 **N 個**…」（`count = resultTowns.length`）＋右上 ✕。**地圖縮圖 + pin 視覺尚未做**（TODO）。 |
-| 2.5c | `empty` | 🟡 | 無結果視窗 | 紅 ✕ 圓圈 +「沒有符合條件的地區！」+「建議調整你的條件設定」+ 右上 ✕。與 3.7 共用。 |
+| 2.5a | `loading` | ✅ | 載入視窗（刷暗） | 台灣輪廓（`tw.svg`，靜態）+ 放大鏡（`enlarger.svg`）**小範圍公轉**（CSS 自走）+ 文字「載入中…」。與 3.6 共用同一變體。 |
+| 2.5b | `result-count` | ✅ | 符合條件視窗 | 折疊地圖（`map.svg`）+ 定位 pin（`map-pin.svg`）**上下浮動** +「全台共有 **N 個**…」（`count = resultTowns.length`）＋右上 ✕。點視窗外關閉。 |
+| 2.5c | `empty` | ✅ | 無結果視窗 | **inline SVG「放大鏡 → 圈中紅 X」形變**（圈框放大 + 手柄滑入轉紅 + 斜線畫入，one-shot）+「沒有符合條件的地區！」+「建議調整你的條件設定」+ 右上 ✕。點視窗外關閉。與 3.7 共用。 |
 
-> 進場動畫（設計稿要求 fade-up 300ms）與豐富視覺（loading 動態、縮圖 pin）為待補項；目前為出現／消失的時序驗證版。
+> 視覺已實作：loading 放大鏡公轉、result-count pin 浮動（皆**外部 `<img>` + CSS 動畫**，不進 bundle）；empty 為 **inline SVG 形變**（放大鏡→圈中紅 X；需驅動 SVG 內部 path，故 inline，非外部檔）。**惟浮卡本身的進場 fade-up 300ms 仍待補**（目前為直接出現／消失）。
+
+**設計規格（Figma 對應）**
+
+尺寸為設計稿標註；卡片共用樣式見上（白底 + `blur(2px)` + `0.5px #403a2c` 框 + `radius 20px`）。
+
+| 變體 | Figma node | 尺寸 | 內容規格 |
+| --- | --- | --- | --- |
+| 2.5a loading | [633-16492](https://www.figma.com/design/4n4QX8IuoXVpcDe4yKUnPD/?node-id=633-16492) | 150×200 | 載入 ICON 78×88（放大鏡 + 台灣輪廓）+「載入中……」（18/36 黑） |
+| 2.5b result-count | [633-16920](https://www.figma.com/design/4n4QX8IuoXVpcDe4yKUnPD/?node-id=633-16920) | 269×200 | 地圖縮圖 63 + pin 40 +「全台共有 **N 個**…」（18/36，N 粗體）+ 右上 ✕（20px） |
+| 2.5c empty | [633-16052](https://www.figma.com/design/4n4QX8IuoXVpcDe4yKUnPD/?node-id=633-16052) | — | 紅 ✕ 圓圈（R01 `#d62e29`）+「沒有符合條件的地區！」（18 粗）+「建議調整你的條件設定」（次要灰）+ 右上 ✕ |
+
+- **遮罩規則**：2.5a / 2.5b（criteria→result 首次轉場）疊全幅遮罩（灰 50% + `blur(5px)`，header 以下整個 stage）；3.6 / 3.7（filter 切換後）**不刷暗**，僅浮卡。
+- **進場動畫（設計稿；⬜ 浮卡本身尚未實作）**：浮卡以 **fade + 上移（fade-up）300ms** 進場；2.5a 載入完成後，有結果 → fade-up 切 2.5b、0 筆 → fade-up 切 2.5c。目前浮卡直接出現／消失（內部 SVG 動畫已做）。
 
 ---
 
 ### ③ 探索結果 `explore`（[StepResult.vue](../app/components/03.result/StepResult.vue)）
 
-地圖成為主舞台，其上疊多個浮動 panel。view 邏輯與 click-outside 收合在 [StepResult.logic.ts](../app/components/03.result/StepResult.logic.ts)，文案自 [explore.json](../app/locales/explore.json)。
+地圖成為主舞台，其上疊多個浮動 panel。**[StepResult.vue](../app/components/03.result/StepResult.vue) 為 orchestrator**（`.lc-sr` 容器 + 共享狀態 + click-outside 協調），四個區塊已抽為 co-located 子元件：[ExploreSidebar](../app/components/03.result/ExploreSidebar.vue)（3.1）/ [ExploreResultBar](../app/components/03.result/ExploreResultBar.vue)（3.2）/ [ExploreCompare](../app/components/03.result/ExploreCompare.vue)（3.4）/ [ExploreZoom](../app/components/03.result/ExploreZoom.vue)（3.5，內含 InfoContent）；`IconArrow` / `InfoContent` 亦 co-locate 於此目錄。view 邏輯與 click-outside 收合在 [StepResult.logic.ts](../app/components/03.result/StepResult.logic.ts)，文案自 [explore.json](../app/locales/explore.json)。樣式 `StepResult.scss` 為 **non-scoped 共用**（scoped 無法穿透子元件內部 DOM；見「pointer-events 分層」）。
 
 ```
   3.1 explore-sidebar     3.2 result-bar        3.5 zoom
@@ -164,10 +221,10 @@ criteria 送出後：
 | 編號 | 元件 / 區塊 | 狀態 | 功能 | 說明 |
 | --- | --- | :--: | --- | --- |
 | 3.1 | `explore-sidebar`（`.lc-sr__sidebar`） | ✅ | 左側篩選欄 | 全 15 指標 checkbox（Reka `CheckboxGroup`，可增減，即時重算結果）＋底部兩條 banner。頂部「重新選擇 ↺」→ `restart()`。行動版改為底部可展開 sheet（Reka `Collapsible`，`asideOpen`）。**設計稿「◀ 返回 step 2」目前註解停用。** |
-| 3.2 | `explore-result-bar`（`.lc-sr__list`） | ✅ | 結果清單「共 N 項結果」 | Reka **Collapsible + Listbox**：收合為膠囊（「共 N 項結果 🔍」）、展開為依縣市分組（`resultGroups`）、依 `order.json` 排序的清單（「← 請選擇」）。點清單項 → 選取並飛入。**非**共用 SelectDropdown（見「共用元件」）。 |
+| 3.2 | `explore-result-bar`（`.lc-sr__list`） | ✅ | 結果清單「共 N 項結果」 | Reka **Collapsible + Listbox**：收合為膠囊（「共 N 項結果 🔍」）、展開為依縣市分組（`resultGroups`，**0 筆的 group 不顯示**）、依 `order.json` 排序的清單（「← 請選擇」）。點清單項 → 選取並飛入。**非**共用 SelectDropdown（見「共用元件」）。 |
 | 3.3 | `explore-map`（[TaiwanMap.vue](../app/components/TaiwanMap.vue)） | ✅ | 地圖 + 標點 | 見下方「地圖引擎」。點結果黃點 / 清單項 → 飛入並顯示比較卡。 |
 | — | hover tooltip（[MapTooltip.vue](../app/components/MapTooltip.vue)） | ⬜ | 滑過鄉鎮顯示縣市／區名 | 元件已存在，但**目前在 [TaiwanMap.vue](../app/components/TaiwanMap.vue) 內被註解停用**，尚未實際渲染。 |
-| 3.4 | `explore-compare`（`.lc-sr__compare-wrap`） | ✅ | 比較 / 詳情浮卡 | 地圖下方可收合浮卡，兩側 **paddle nav（◀ ▶）** 依結果清單順序切換上／下一筆並同步飛入。標題含「縣市 鄉鎮」+ **人口數**（`usePopulation`）。三態 `compareState`：`collapsed`（只剩標題）/ `half`（首個指標）/ `open`（全指標，含 vs 現居的 % 差）。 |
+| 3.4 | `explore-compare`（`.lc-sr__compare-wrap`） | ✅ | 比較 / 詳情浮卡 | 地圖下方可收合浮卡，兩側 **paddle nav（◀ ▶）** 依結果清單順序切換上／下一筆並同步飛入。標題含「縣市 鄉鎮」+ **人口數**（`usePopulation`）。**兩態 `compareState`：`half`（首個指標，預設）/ `open`（全指標，含 vs 現居的 % 差）；切換鈕在兩態間來回，點外部收合為 `half`。`collapsed`（只剩標題）型別與 template 判斷保留、但流程不再進入**。 |
 | 3.5 | `explore-zoom`（`.lc-sr__zoom`） | ✅ | 縮放 + ⓘ | 自訂 SVG 圓鈕：＋ / −（`zoomBy`）+ ⓘ（開 info-dialog）。 |
 | 3.6 | `explore-reloading` | 🟡 | 切換 filter 的載入呈現 | 每次改 filter 由 app.vue 疊 `loading` 浮卡（**不刷暗**，`RELOAD_MS = 600`）；豐富動畫同 2.5a 為待補。 |
 | 3.7 | `explore-empty` | 🟡 | 無結果視窗 | 0 筆時疊 `empty` 浮卡（與 2.5c 共用）。清單內另有 `.lc-sr__list-empty` 內嵌文字 fallback。 |
@@ -177,7 +234,7 @@ criteria 送出後：
 
 - **sidebar**：僅行動版底部 sheet（`asideOpen`）會收合（桌機恆開）。
 - **result-bar**：點清單外部收合（點清單項屬內部，維持展開可連續瀏覽）。
-- **compare**：點外部收合為 `collapsed`；⚠️ **排除點在結果清單內**（點清單是「切換要比較的鄉鎮」，行動版隱藏 paddle、正靠清單切換，不應收合）。
+- **compare**：點外部收合為 `half`（`collapsed` 已停用）；⚠️ **排除點在結果清單內**（點清單是「切換要比較的鄉鎮」，行動版隱藏 paddle、正靠清單切換，不應收合）。
 
 **去向**：重新選擇 ↺ → ① 定位現居地（`restart()`）。
 
@@ -253,7 +310,7 @@ criteria 送出後：
 | [AppHeader.vue](../app/components/AppHeader.vue) | 頂部固定 Header | 以 `@udn-digital-center/common-components` 組成：頂部進度條 `NmdProgressbar` + `NmdHeader`（含 `NmdHeaderShare` FB/LINE/X 分享 + `NmdHamburger`）+ `NmdMenu`（四個導覽項，自 [common.json](../app/locales/common.json)）。分享區用 `<ClientOnly>` 包（分享網址依 `navigator` 偵測，避免 hydration 不一致）。 |
 | [AppFooter.vue](../app/components/AppFooter.vue) | 頁尾 | [InfoEditor](../app/components/InfoEditor.vue)（製作團隊，自 [dataSource.json](../app/locales/dataSource.json)）+ `NmdShare` 分享本頁 + `NmdFooter`（版權／社群）。⚠️ 樣式**非 scoped**（會被 InfoContent 渲染進 Dialog portal），靠 `lc-af` 命名空間隔離。 |
 | [InfoContent.vue](../app/components/03.result/InfoContent.vue) | 資料來源 Dialog 內容 | `DialogTitle` / `DialogDescription` + `dataSource.sections` 逐段（含連結／備註）+ 底部嵌 AppFooter。⚠️ 非 scoped（Dialog portal 到 `<body>`）。 |
-| [LoadingOverlay.vue](../app/components/LoadingOverlay.vue) | 轉場 / 載入浮動視窗 | 三變體 `loading` / `result-count` / `empty` 共用卡片；`dim` 控制是否刷暗。用於 2.5a/b/c 與 3.6/3.7。 |
+| [LoadingOverlay/](../app/components/LoadingOverlay/) | 轉場 / 載入浮動視窗 | 薄殼 [LoadingOverlay.vue](../app/components/LoadingOverlay/LoadingOverlay.vue)（`.lc-lo` 容器 + `dim`）+ 三變體子元件 `OverlayLoading` / `OverlayResultCount`（外部 SVG）/ `OverlayEmpty`（inline SVG 形變），皆自走 CSS 動畫。`dim` 控制是否刷暗；result-count / empty 點外部關閉。用於 2.5a/b/c 與 3.6/3.7。 |
 | [SelectDropdown.vue](../app/components/01.location/SelectDropdown.vue) | 下拉選單（Reka Select） | **目前僅 `locate-form`（1.2）使用**。支援扁平／分組選項；`v-model:open` 接管開合，配 [useClickOutside](../app/composables/useClickOutside.ts) 點外部關閉。選單 inline（非 portal）渲染以維持接縫圓角。 |
 | [NextButton.vue](../app/components/ui/NextButton.vue) | 主要行動按鈕（`<UiNextButton>`） | step 1「下一步」、step 2「查看理想居住地區」共用，`disabled` 由各 step 條件控制。 |
 | [useClickOutside.ts](../app/composables/useClickOutside.ts) | click-outside composable | 監聽 `document` capture 階段 `pointerdown`，點在 target 外呼叫 handler；target 可為原生元素或 Reka 元件實例（解析 `$el`）。SSR 安全（`onMounted` 才掛、卸載自動移除）。 |
@@ -264,9 +321,11 @@ criteria 送出後：
 
 ## 待補 / 開放問題
 
-- [ ] **②→③ 轉場動畫**：`transition-loading` 的放大鏡 + 台灣輪廓 loading 動畫、`result-count` 的地圖縮圖 + pin、以及進場 fade-up 300ms（目前為出現時序驗證版，見 [LoadingOverlay.vue](../app/components/LoadingOverlay.vue) TODO）。
+- [x] **loading / result-count / empty 視覺**：放大鏡公轉 + 台灣輪廓、地圖 + 浮動 pin、無結果圖示——均已實作（外部 SVG + CSS 動畫，見 [LoadingOverlay/](../app/components/LoadingOverlay/)）。
+- [x] **①→②、②→③ PUSH 轉場**（300ms、右→左，方向感知）＋**桌機 step 2 三區塊依序 fade-up 進場**（各 500ms、間隔 300ms）。
+- [ ] **Loading 浮卡進場 fade-up 300ms**：三個彈窗**本身出現**時的 fade-up 尚未做（目前直接出現／消失）。
 - [ ] **hover tooltip（3.3）**：[MapTooltip.vue](../app/components/MapTooltip.vue) 已備但在 [TaiwanMap.vue](../app/components/TaiwanMap.vue) 內註解停用，待接回。
-- [ ] **PUSH 轉場遮罩**：設計稿 ②→③ 為 PUSH 疊層，目前為 fade 切換 + 刷暗遮罩。
+- [ ] **②→③ PUSH 與 loading 遮罩的關係**：PUSH 已實作，但目前播在 loading 刷暗遮罩底下（半透明可見）；若要 PUSH 完整露出，需調整 `enterResult` 的遮罩時機（待定）。
 - [ ] **step 3「◀ 返回 step 2」**：目前註解停用，僅留「重新選擇 ↺」回 step 1；是否恢復待定。
 - [ ] **頂部進度指示器**（① ② ③）是否需要。
 - [ ] **[useResultTowns.ts](../app/composables/useResultTowns.ts) 缺值診斷**：當**現居地本身**某選定指標缺值時，結果為空清單，與「真的無更佳地區」無法區分——待補提示。

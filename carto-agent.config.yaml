@@ -31,7 +31,7 @@ key_paths:
     adr_path: architecture/adr/
     adr_index: architecture/adr/INDEX.md
     gotchas: architecture/map/gotchas.md
-    wireflow: architecture/wireflow.md # 自訂文件，非 CA 標準檔
+    prd: architecture/PRD.md # 產品需求（流程 mermaid / UI / 轉場設計規格），自訂文件
 
 dev:
   commands: 見 package.json scripts # dev / build / generate / preview
