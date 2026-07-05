@@ -12,6 +12,9 @@
   padding: ($app-header-h + 26px) 24px 24px;
   background: $color-b01; // B01 #e6f5fa
   overflow-y: auto;
+  // 父層 .lc-mv 被 deck.gl 設為 pointer-events:none 且會「繼承」；
+  // 整頁面板須自行宣告 auto，否則所有卡片/按鈕不可點。
+  pointer-events: auto;
 
   // step-criteria__inner（置中兩欄：面板 300 + 欄距 24 + 內容 580 = 904）
   &__inner {

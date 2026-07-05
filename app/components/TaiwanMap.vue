@@ -66,8 +66,11 @@ defineExpose({ zoomBy, flyToCounty, flyToTaiwan, focusTown });
   display: block;
   background: var(--color-b02);
   transition: opacity 0.4s ease;
+  // 覆寫 base.scss 的 canvas{pointer-events:none}：step 3 地圖需可拖曳/縮放（含手機觸控）。
+  // canvas 自行管理 pointer-events，不再依賴 app.vue 的 deck-widget-container 規則。
+  pointer-events: auto;
 
-  // map-view__canvas--hidden
+  // map-view__canvas--hidden（step 1/2：隱藏且不攔截，事件穿透到 hero/criteria）
   &--hidden {
     opacity: 0;
     pointer-events: none;

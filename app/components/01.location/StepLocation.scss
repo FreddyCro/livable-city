@@ -17,6 +17,9 @@ $title-h-pc: 120px;
   z-index: 10;
   background: $color-b01; // 最淺藍底（B01 #e6f5fa）
   overflow: hidden;
+  // 父層 .lc-mv 被 deck.gl 設為 pointer-events:none，此屬性會「繼承」；
+  // step 面板須自行宣告 auto，否則整頁（含 @wheel/@touch 下滑揭露）無法互動。
+  pointer-events: auto;
 
   // 主視覺層滿版鋪底；共用區塊（標題＋前言＋表單）疊在其上
   // ── step 1-1：首屏主視覺層 ──────────────────────────

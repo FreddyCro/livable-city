@@ -275,18 +275,13 @@ watch(selectedFilters, () => {
 }
 </style>
 
-<!-- Global (non-scoped): deck.gl v9 inserts a `.deck-widget-container` overlay
-     above the canvas. Without the widget stylesheet it defaults to
-     pointer-events: auto and swallows drag/zoom before they reach the canvas.
-     Make it pass-through; real widgets re-enable their own events.
-     Per-step touchability is still governed by the canvas `.lc-mv__canvas--hidden`
-     toggle (pointer-events: none on step 1/2, auto on step 3), so this stays global. -->
+<!-- Global (non-scoped): deck.gl v9 adds `.deck-widget-container` to the canvas's
+     parent (.lc-mv). Keep it pass-through so map drags reach the canvas.
+     ⚠️ 不要用 `> *` re-enable 全部子元素：.lc-sr / .lc-lo 也是 .lc-mv 的直接子元素
+     （inset:0 蓋在地圖上），會被一起變成 pointer-events:auto → 吞掉地圖拖曳（手機無法拖曳的元兇）。
+     canvas 在 TaiwanMap.vue 自行 `pointer-events:auto`；.lc-sr / .lc-lo 各自維持 none 並由內部面板 re-enable。 -->
 <style>
 .deck-widget-container {
   pointer-events: none;
-}
-
-.deck-widget-container > * {
-  pointer-events: auto;
 }
 </style>

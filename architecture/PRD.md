@@ -59,7 +59,7 @@
 | ③ 切換 filter | `watch(selectedFilters)`：疊 `loading`（**不**刷暗）→ 600ms 後 0 筆則 `empty`、有結果則收起 | [app.vue](../app/app.vue) `watch(selectedFilters)` |
 | ③ 重新選擇 ↺ | `restart()`：`closeOverlay()` + 清空全部選取 + 回 step 1 | [app.vue](../app/app.vue) `restart` |
 
-> ⚠️ deck.gl v9 會插入 `.deck-widget-container` overlay 蓋在 canvas 上、預設吃掉拖曳／縮放；[app.vue](../app/app.vue) 以全域樣式把它設為 `pointer-events: none`（子元素才 auto）。各 step 的地圖可互動性另由 canvas 的 `--hidden` modifier 控制。
+> ⚠️ deck.gl v9 會在 canvas 父層 `.lc-mv` 加上 class `.deck-widget-container` 並吃掉拖曳／縮放；[app.vue](../app/app.vue) 以全域樣式把它設為 `pointer-events: none` 讓拖曳穿透到 canvas。各元素（canvas / 各 step 面板）的可互動性由**各自宣告** pointer-events 控制，**不可批次開啟**——詳見下方「[pointer-events 分層](#pointer-events-分層各-step-的地圖可互動性)」。
 
 ---
 
@@ -210,6 +210,37 @@ criteria 送出後：
 - ⚠️ **flyTo 殘留清除**：使用者拖曳／縮放時 `onViewStateChange` 必須清掉 `transitionDuration/Interpolator/...`，否則每步都被重新動畫而「卡住／彈回」；並每次重設 `padding`。
 - ⚠️ **視角水平微調**（`MAP_NUDGE_X`）：桌機／平板右側留白把焦點往左推修正偏右感，手機（<768）歸零，斷點切換以 `matchMedia` 重套。
 - **游標**：僅「有黃點」的鄉鎮顯示 `pointer`，其餘 `grab` / 拖曳中 `grabbing`。
+
+---
+
+## pointer-events 分層（各 step 的地圖可互動性）
+
+地圖 [TaiwanMap.vue](../app/components/TaiwanMap.vue) 常駐底層、step 面板疊於其上，兩者的可互動性完全靠 `pointer-events` 分層。兩個前提：
+
+1. deck.gl v9 在 canvas 父層 `.lc-mv` 加 class `.deck-widget-container`，[app.vue](../app/app.vue) 全域樣式把它設為 `pointer-events: none`（讓拖曳可穿透到 canvas）。
+2. **`pointer-events` 是「可繼承」屬性**：`.lc-mv` 的直接子層（canvas、各 step 面板、overlay）若不自行宣告，會**繼承 `none`** 而不可互動。
+
+**⇒ 核心原則：每個直接子層各自宣告 pointer-events，不可依賴父層或「一次開啟全部子層」的批次規則。**
+
+**狀態表（pointer-events 不隨 RWD 斷點改變；斷點只改 layout 位置/尺寸）**
+
+| 元素 | ① locate | ② criteria | ③ explore | 宣告位置 |
+| --- | :--: | :--: | :--: | --- |
+| `.lc-mv`（deck 容器） | none | none | none | deck.gl runtime 加 `.deck-widget-container` + [app.vue](../app/app.vue) 全域樣式 |
+| `.lc-mv__canvas`（地圖） | none（`--hidden`） | none（`--hidden`） | **auto** | [TaiwanMap.vue](../app/components/TaiwanMap.vue)（自管，覆寫 base 的 `canvas{none}`） |
+| `.lc-sl`（step1 面板） | **auto** | — | — | [StepLocation.scss](../app/components/01.location/StepLocation.scss) root |
+| `.lc-sc`（step2 面板） | — | **auto** | — | [StepCriteria.scss](../app/components/02.criteria/StepCriteria.scss) root |
+| `.lc-sr`（step3 容器） | — | — | **none** | [StepResult.scss](../app/components/03.result/StepResult.scss) root（縫隙讓地圖可拖曳） |
+| `.lc-sr__sidebar/list/compare/zoom` | — | — | **auto** | StepResult.scss（各浮動面板自行 re-enable） |
+| `.lc-lo`（overlay 殼） | none | none | none | [LoadingOverlay.vue](../app/components/LoadingOverlay/LoadingOverlay.vue)（`--dim` 遮罩、`__window` 卡片自行 `auto`） |
+
+- **整頁面板（locate / criteria）** = `auto`：整片互動、覆蓋地圖（step 1/2 canvas 為 `--hidden` 不互動）。
+- **explore 容器 `.lc-sr`** = `none`：pass-through，讓地圖在面板縫隙可拖曳；其內各浮動面板各自 `auto`。
+- **canvas** 僅 step 3 顯示時 `auto`（含手機觸控拖曳）；step 1/2 加 `.lc-mv__canvas--hidden` → `none`。base.scss 的全域 `canvas { pointer-events: none }` 由 `.lc-mv__canvas` 覆寫。
+
+> ⚠️ **不要用 `.deck-widget-container > * { pointer-events: auto }` 之類「批次開啟所有子層」的規則**。`.lc-sr` / `.lc-lo` 是刻意 pass-through 的全螢幕容器（`inset:0` 蓋在地圖上），被批次設為 `auto` 會整片吞掉地圖拖曳（**手機曾因此完全無法拖曳地圖**）。歷史上曾靠此規則替 canvas 與 step 面板開啟互動，但它同時波及 `.lc-sr`/`.lc-lo`；現改為「canvas 與各 step 面板各自宣告」。
+>
+> ⚠️ 另一個易踩點：scoped 樣式的特異性較高（`.lc-sr[data-v]` = 0,2,0）。若把某 step 樣式從 `scoped` 改為 non-scoped，`.lc-sr{none}` 特異性會降到 0,1,0，可能輸給其他同分規則而失效——改 scoped 狀態時務必複驗 pointer-events。
 
 ---
 

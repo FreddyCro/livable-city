@@ -1,12 +1,13 @@
 <script setup lang="ts">
 // 3.2 explore-result-bar：結果數／清單「共 N 項結果」（Reka Collapsible + Listbox，浮於地圖）。
 // 純呈現元件；開合（listOpen）與選取（selectedResultCode）由 StepResult 統籌。
+import { computed } from 'vue';
 import type { AcceptableValue } from 'reka-ui';
 import str from '../../locales/explore.json';
 import type { ResultTown } from '../../composables/useResultTowns';
 import { useAssets } from '../../composables/useAssets';
 
-defineProps<{
+const props = defineProps<{
   listOpen: boolean;
   resultTowns: ResultTown[];
   resultGroups: { county: string; towns: { code: string; name: string }[] }[];
@@ -19,6 +20,9 @@ defineEmits<{
 }>();
 
 const { img } = useAssets();
+
+// 只顯示有鄉鎮的 county group（item 為 0 的 group 不顯示，避免只剩孤立的縣市標題）
+const groups = computed(() => props.resultGroups.filter((g) => g.towns.length > 0));
 const iconUrl = (name: string) => img(`icon/${name}.svg`);
 </script>
 
@@ -73,7 +77,7 @@ const iconUrl = (name: string) => img(`icon/${name}.svg`);
         <!-- ListboxContent 才會掛 role=listbox 與方向鍵/Enter/type-ahead keydown -->
         <ListboxContent class="lc-sr__listbox">
           <ListboxGroup
-            v-for="g in resultGroups"
+            v-for="g in groups"
             :key="g.county"
             class="lc-sr__list-group"
           >
