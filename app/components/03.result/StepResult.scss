@@ -230,6 +230,7 @@
     @include rwd-min(pad) {
       flex: 0 1 auto;
       min-height: auto;
+      max-height: 960px;
       overflow-y: visible;
       padding: 0;
     }
@@ -435,7 +436,7 @@
     position: absolute;
     z-index: 10;
     width: 140px;
-    max-height: calc(100vh - #{$app-header-h} - 32px);
+    max-height: calc(70vh - #{$app-header-h} - 32px);
     display: flex;
     flex-direction: column;
     background: rgb(255 255 255 / 0.8); // Figma：白 80%
@@ -585,7 +586,8 @@
     max-height: 48vh;
     display: flex;
     flex-direction: column;
-    background: var(--c-surface);
+    // 對齊 Figma：浮卡半透明白底（rgba(255,255,255,0.8)），讓下方地圖淡淡透出
+    background: var(--c-surface-translucent);
     border: 1px solid var(--c-border);
     border-radius: 14px;
     box-shadow: 0 4px 16px rgb(var(--c-shadow) / 0.1);

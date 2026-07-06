@@ -39,6 +39,7 @@
   /* ---------- Semantic：介面底 / 邊框 ---------- */
   --c-bg: var(--color-grey-150);
   --c-surface: var(--color-grey-0);
+  --c-surface-translucent: rgb(255 255 255 / 0.8); /* 半透明白底：浮於地圖上的浮卡（Figma compare card 80%） */
   --c-surface-sunken: var(--color-grey-50);
   --c-surface-hover: var(--color-grey-100);
   --c-surface-inverse: var(--color-grey-900); /* 深色按鈕 / 徽章底 */
