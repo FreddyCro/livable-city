@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import type { GeoMeta } from "../../types/geo";
 import { useAssets } from "../../composables/useAssets";
 import { byRank } from "../../utils/sort";
@@ -121,10 +121,11 @@ export function useStepLocation(
     },
   };
 
-  // 依視窗寬度的斷點。<video> 的 <source media> 只在初次載入評估、resize 不會重挑來源，
-  // 故改由 JS 以 matchMedia 追蹤斷點，「跨斷點」時才換片並重載（同斷點 resize 不動，免閃爍）。
+  // 影片來源改用 <source media>：瀏覽器在「解析 HTML 時」就依 media 挑對斷點來源
+  // （SSR 首屏即正確、不必等 JS，桌機不會先抓 mob 再切）。跨斷點 resize 時再由 JS 呼叫
+  // el.load()，讓瀏覽器重跑資源選擇、依 media 重挑來源（見下方 onBpChange）。
+  // poster 無法用 media 選（單一 URL），仍由 bp 驅動（首屏 SSR 為 mob，掛載後修正）。
   const bp = ref<Bp>("mob");
-  const activeVideo = computed(() => visualVideoSrc[bp.value]);
   const activePoster = computed(() => visualPoster[bp.value]);
 
   // 前奏（0–4s）只在首播放一次；播到結尾後不回 0、而是回到 4s，之後固定 loop「4s → 結尾」
@@ -145,33 +146,30 @@ export function useStepLocation(
   let mqlPc: MediaQueryList | null = null;
   const resolveBp = (): Bp =>
     mqlPc?.matches ? "pc" : mqlPad?.matches ? "pad" : "mob";
-  const syncBp = () => {
-    bp.value = resolveBp();
-  };
 
-  // 換片：等 DOM 更新完 <source> 後再 load()（flush: 'post'），重載後依前奏狀態決定起點。
-  watch(
-    bp,
-    () => {
-      const el = visualVideo.value;
-      if (!el) return;
-      el.load();
-      const onReady = () => {
-        el.currentTime = introDone.value ? VISUAL_LOOP_START : 0;
-        void el.play();
-        el.removeEventListener("loadeddata", onReady);
-      };
-      el.addEventListener("loadeddata", onReady);
-    },
-    { flush: "post" },
-  );
+  // 跨斷點（change 事件只在「實際跨越」門檻時觸發，掛載當下不會，故不會多做一次重載）：
+  //   1) 更新 bp → poster 換圖；
+  //   2) el.load() 讓瀏覽器依 <source media> 重挑影片來源，載入後依前奏狀態決定起點。
+  const onBpChange = () => {
+    bp.value = resolveBp();
+    const el = visualVideo.value;
+    if (!el) return;
+    el.load();
+    const onReady = () => {
+      el.currentTime = introDone.value ? VISUAL_LOOP_START : 0;
+      void el.play();
+      el.removeEventListener("loadeddata", onReady);
+    };
+    el.addEventListener("loadeddata", onReady);
+  };
 
   onMounted(() => {
     mqlPad = window.matchMedia("(min-width: 768px)");
     mqlPc = window.matchMedia("(min-width: 1024px)");
+    // 初值只同步 poster；影片首屏已由 <source media> 在解析時挑對，不需（也不該）在此重載。
     bp.value = resolveBp();
-    mqlPad.addEventListener("change", syncBp);
-    mqlPc.addEventListener("change", syncBp);
+    mqlPad.addEventListener("change", onBpChange);
+    mqlPc.addEventListener("change", onBpChange);
 
     // 量測置中位移：初次 + block 尺寸變動（字體載入／斷點 reflow）+ 視窗高度變動
     measureCenter();
@@ -180,8 +178,8 @@ export function useStepLocation(
     window.addEventListener("resize", measureCenter);
   });
   onBeforeUnmount(() => {
-    mqlPad?.removeEventListener("change", syncBp);
-    mqlPc?.removeEventListener("change", syncBp);
+    mqlPad?.removeEventListener("change", onBpChange);
+    mqlPc?.removeEventListener("change", onBpChange);
     blockRo?.disconnect();
     window.removeEventListener("resize", measureCenter);
   });
@@ -200,7 +198,7 @@ export function useStepLocation(
     onCountySelect,
     visualVideo,
     onVisualEnded,
-    activeVideo,
     activePoster,
+    videoSrc: visualVideoSrc,
   };
 }

@@ -23,8 +23,8 @@ const {
   onCountySelect,
   visualVideo,
   onVisualEnded,
-  activeVideo,
   activePoster,
+  videoSrc,
 } = useStepLocation(props, emit);
 </script>
 
@@ -38,18 +38,41 @@ const {
   >
     <!-- ── step 1-1：首屏主視覺（鋪底，step2 淡出）──────── -->
     <div class="lc-sl__visual-layer">
-      <!-- 主視覺背景影片（依斷點換片，resize 跨斷點重載；poster 沿用插圖、object-fit 裁切置中） -->
+      <!-- 主視覺背景影片。來源用 <source media>：瀏覽器解析 HTML 時即依斷點挑對來源
+           （SSR 首屏正確、不必等 JS，桌機不會先抓 mob）；順序 pc → pad → mob(fallback)，
+           取第一個 media 命中且格式支援者。跨斷點 resize 由 JS 呼叫 el.load() 重挑（見 logic）。
+           poster 無法用 media 選，仍由 activePoster 驅動、object-fit 裁切置中。 -->
+      <!-- :poster="activePoster" -->
       <video
         ref="visualVideo"
         class="lc-sl__visual"
         autoplay
         muted
         playsinline
-        :poster="activePoster"
         @ended="onVisualEnded"
       >
-        <source :src="activeVideo.webm" type="video/webm" />
-        <source :src="activeVideo.mp4" type="video/mp4" />
+        <source
+          :src="videoSrc.pc.webm"
+          type="video/webm"
+          media="(min-width: 1024px)"
+        />
+        <source
+          :src="videoSrc.pc.mp4"
+          type="video/mp4"
+          media="(min-width: 1024px)"
+        />
+        <source
+          :src="videoSrc.pad.webm"
+          type="video/webm"
+          media="(min-width: 768px)"
+        />
+        <source
+          :src="videoSrc.pad.mp4"
+          type="video/mp4"
+          media="(min-width: 768px)"
+        />
+        <source :src="videoSrc.mob.webm" type="video/webm" />
+        <source :src="videoSrc.mob.mp4" type="video/mp4" />
       </video>
 
       <!-- 影片來源標註（左下角） -->
