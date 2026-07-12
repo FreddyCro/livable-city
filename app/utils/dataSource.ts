@@ -8,15 +8,18 @@
 // 階段資料為 null —— 屬刻意設計（資料量大、互動才需要，不阻塞首屏 SSR）。
 // 呼叫端請務必在 onMounted 或事件處理中呼叫，勿在 setup 同步階段使用結果。
 
-import type { GeoMeta } from '../types/geo'
+import type { GeoMeta, DisplayOrder } from '../types/geo'
 import type { FilterMeta, FilterDataset } from '../types/filter'
 
 // public/ 底下的相對檔名（不含 baseURL 前綴，由 assetUrl 補上）
 const ASSET = {
   geoMeta: 'tw-towns-meta.json',
   geoTopology: 'tw-towns-optimized.json',
+  displayOrder: 'data/order.json',
   filterIndex: 'data/index.json',
   filterDataset: (id: string) => `data/${id}.json`,
+  // 人口資料（非篩選指標，獨立檔），供 step 3 比較卡標題顯示
+  population: 'data/0.json',
 } as const
 
 // 補上部署 baseURL 前綴，確保部署於子路徑時 public/ 資產仍解析得到。
@@ -41,10 +44,14 @@ async function fetchJson<T>(path: string): Promise<T> {
 export const dataSource = {
   /** 鄉鎮/縣市 metadata（tw-towns-meta.json） */
   geoMeta: () => fetchJson<GeoMeta>(ASSET.geoMeta),
+  /** 縣市/鄉鎮顯示順序（data/order.json） */
+  displayOrder: () => fetchJson<DisplayOrder>(ASSET.displayOrder),
   /** 地圖底圖 TopoJSON（tw-towns-optimized.json） */
   geoTopology: () => fetchJson<any>(ASSET.geoTopology),
   /** 篩選指標清單 manifest（data/index.json） */
   filterIndex: () => fetchJson<FilterMeta[]>(ASSET.filterIndex),
   /** 單一指標資料集（data/{id}.json） */
   filterDataset: (id: string) => fetchJson<FilterDataset>(ASSET.filterDataset(id)),
+  /** 各鄉鎮人口資料（data/0.json：鄉鎮代碼 → 人口數） */
+  population: () => fetchJson<FilterDataset>(ASSET.population),
 }

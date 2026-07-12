@@ -11,8 +11,10 @@ $color-r01: var(--color-r01); // 紅 red
 $color-bg-cream: var(--color-bg-cream); // 米色底 cream
 
 // Layout
-$header-h: 80px; // 假數字：header 尚未實作，確定後再調整
-$explore-sidebar-w: 420px; // explore-sidebar 寬度，同時是地圖左偏移量（Figma）
+$app-header-h: 60px; // AppHeader 實際高度（Figma headerbar 60px）；各 step 內容上方留白依此推導
+// explore-sidebar 寬度，同時是地圖左偏移量。實際值定義於 theme.css 的 --explore-sidebar-w（單一來源）；
+// 此處保留 $explore-sidebar-w 別名讓既有 width / inset / calc 寫法續用，輸出即 var(--explore-sidebar-w)。
+$explore-sidebar-w: var(--explore-sidebar-w);
 
 $breakpoints: (
   xxs: 375px,
@@ -26,4 +28,26 @@ $breakpoints: (
   xl: 1440px,
   2xl: 1920px,
   3xl: 2560px,
+);
+
+// Typography
+// 對齊 Figma「宜居城市指南」Text styles，每個 token = (size, line-height)，單位 px（對齊 Figma 的 size/lineHeight）。
+// 主字體 Noto Sans TC；weight 由各元件自訂（除特別標註者）。
+// 搭配 mixins.scss 的 `text-style($key)` 使用：@include mixins.text-style(pc-h1);
+$text-styles: (
+  // main 群組
+  p:                (size: 18px, line-height: 36px), // main/P — 內文段落（= .lc-article p）
+  primary-button:   (size: 18px, line-height: 28px), // main/Primary_Button（= .lc-text--btn）
+  secondary-button: (size: 15px, line-height: 22px), // main/Secondary_Button（= .lc-text--btn-sm / .lc-caption）
+  note:             (size: 12px, line-height: 18px), // main/輔助說明（= .lc-text--note）
+  annotation-bold:  (size: 18px, line-height: 28px), // 註解字-粗字（weight 700）
+
+  // pc 群組（桌機標題）
+  pc-h1: (size: 48px, line-height: 80px), // pc_H1
+  pc-h2: (size: 20px, line-height: 32px), // pc_H2
+  pc-h3: (size: 20px, line-height: 32px), // pc_H3
+
+  // mob 群組（手機標題）
+  mob-h1: (size: 36px, line-height: 44px), // mob_H1
+  mob-h2: (size: 16px, line-height: 24px), // mob_H2
 );

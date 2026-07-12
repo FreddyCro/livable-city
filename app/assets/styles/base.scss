@@ -9,6 +9,23 @@
   --z-index-dialog-close: -1000;
 }
 
+// explore-sidebar 寬度隨斷點縮放（單一來源；TaiwanMap 左內縮、MapTooltip、StepResult
+// 側欄／浮層的 width / left calc 全部以 var(--explore-sidebar-w) 計算，覆寫此處即一致跟著縮）。
+// 預設 420（PC，定義於 theme.css）。
+@include mixins.rwd-between(sm, md) {
+  // PAD：側欄縮為 240
+  :root {
+    --explore-sidebar-w: 246px;
+  }
+}
+
+@include mixins.rwd-max(sm) {
+  // MOB：側欄改底部 sheet，不再佔左側 → 0，使地圖滿版
+  :root {
+    --explore-sidebar-w: 0px;
+  }
+}
+
 html,
 body {
   margin: 0;
@@ -63,18 +80,36 @@ canvas {
   font-family: 'Montserrat', sans-serif;
 }
 
-.lc-article {
-  p {
-    font-size: 18px;
-    line-height: 36px;
-  }
+.lc-p {
+  font-size: 18px;
+  line-height: 36px;
+}
 
-  p:not(.lc-caption) + p:not(.lc-caption) {
-    margin-top: 36px;
+// lc-h1 = 響應式標題（mob_H1 → pc_H1）
+.lc-h1 {
+  @include mixins.text-style(mob-h1);
+
+  @include mixins.rwd-min(pad) {
+    @include mixins.text-style(pc-h1);
   }
 }
 
+// lc-h2 = 響應式標題（mob_H2 → pc_H2）
+.lc-h2 {
+  @include mixins.text-style(mob-h2);
+
+  @include mixins.rwd-min(pad) {
+    @include mixins.text-style(pc-h2);
+  }
+}
+
+// lc-h3 = Figma pc_H3（無 mob 對應，固定 20/32）
 .lc-h3 {
+  @include mixins.text-style(pc-h3);
+}
+
+// lc-article-h3 = 文章內文標題級距（非 Figma pc/mob，editorial scale）
+.lc-article-h3 {
   font-size: 22px;
   line-height: 30px;
   margin-bottom: 8px;
@@ -89,7 +124,8 @@ canvas {
   }
 }
 
-.lc-h4 {
+// lc-article-h4 = 文章內文標題級距（editorial scale）
+.lc-article-h4 {
   font-size: 24px;
   line-height: 36px;
 
@@ -103,13 +139,15 @@ canvas {
 .lc-h2,
 .lc-h3,
 .lc-h4,
-.lc-h5 {
+.lc-h5,
+.lc-article-h3,
+.lc-article-h4 {
   &--no-mb {
     margin-bottom: 0;
   }
 }
 
-p.lc-caption {
+.lc-caption {
   font-size: 15px;
   line-height: 22px;
   color: var(--c-text-muted);
@@ -141,6 +179,18 @@ p.lc-caption {
   font-weight: 400;
 }
 
+// lc-text--body     = main/P（內文段落）
+.lc-text--body {
+  @include mixins.text-style(p);
+  font-weight: 400;
+}
+
+// lc-text--annotation = 註解字-粗字（粗體註解）
+.lc-text--annotation {
+  @include mixins.text-style(annotation-bold);
+  font-weight: 700;
+}
+
 // 分隔線（對齊 Figma Line styles）
 // lc-line           = Primary Line：黑 1px
 .lc-line {
@@ -155,116 +205,5 @@ p.lc-caption {
   // lc-line--faint    = Secondary Line 2：黑 50% / 0.5px
   &--faint {
     border-top: 0.5px solid var(--c-line-secondary);
-  }
-}
-
-.lc-section {
-  margin-top: 120px;
-  margin-bottom: 120px;
-
-  &--no-mt {
-    margin-top: 0;
-  }
-
-  &--no-mb {
-    margin-bottom: 0;
-  }
-
-  &--pt {
-    padding-top: 120px;
-  }
-
-  &--pb {
-    padding-bottom: 120px;
-  }
-}
-
-.lc-section-sm {
-  margin-top: 40px;
-  margin-bottom: 40px;
-
-  &--no-mt {
-    margin-top: 0;
-  }
-
-  &--no-mb {
-    margin-bottom: 0;
-  }
-
-  &--pt {
-    padding-top: 40px;
-  }
-
-  &--pb {
-    padding-bottom: 40px;
-  }
-}
-
-.lc-container {
-  width: 100%;
-  margin: 0 auto;
-  padding-left: 20px;
-  padding-right: 20px;
-
-  @include mixins.rwd-min(xxs) {
-    padding-left: 26px;
-    padding-right: 26px;
-  }
-
-  @include mixins.rwd-min(pad) {
-    max-width: calc(530px + 57px * 2);
-    padding-left: 57px;
-    padding-right: 57px;
-  }
-
-  @include mixins.rwd-min(pc) {
-    max-width: calc(620px + 110px * 2);
-    padding-left: 110px;
-    padding-right: 110px;
-  }
-}
-
-.lc-container-lg {
-  width: 100%;
-  margin: 0 auto;
-  padding-left: 20px;
-  padding-right: 20px;
-
-  @include mixins.rwd-min(xxs) {
-    padding-left: 26px;
-    padding-right: 26px;
-  }
-
-  @include mixins.rwd-min(pad) {
-    max-width: calc(654px + 57px * 2);
-    padding-left: 57px;
-    padding-right: 57px;
-  }
-
-  @include mixins.rwd-min(pc) {
-    width: 100%;
-    padding-left: 100px;
-    padding-right: 100px;
-    max-width: calc(1060px + 100px * 2);
-  }
-}
-
-.lc-text-box {
-  padding: 40px 20px;
-  border: solid 1px var(--c-border);
-  background-color: rgb(var(--color-grey-700) / 0.4);
-
-  @include mixins.blur(10px);
-
-  @include mixins.rwd-min(xxs) {
-    padding: 40px 26px;
-  }
-
-  @include mixins.rwd-min(pad) {
-    padding: 40px 57px;
-  }
-
-  @include mixins.rwd-min(pc) {
-    padding: 40px 48px;
   }
 }

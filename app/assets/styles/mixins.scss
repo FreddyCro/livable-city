@@ -53,6 +53,26 @@
   color: $color;
 }
 
+// 依 key 套用 Figma Text style（size + line-height），對照 vars.$text-styles
+@mixin text-style($key) {
+  $style: map.get(vars.$text-styles, $key);
+
+  @if $style {
+    font-size: map.get($style, size);
+    line-height: map.get($style, line-height);
+  } @else {
+    @warn "Text style `#{$key}` not found in \$text-styles.";
+  }
+}
+
+// 文字輪廓白底：沿字形外擴一圈底色，讓深色字壓在影片/雜亂背景上仍清晰。
+// 原理：paint-order 先畫 stroke 墊底、再畫 fill 蓋上，白邊只露在輪廓外圈。
+// 可見白邊約為 $width 的一半。
+@mixin text-outline($width: 12px, $color: #fff) {
+  -webkit-text-stroke: $width $color;
+  paint-order: stroke fill;
+}
+
 @mixin blur($blur: 10px) {
   backdrop-filter: blur($blur);
   -webkit-backdrop-filter: blur($blur);

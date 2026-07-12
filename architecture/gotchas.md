@@ -1,0 +1,81 @@
+# Gotchas（已知陷阱）
+
+> 光看程式碼不易察覺、重構時容易再次踩到的陷阱。以模組名稱分節，方便搜尋。
+
+## map（地圖 / deck.gl，`app/app.vue`）
+
+### deck.gl v9 的 `.deck-widget-container` 會攔截 canvas 滑鼠事件
+
+- **症狀**：地圖無法用滑鼠拖曳 / 縮放，游標碰不到 canvas。
+- **原因**：deck.gl v9 會在 canvas 上方插入一個 `.deck-widget-container` overlay DOM。
+  若沒有載入 widget stylesheet（`@deck.gl/widgets/stylesheet.css`），它預設
+  `pointer-events: auto`，會把拖曳 / 縮放事件吃掉，事件傳不到底下的 canvas
+  （deck 的事件監聽掛在 canvas 上）。
+- **修法**：自行補一條 **global（非 scoped）** CSS，讓 container 事件穿透、widget 子元素再設回 auto：
+  ```css
+  .deck-widget-container { pointer-events: none; }
+  .deck-widget-container > * { pointer-events: auto; }
+  ```
+  必須是 global style：container 由 deck 在 Vue 模板外動態建立，scoped style 的
+  data-attribute 不會套到它。
+- **位置**：`app/app.vue` 底部的 global `<style>` 區塊。
+- **延伸**：各 step 是否能碰地圖，是靠 canvas 的 `.map-hidden` class 切換
+  `pointer-events`（step 1/2 為 none、step 3 為 auto），而非靠這條 global 規則。
+  兩者各司其職。
+
+### controlled `viewState` 殘留 flyTo transition 會讓地圖「卡住 / 被彈回」
+
+- **症狀**：曾經呼叫過 `flyTo*()`（例如進 step 3 的 `flyToTaiwan()`）之後，
+  地圖拖曳時每個微小位移都被重播動畫、感覺卡住或彈回原位。
+- **原因**：地圖用 controlled `viewState`。`flyTo*()` 會把 `transitionInterpolator`
+  + `transitionDuration` 塞進 `deckViewState` 且**從未清除**；使用者互動時
+  `onViewStateChange` 又把帶著 transition 的 viewState `setProps` 回去，於是每次互動都被動畫干擾。
+- **修法**：在 `onViewStateChange` 內，把使用者產生的 viewState 中的 `transition*`
+  屬性（`transitionDuration` / `transitionInterpolator` / `transitionEasing` /
+  `transitionInterruption`）清掉再存回。程式主動呼叫的 `flyTo*()` 不受影響
+  （它們是另外主動加 transition）。
+- **位置**：`app/app.vue` 的 `new Deck({ onViewStateChange })`。
+
+### 疊在地圖上的 overlay panel 必須「根層 `pointer-events:none`、panel 設回 `auto`」
+
+- **症狀**：新增一個浮在地圖上的 step overlay（如 StepResult / StepCriteria 的浮動 panel）後，地圖空白處又不能拖曳了。
+- **原因**：step overlay（`.lc-sr` / `.lc-sc`）是 `position:fixed; inset:0` 蓋滿全螢幕、`z-index` 高於 deck canvas。若根層沒設 `pointer-events:none`，整片透明區都會吃掉地圖事件。
+- **修法**：overlay 根層 `pointer-events:none`，只有實際 panel（sidebar / 浮卡 / 清單 / 縮放鈕）各自設 `pointer-events:auto`。如此 panel 之間的空白讓事件穿透到底下 canvas。
+- **位置**：`app/components/StepResult/StepResult.vue`（`.lc-sr`）、`app/components/StepCriteria/StepCriteria.vue`（step 2 為不透明全屏面板，刻意覆蓋＝不可碰地圖）。
+- **延伸**：與上面兩條 deck.gl 陷阱搭配，才完整決定「哪一步能不能碰地圖」。
+
+## ordering（縣市/鄉鎮排序，`order.json` / `utils/sort.ts`）
+
+### JS 物件對「整數型字串 key」會強制數值升冪重排——下拉順序不照插入順序
+
+- **症狀**：縣市/鄉鎮下拉與結果清單的順序「怪怪的」——宜蘭排第一、金門/連江在最後，且改 `tw-towns-simplified.json` 的 geometry 排列也改不動。
+- **原因**：`countyOptions` / `townOptions` 用 `Object.entries(meta.counties)`。行政區代碼是正規整數字串（`63000`、`10002010`），JS 引擎對這類 key **一律以數值升冪重排**，無視插入順序；帶前導零的 `09007`（連江）/`09020`（金門）才照插入順序排到最後。
+- **修法**：順序唯一依據 `public/data/order.json`（由「0. 各鄉鎮市區人口數」列序產生＝官方北→南序），`useGeoMeta` 轉成 `countyRank`/`townRank` 併入 `meta`，元件用 `utils/sort.ts` 的 `byRank()` 排。**不要**改 geometry 順序試圖影響它。
+- **位置**：`app/composables/useGeoMeta.ts`、`app/utils/sort.ts`、`scripts/process-xlsx.mjs`（產 order.json）。
+- **陷阱中的陷阱**：`byRank` 目前是 `(rankA ?? Infinity) - (rankB ?? Infinity)`；當**兩者皆無 rank**（order.json 載入失敗 → rank 全 undefined）時回傳 `Infinity - Infinity = NaN`，NaN 比較器會讓 sort 亂序，與註解「退回原順序」不符。修法：相等（含皆 Infinity）時回 0。
+
+### 排名比較需要 number，字串值會變字典序
+
+- **症狀**：某指標（如青壯年比率）排名結果不對，「9.5」排在「61.3」前面。
+- **原因**：xlsx 某些欄位值是字串（`"61.3"`）。前端 `useResultTowns` 以 `val < refVal` 比較，**兩邊皆字串時是字典序**（`"9" > "6"`）。
+- **修法**：資料管線 `parseVal()` 把數字字串轉 `number`、`"-"`/`"--"`/空 → `null`。改資料來源解析時務必保留此正規化。
+- **位置**：`scripts/lib/sources.mjs` `parseVal`、`app/composables/useResultTowns.ts`。
+
+## build / SFC（Nuxt 4 / Vue 3.5 編譯）
+
+### `defineProps<ImportedType>()` 需要專案安裝 `typescript`
+
+- **症狀**：`Failed to load TypeScript, which is required for resolving imported types`。
+- **原因**：把 props 型別抽到 `*.logic.ts` 再 `defineProps<StepResultProps>()`，Vue 編譯器要**跨檔解析 import 的型別**來產生 runtime props 宣告，這需要 `typescript` 套件。本專案雖到處 `lang="ts"`，但靠 esbuild 剝型別、原本沒裝 tsc。
+- **修法**：`pnpm add -D typescript`（已裝）。或改用「就地定義」的字面型別 `defineProps<{…}>()`（不跨檔即免 tsc）。
+- **位置**：`app/components/*/*.logic.ts` + 對應 `.vue`。
+
+## scss / 樣式
+
+### Dialog portal 內 scoped 樣式套不到 → 用 non-scoped + `lc-` 命名隔離
+
+- **症狀**：放進 `DialogPortal`（teleport 至 `<body>`）的內容，scoped 樣式沒生效。
+- **原因**：portal 內元素在 Vue 模板樹外，scoped 的 data-attribute 套不到。
+- **修法**：該區 `<style>` 改 **non-scoped**，靠 `lc-` BEM 命名空間隔離。
+- **位置**：`InfoContent.vue`、`AppFooter.vue`、`StepResult/StepResult.global.scss`（與 scoped 的 `StepResult.scss` 分檔，用 `<style src>` 各自引入）。
+- **延伸**：`nuxt.config.ts` 的 `css.preprocessorOptions.scss.additionalData` 會把 `mixins`/`variables` 注入**每個** scss（含 `<style src>` 外部檔），故外部 `.scss` 用 `$app-header-h`、`@include rwd-min(...)` 免再手動 `@use`。
