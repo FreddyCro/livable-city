@@ -192,7 +192,7 @@ function enterResult() {
 
 <template>
   <!-- dev 預覽：三個 overlay 狀態並排 -->
-  <OverlayPreview />
+  <!-- <OverlayPreview /> -->
 
   <AppHeader />
   <div class="lc-mv">
