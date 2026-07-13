@@ -77,3 +77,14 @@
   backdrop-filter: blur($blur);
   -webkit-backdrop-filter: blur($blur);
 }
+
+// hover：僅在支援真實游標（滑鼠）的裝置套用 :hover。
+// 觸控裝置點擊後 :hover 會殘留（sticky hover），導致按鈕點掉後底色仍留著 hover 樣式；
+// 包一層 (hover: hover) 讓觸控裝置點掉後回到預設（透明）底色。
+@mixin hover {
+  @media (hover: hover) {
+    &:hover {
+      @content;
+    }
+  }
+}

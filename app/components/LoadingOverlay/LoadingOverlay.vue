@@ -194,6 +194,7 @@ useClickOutside(frameEl, () => {
     position: relative;
     width: 64px;
     height: 74px;
+    transform: translateY(8px); // 讓 pin 浮動時不被地圖遮住（z-index 失效）
   }
 
   &__map {
@@ -217,25 +218,28 @@ useClickOutside(frameEl, () => {
     height: 60px;
   }
 
+  // empty morph 三軌共用起始停留：delay 1s + both fill → 先定住初始（放大鏡）畫面
+  // 一段時間讓使用者看清初始狀態，再開始 morph（見回饋 #1）。三軌 delay 必須一致以保持同步。
+
   // empty__ring：圈框（morph 期間 scale 由 0.86 放大到 1）
   &__empty-ring {
     transform-box: fill-box;
     transform-origin: center;
-    animation: lc-lo-empty-ring 1.3s ease forwards;
+    animation: lc-lo-empty-ring 1s ease 0.5s both;
   }
 
   // empty__slash：手柄 →「\」筆畫（圈外 teal 縮小 → 滑入圈中置中、轉紅）
   &__empty-slash {
     transform-box: fill-box;
     transform-origin: center;
-    animation: lc-lo-empty-slash 1.3s ease forwards;
+    animation: lc-lo-empty-slash 1s ease 0.35s both;
   }
 
   // empty__cross：X 的「/」筆畫（後段以 stroke-dashoffset 畫入）
   &__empty-cross {
     stroke-dasharray: 37;
     stroke-dashoffset: 37;
-    animation: lc-lo-empty-cross 1.3s ease forwards;
+    animation: lc-lo-empty-cross 1s ease 0.5s both;
   }
 
   // 尊重減少動態偏好：關閉自走動畫；empty 直接定格在「圈中紅 X」終態
