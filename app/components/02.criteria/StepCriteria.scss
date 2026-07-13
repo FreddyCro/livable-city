@@ -21,6 +21,12 @@
     padding: ($app-header-h + 26px) 24px 24px;
   }
 
+  @include rwd-min(pc) {
+    // PC（大尺寸）：內容改垂直置中（水平已由 justify-content:center 處理）；
+    // 上留白（header + 26）配下留白 24，置中點落在 header 下方可視區中央。
+    align-items: center;
+  }
+
   // step-criteria__inner（MOB 單欄直向；PAD/PC 置中兩欄）
   &__inner {
     display: flex;
@@ -39,9 +45,11 @@
     }
 
     @include rwd-min(pc) {
-      // PC：面板 300 + 欄距 24 + 內容 580 = 904
+      // PC（大尺寸）：面板 300 + 欄距 24 + 內容 580 = 904；
+      // 整塊最大高度 600（height:100% 封頂為容器高，故不超過視窗、垂直置中不裁切）。
       gap: 24px;
       max-width: 904px;
+      max-height: 600px;
     }
   }
 
