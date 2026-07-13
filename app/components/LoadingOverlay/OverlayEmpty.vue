@@ -23,6 +23,7 @@ import str from '../../locales/explore.json';
         <circle cx="34" cy="34" r="25" fill="#fff" stroke="#000" stroke-width="0.5" />
       </g>
       <!-- 放大鏡手柄 →（滑入圈中變）X 的「\」筆畫：起始在圈外、teal、縮小 -->
+      <!-- non-scaling-stroke：手柄用 scale(0.42) 縮短，但筆畫粗細不隨之縮，全程維持 5.5（見 morph 回饋 #2） -->
       <line
         class="lc-lo__empty-slash"
         x1="21"
@@ -32,8 +33,10 @@ import str from '../../locales/explore.json';
         stroke="#227D92"
         stroke-width="5.5"
         stroke-linecap="round"
+        vector-effect="non-scaling-stroke"
       />
       <!-- X 的「/」筆畫：morph 後段以 stroke-dashoffset 畫入 -->
+      <!-- 同加 non-scaling-stroke，確保終態 X 兩筆等寬（不受 viewBox 縮放差異影響） -->
       <line
         class="lc-lo__empty-cross"
         x1="47"
@@ -43,6 +46,7 @@ import str from '../../locales/explore.json';
         stroke="#D62E29"
         stroke-width="5.5"
         stroke-linecap="round"
+        vector-effect="non-scaling-stroke"
       />
     </svg>
     <p class="lc-lo__title">{{ str.emptyTitle }}</p>
