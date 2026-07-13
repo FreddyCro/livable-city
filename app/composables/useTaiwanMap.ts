@@ -3,6 +3,7 @@ import type { ResultTown } from './useResultTowns'
 import type { GeoMeta } from '../types/geo'
 import { dataSource } from '../utils/dataSource'
 import { SELECTED_PIN_ICON } from '../utils/mapMarkers'
+import { MAP_CAMERA } from '../utils/mapCamera'
 
 export interface HoverInfo {
   x: number
@@ -60,11 +61,23 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
   // bbox/重心，確保凹形（彎月形沿海區）也一定落在區界內，不會跑到隔壁區。
   const townPinPoints: Map<string, [number, number]> = new Map()
   // 視角水平微調：右側留白把焦點像素往左推（內容約往左移 right/2 px），修正聚焦/初始畫面偏右的感覺。
-  // 僅桌機 / 平板套用；手機（無 sidebar、地圖全幅）歸零以免變成偏左。數值可依視覺微調。
-  const MAP_NUDGE_X = 360
+  // 僅桌機 / 平板套用；手機（無 sidebar、地圖全幅）歸零以免變成偏左。數值見 MAP_CAMERA.nudge。
   let mapIsNarrow = false // < pad（手機）→ 不做水平微調
-  const viewPadding = () => ({ left: 0, top: 0, right: mapIsNarrow ? 0 : MAP_NUDGE_X, bottom: 0 })
-  let deckViewState: any = { longitude: 120.9, latitude: 23.6, zoom: 7, minZoom: 5, maxZoom: 14, padding: viewPadding() }
+  // 手機：改用底部 padding 把聚焦點往上推（避免被資訊圖卡擋住）；桌機/平板：右側 padding 往左推。
+  const viewPadding = () => ({
+    left: 0,
+    top: 0,
+    right: mapIsNarrow ? 0 : MAP_CAMERA.nudge.x,
+    bottom: mapIsNarrow ? MAP_CAMERA.nudge.mobileBottom : 0,
+  })
+  let deckViewState: any = {
+    longitude: MAP_CAMERA.view.longitude,
+    latitude: MAP_CAMERA.view.latitude,
+    zoom: MAP_CAMERA.view.zoom,
+    minZoom: MAP_CAMERA.view.minZoom,
+    maxZoom: MAP_CAMERA.view.maxZoom,
+    padding: viewPadding(),
+  }
   let mapMql: MediaQueryList | null = null
   // 斷點切換時更新水平微調並重新套用（deck 會在新 canvas 尺寸下重新置中）
   const onMapMqlChange = () => {
@@ -190,10 +203,14 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
     const longitude = (minLng + maxLng) / 2
     const latitude = (minLat + maxLat) / 2
     const extent = Math.max(maxLng - minLng, maxLat - minLat)
-    const zoom = Math.min(12, Math.max(7, Math.floor(Math.log2(400 / extent))))
+    const zoom = Math.min(
+      MAP_CAMERA.county.zoomMax,
+      Math.max(MAP_CAMERA.county.zoomMin, Math.floor(Math.log2(MAP_CAMERA.county.extentBase / extent))),
+    )
     deckViewState = {
       ...deckViewState, longitude, latitude, zoom,
-      transitionDuration: 800, transitionInterpolator: new FlyToInterpolatorCtor({ speed: 1.5 }),
+      transitionDuration: MAP_CAMERA.fly.duration,
+      transitionInterpolator: new FlyToInterpolatorCtor({ speed: MAP_CAMERA.fly.speed }),
     }
     deckInstance.value.setProps({ viewState: deckViewState })
   }
@@ -201,8 +218,12 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
   function flyToTaiwan() {
     if (!deckInstance.value || !FlyToInterpolatorCtor) return
     deckViewState = {
-      ...deckViewState, longitude: 120.9, latitude: 23.6, zoom: 7,
-      transitionDuration: 800, transitionInterpolator: new FlyToInterpolatorCtor({ speed: 1.5 }),
+      ...deckViewState,
+      longitude: MAP_CAMERA.view.longitude,
+      latitude: MAP_CAMERA.view.latitude,
+      zoom: MAP_CAMERA.view.zoom,
+      transitionDuration: MAP_CAMERA.fly.duration,
+      transitionInterpolator: new FlyToInterpolatorCtor({ speed: MAP_CAMERA.fly.speed }),
     }
     deckInstance.value.setProps({ viewState: deckViewState })
   }
@@ -218,19 +239,29 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
     const longitude = (minLng + maxLng) / 2
     const latitude = (minLat + maxLat) / 2
     const extent = Math.max(maxLng - minLng, maxLat - minLat)
-    const zoom = Math.min(13, Math.max(9, Math.floor(Math.log2(400 / extent))))
+    const zoom = Math.min(
+      MAP_CAMERA.town.zoomMax,
+      Math.max(MAP_CAMERA.town.zoomMin, Math.floor(Math.log2(MAP_CAMERA.town.extentBase / extent))),
+    )
     deckViewState = {
       ...deckViewState, longitude, latitude, zoom,
-      transitionDuration: 800, transitionInterpolator: new FlyToInterpolatorCtor({ speed: 1.5 }),
+      transitionDuration: MAP_CAMERA.fly.duration,
+      transitionInterpolator: new FlyToInterpolatorCtor({ speed: MAP_CAMERA.fly.speed }),
     }
     deckInstance.value.setProps({ viewState: deckViewState })
   }
 
   // Step-3 zoom buttons (explore-zoom 3.5) → adjust deck zoom within bounds
-  // 每次縮放幅度為傳入 delta 的一半（放慢按鈕縮放速度 ×0.5）
+  // 每次縮放幅度為傳入 delta × MAP_CAMERA.zoomButton.factor（放慢按鈕縮放速度）
   function zoomBy(delta: number) {
     if (!deckInstance.value) return
-    const z = Math.min(14, Math.max(5, (deckViewState.zoom ?? 7) + delta * 0.5))
+    const z = Math.min(
+      MAP_CAMERA.zoomButton.zoomMax,
+      Math.max(
+        MAP_CAMERA.zoomButton.zoomMin,
+        (deckViewState.zoom ?? MAP_CAMERA.view.zoom) + delta * MAP_CAMERA.zoomButton.factor,
+      ),
+    )
     deckViewState = { ...deckViewState, zoom: z }
     deckInstance.value.setProps({ viewState: deckViewState })
   }
@@ -377,7 +408,7 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
 
     // 水平微調的斷點偵測：手機（<pad）歸零、其餘套用。建 Deck 前先定好初始 padding，
     // 斷點切換時更新並重新套用 viewState（deck 會在新 canvas 尺寸下重新置中）。
-    mapMql = window.matchMedia('(max-width: 767.98px)')
+    mapMql = window.matchMedia(`(max-width: ${MAP_CAMERA.nudge.narrowMaxWidth}px)`)
     mapIsNarrow = mapMql.matches
     deckViewState = { ...deckViewState, padding: viewPadding() }
     mapMql.addEventListener('change', onMapMqlChange)
