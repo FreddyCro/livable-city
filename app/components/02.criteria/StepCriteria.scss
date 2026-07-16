@@ -21,6 +21,12 @@
     padding: ($app-header-h + 26px) 24px 24px;
   }
 
+  @include rwd-min(pc) {
+    // PC（大尺寸）：內容改垂直置中（水平已由 justify-content:center 處理）；
+    // 上留白（header + 26）配下留白 24，置中點落在 header 下方可視區中央。
+    align-items: center;
+  }
+
   // step-criteria__inner（MOB 單欄直向；PAD/PC 置中兩欄）
   &__inner {
     display: flex;
@@ -39,9 +45,11 @@
     }
 
     @include rwd-min(pc) {
-      // PC：面板 300 + 欄距 24 + 內容 580 = 904
+      // PC（大尺寸）：面板 300 + 欄距 24 + 內容 580 = 904；
+      // 整塊最大高度 600（height:100% 封頂為容器高，故不超過視窗、垂直置中不裁切）。
       gap: 24px;
       max-width: 904px;
+      max-height: 600px;
     }
   }
 
@@ -66,7 +74,7 @@
     padding: 0;
     border-top: 0.5px solid var(--c-line-main);
     border-radius: 15px 15px 0 0;
-    background: var(--c-surface);
+    background: var(--c-surface-translucent); // 半透明白底 80%，透出下層並讓 backdrop-blur 生效
     transition: max-height 0.3s ease;
 
     @include rwd-min(pad) {
@@ -80,7 +88,7 @@
       padding: 20px;
       border: 0.5px solid var(--c-line-main); // 主線條 #403a2c
       border-radius: 10px;
-      background: rgb(255 255 255 / 0.8);
+      background: var(--c-surface-translucent); // 同 MOB：半透明白底 80% + backdrop-blur
       transition: none;
     }
 
@@ -145,7 +153,7 @@
     flex-shrink: 0;
     height: 60px;
     padding: 0 27px;
-    background: var(--c-surface);
+    background: var(--c-surface-translucent); // 收合態＝可見的整片 aside，維持半透明；sticky 捲動時仍可讀
     cursor: pointer;
 
     @include rwd-min(pad) {
@@ -391,7 +399,8 @@
     }
 
     // hover：底部往上的黃色放射漸層疊白底（對齊 Figma State=hover）
-    &:hover {
+    // 只在有真實游標的裝置套用，避免觸控裝置點掉後 hover 底色殘留（見 A.2 回饋）
+    @include hover {
       background:
         radial-gradient(
           ellipse 100% 100% at 50% 100%,
@@ -406,7 +415,7 @@
       background: var(--color-y01); // 黃 #f4cc34
       border-color: var(--color-y01); // 保留 0.5px 邊框佔位、視覺無框
 
-      &:hover {
+      @include hover {
         background: var(--color-y01);
       }
     }
@@ -416,7 +425,7 @@
       opacity: 0.4;
       cursor: not-allowed;
 
-      &:hover {
+      @include hover {
         background: transparent;
       }
     }

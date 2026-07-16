@@ -13,6 +13,7 @@ import { useResultTowns } from './composables/useResultTowns';
 import { usePopulation } from './composables/usePopulation';
 import { useAssets } from './composables/useAssets';
 import type { TownThumb } from './composables/useTaiwanMap';
+import { MAP_CAMERA } from './utils/mapCamera';
 import seoMeta from './locales/meta.json';
 import { useTracking } from '~/assets/js/tracking.js';
 
@@ -111,7 +112,7 @@ watch(currentStep, async (step) => {
     if (selectedCountyCode.value) {
       setTimeout(
         () => mapRef.value?.flyToCounty(selectedCountyCode.value),
-        320,
+        MAP_CAMERA.transitionDelay.ms,
       );
     }
   } else if (step === 3) {
@@ -122,7 +123,7 @@ watch(currentStep, async (step) => {
     setTimeout(() => {
       if (first) mapRef.value?.focusTown(first.code);
       else mapRef.value?.flyToTaiwan();
-    }, 320);
+    }, MAP_CAMERA.transitionDelay.ms);
   }
 });
 
