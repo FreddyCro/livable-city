@@ -3,7 +3,11 @@ import { ref } from 'vue';
 import str from '../../locales/criteria.json';
 import type { FilterMeta } from '../../types/filter';
 import { useAssets } from '../../composables/useAssets';
-import { useStepCriteria, type StepCriteriaProps } from './StepCriteria.logic';
+import {
+  useStepCriteria,
+  MAX_SELECT,
+  type StepCriteriaProps,
+} from './StepCriteria.logic';
 
 const props = defineProps<StepCriteriaProps>();
 const emit = defineEmits<{
@@ -98,7 +102,13 @@ const { countyName, townName, atMax, canProceed, hintText, toggleFilter, statTex
             <span class="lc-sc__title-pc">{{ str.title }}</span>
             <span class="lc-sc__title-mob">{{ str.titleMob }}</span>
           </h2>
-          <p class="lc-sc__hint">{{ hintText }}</p>
+          <p class="lc-sc__hint">
+            <!-- 手機（<pad）：接續標題的說明文字 + 已選計數膠囊 -->
+            <!-- prettier-ignore -->
+            <span class="lc-sc__hint-mob">{{ str.hint }}<span class="lc-sc__hint-count">{{ selectedFilters.length }}/{{ MAX_SELECT }}</span></span>
+            <!-- 平板以上：完整提示文字（含括號計數）-->
+            <span class="lc-sc__hint-pc">{{ hintText }}</span>
+          </p>
         </header>
 
         <div class="lc-sc__cards">

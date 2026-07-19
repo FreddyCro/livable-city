@@ -1,31 +1,47 @@
 // step-result（Dialog 經 DialogPortal teleport 至 <body>，
 // Vue scoped 屬性套不到 portal 內元素，故此區改為 global；class 已以 lc-sr 命名空間隔離）
 .lc-sr {
-  // step-result__dialog-overlay
+  // step-result__dialog-overlay（半透明遮罩）
   &__dialog-overlay {
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    // 手機：資料來源蓋板為全螢幕接管，遮罩須蓋過固定 header（.nmd-header z-index 9998）並一併壓暗
+    z-index: 10000;
     background: rgb(var(--c-shadow) / 0.45);
+
+    // 平板以上：浮層 box 落在 header 下方，遮罩不需蓋過 header
+    @include rwd-min(pad) {
+      z-index: 1000;
+    }
   }
 
-  // step-result__dialog（置中浮層／box；對齊 Figma「蓋板資料來源視窗」。
-  // 內容由 InfoContent 元件渲染，其 class 以 lc-info 命名空間另行定義）
+  // step-result__dialog（資料來源視窗；對齊 Figma「蓋板資料來源視窗」。
+  //   手機：由頂端 36px 起、左右與底部貼齊視窗的下拉式蓋板，僅上緣兩角圓角（底部切齊螢幕邊）、蓋過 header；
+  //   平板以上：改為視窗置中的浮層 box（四角圓角、落在 header 下方）。
+  //   內容由 InfoContent 元件渲染，其 class 以 lc-info 命名空間另行定義。）
   &__dialog {
     position: fixed;
-    top: calc(#{$app-header-h} + 50px);
-    left: 50%;
-    z-index: 1001;
+    inset: 36px 0 0; // 手機：top 36、right/bottom/left 0（滿版下拉蓋板）
+    z-index: 10001;
     display: flex;
     flex-direction: column;
-    width: min(620px, calc(100vw - 32px));
-    max-height: calc(100vh - #{$app-header-h} - 50px * 2);
-    transform: translateX(-50%);
     background: var(--c-surface);
     border: 0.5px solid var(--c-line-main);
-    border-radius: 20px;
+    border-radius: 20px 20px 0 0; // 僅上緣兩角圓角，底部切齊螢幕
     box-shadow: 0 8px 32px rgb(var(--c-shadow) / 0.2);
-    backdrop-filter: blur(2px);
+    @include blur(2px);
     overflow: hidden; // 讓 footer 滿版且底部圓角能裁切；內距改由 InfoContent 各區塊自負
+
+    // 平板以上：視窗置中的浮層 box
+    @include rwd-min(pad) {
+      inset: auto; // 取消手機的貼齊四邊
+      top: calc(#{$app-header-h} + 50px);
+      left: 50%;
+      z-index: 1001;
+      width: min(620px, calc(100vw - 32px));
+      max-height: calc(100vh - #{$app-header-h} - 50px * 2);
+      transform: translateX(-50%);
+      border-radius: 20px; // 桌機四角圓角
+    }
   }
 }

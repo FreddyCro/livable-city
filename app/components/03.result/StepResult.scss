@@ -114,7 +114,7 @@
       height: auto;
       padding: 0 0 16px;
       margin: 0 0 18px;
-      border-bottom: 1px solid var(--c-border-subtle);
+      border-bottom: 1px solid rgb(0 0 0 / 0.3);
     }
 
     @include rwd-between(pad, pc) {
@@ -683,7 +683,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    border-bottom: 1px solid var(--c-border-subtle);
+    border-bottom: 1px solid var(--c-line-primary);
     padding: 56px 22px 18px; // C4b：MOB 讓出 pt 空間給置中的收合鈕
 
     @include rwd-min(pad) {
@@ -758,7 +758,7 @@
   // step-result__metric
   &__metric {
     padding: 14px 0;
-    border-bottom: 1px solid var(--c-border-subtle);
+    border-bottom: 1px solid rgb(0 0 0 / 0.3);
 
     &:last-child {
       border-bottom: none;

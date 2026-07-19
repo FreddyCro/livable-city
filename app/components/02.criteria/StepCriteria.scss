@@ -351,6 +351,40 @@
     line-height: 36px;
   }
 
+  // step-criteria__hint-mob（手機：接續標題的說明文字 + 計數膠囊；PAD/PC 隱藏）
+  &__hint-mob {
+    display: inline;
+    font-weight: 700; // 與精簡標題同粗細，讀起來接續標題成一句
+
+    @include rwd-min(pad) {
+      display: none;
+    }
+  }
+
+  // step-criteria__hint-pc（PAD/PC：完整提示文字；手機隱藏）
+  &__hint-pc {
+    display: none;
+
+    @include rwd-min(pad) {
+      display: inline;
+    }
+  }
+
+  // step-criteria__hint-count（已選計數膠囊：淺藍底 B02 + 灰字，接在說明文字後）
+  &__hint-count {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    padding: 2px 12px;
+    border-radius: 999px;
+    background: $color-b02; // B02 #c2e6f0 淺藍
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 22px;
+    color: var(--c-text-muted); // 灰字
+    vertical-align: middle;
+  }
+
   // step-criteria__cards（MOB/PAD 2 欄；PC 3 欄並撐高）
   &__cards {
     display: grid;

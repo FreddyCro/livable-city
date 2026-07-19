@@ -39,7 +39,23 @@ import AppFooter from '../AppFooter.vue';
          lc-info__foot 提供滿版負邊距（抵銷 body 20px 內距），套到 AppFooter 根元素。 -->
     <AppFooter class="lc-info__foot" />
   </div>
-  <DialogClose class="lc-info__close" aria-label="關閉">✕</DialogClose>
+  <DialogClose class="lc-info__close" aria-label="關閉"
+    ><svg
+      width="21"
+      height="21"
+      viewBox="0 0 21 21"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M13.25 7.25L7.25 13.25M7.25 7.25L13.25 13.25M20.25 10.25C20.25 15.7728 15.7728 20.25 10.25 20.25C4.72715 20.25 0.25 15.7728 0.25 10.25C0.25 4.72715 4.72715 0.25 10.25 0.25C15.7728 0.25 20.25 4.72715 20.25 10.25Z"
+        stroke="#1E1E1E"
+        stroke-width="0.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  </DialogClose>
 </template>
 
 <!-- 非 scoped：本元件渲染於 Dialog portal 內（teleport 至 <body>），scoped 屬性套不到；
@@ -80,8 +96,13 @@ import AppFooter from '../AppFooter.vue';
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px; // 手機：前言／分隔線／各來源段落間距（對齊 Figma sections gap 10）
     padding: 0 20px;
+
+    // 平板以上：維持較寬鬆的段落間距
+    @include rwd-min(pad) {
+      gap: 20px;
+    }
   }
 
   // info__intro（前言）
