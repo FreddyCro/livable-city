@@ -139,11 +139,16 @@ $title-h-pc: 120px;
 
   // step-location__block（共用區塊：標題＋前言＋表單）
   // step1：translateY=標題版位（貼頂，只見標題）；step2：整組垂直置中，
-  //   translateY 由元件量測 = max(0, (wrapperH − blockH) / 2)（比 wrapper 高則 0、不裁頂）。
-  // --lc-sl-block-y 預設為各斷點標題版位（step1）；revealed 時由元件 inline 覆寫成置中 px，
+  //   translateY 由元件量測 = max(titleTop, (wrapperH − blockH) / 2)：一般垂直置中，
+  //   但下限為標題版位（--lc-sl-title-top ≈ header 下緣），置中位置過高時改貼齊該線，
+  //   確保置中時不鑽進固定 header。
+  // --lc-sl-title-top：各斷點標題版位（step1 貼頂位置），同時作為 step2 置中的上緣下限，
+  //   由元件讀取（單一來源，勿在 TS 硬寫 header 高度）。
+  // --lc-sl-block-y 預設引用 title-top（step1）；revealed 時由元件 inline 覆寫成置中 px，
   //   transform 因此平滑過渡（向下位移）。標題本身不淡出，只隨整組位移。
   &__block {
-    --lc-sl-block-y: #{$title-top-mob};
+    --lc-sl-title-top: #{$title-top-mob};
+    --lc-sl-block-y: var(--lc-sl-title-top);
 
     position: absolute;
     top: 0;
@@ -158,13 +163,13 @@ $title-h-pc: 120px;
     transition: transform 0.5s ease; // step1 貼頂 ↔ step2 置中 的向下位移
 
     @include rwd-min(pad) {
-      --lc-sl-block-y: #{$title-top-pad};
+      --lc-sl-title-top: #{$title-top-pad};
 
       gap: 40px;
     }
 
     @include rwd-min(pc) {
-      --lc-sl-block-y: #{$title-top-pc};
+      --lc-sl-title-top: #{$title-top-pc};
     }
   }
 
@@ -278,6 +283,7 @@ $title-h-pc: 120px;
 
     @include rwd-min(pc) {
       max-width: 620px;
+      gap: 20px;
     }
   }
 
@@ -291,6 +297,10 @@ $title-h-pc: 120px;
     transition:
       opacity 0.5s ease 0.3s,
       transform 0.5s ease 0.3s;
+
+    @include rwd-min(pc) {
+      padding: 20px 0;
+    }
   }
 
   // step-location__form
@@ -315,17 +325,16 @@ $title-h-pc: 120px;
   // step-location__question
   &__question {
     margin: 0;
-    padding-bottom: 10px;
+    padding-bottom: 12px;
     font-weight: 700;
     text-align: center;
     color: #1e1e1e;
-
-    @include rwd-min(pad) {
-      font-size: 20px;
-      line-height: 38px;
-    }
+    font-size: 24px;
+    line-height: 1;
 
     @include rwd-min(pc) {
+      font-size: 20px;
+      line-height: 38px;
       padding-bottom: 4px;
     }
   }
