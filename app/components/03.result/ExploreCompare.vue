@@ -83,20 +83,24 @@ defineEmits<{
             <span class="lc-sr__metric-area"
               >{{ detailTown.county }}{{ detailTown.name }}</span
             >
-            <span v-if="pct(fid) !== null" class="lc-sr__metric-pct">{{
-              pct(fid)
-            }}</span>
-            <span class="lc-sr__metric-val">{{
-              formatVal(filterDataCache[fid]?.[selectedResultCode!])
-            }}</span>
+            <div class="lc-sr__metric-right">
+              <span v-if="pct(fid) !== null" class="lc-sr__metric-pct">{{
+                pct(fid)
+              }}</span>
+              <span class="lc-sr__metric-val">{{
+                formatVal(filterDataCache[fid]?.[selectedResultCode!])
+              }}</span>
+            </div>
           </div>
           <div class="lc-sr__metric-row lc-sr__metric-row--home">
             <span class="lc-sr__metric-area"
               >{{ homeCounty }}{{ homeName }}</span
             >
-            <span class="lc-sr__metric-val">{{
-              formatVal(filterDataCache[fid]?.[selectedTownCode])
-            }}</span>
+            <div class="lc-sr__metric-right">
+              <span class="lc-sr__metric-val">{{
+                formatVal(filterDataCache[fid]?.[selectedTownCode])
+              }}</span>
+            </div>
           </div>
         </div>
       </div>

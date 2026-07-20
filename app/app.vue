@@ -37,6 +37,17 @@ useSeoMeta({
   robots: APP_MODE === 'production' ? 'index, follow' : 'noindex, nofollow',
 });
 
+// favicon（UDN）
+useHead({
+  link: [
+    {
+      rel: 'icon',
+      type: 'image/x-icon',
+      href: 'https://vip.udn.com/static/img/favicon.ico',
+    },
+  ],
+});
+
 // UDN 追蹤碼（GTM / comScore / alexa / etu…），集中於 assets/js/tracking.js
 useHead(useTracking());
 

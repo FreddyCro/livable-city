@@ -37,6 +37,7 @@
     max-height: 80vh;
     padding: 0;
     border-radius: 20px 20px 0 0;
+    border: solid 1px var(--c-line-main);
     box-shadow: 0 -4px 16px rgb(var(--c-shadow) / 0.12);
     overflow: visible; // banners / reselect 以 fixed 抽離；捲動交給 cards-body
     z-index: 30; // C8：filter sheet 疊在 compare sheet 之上
@@ -51,6 +52,7 @@
       max-height: none;
       padding: 24px 20px 0;
       border-radius: 0;
+      border: 0;
       box-shadow: 2px 0 12px rgb(var(--c-shadow) / 0.06);
       overflow-y: auto;
       z-index: auto;
@@ -599,7 +601,7 @@
     flex-direction: column;
     // 對齊 Figma：浮卡半透明白底（rgba(255,255,255,0.8)），讓下方地圖淡淡透出
     background: var(--c-surface-translucent);
-    border: 1px solid var(--c-border);
+    border: 1px solid var(--c-line-main);
     border-radius: 14px;
     box-shadow: 0 4px 16px rgb(var(--c-shadow) / 0.1);
     overflow: hidden;
@@ -679,12 +681,22 @@
 
   // step-result__compare-head
   &__compare-head {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    border-bottom: 1px solid var(--c-line-primary);
-    padding: 56px 22px 18px; // C4b：MOB 讓出 pt 空間給置中的收合鈕
+    padding: 40px 22px 10px; // C4b：MOB 讓出 pt 空間給置中的收合鈕
+
+    &::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 22px;
+      width: calc(100% - 44px);
+      height: 0.5px;
+      background: var(--c-line-primary);
+    }
 
     @include rwd-min(pad) {
       padding: 18px 22px;
@@ -725,7 +737,7 @@
     cursor: pointer;
     // C4b：MOB 收合/看更多鈕置中吸附卡片頂端（設計稿 633-18758 node 633:24434：top≈14.5、水平置中）
     position: absolute;
-    top: 14px;
+    top: 10px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 1;
@@ -759,6 +771,8 @@
   &__metric {
     padding: 14px 0;
     border-bottom: 1px solid rgb(0 0 0 / 0.3);
+    font-size: 15px;
+    line-height: 22px;
 
     &:last-child {
       border-bottom: none;
@@ -767,19 +781,17 @@
 
   // step-result__metric-name
   &__metric-name {
-    margin: 0 0 8px;
     font-size: 15px;
     font-weight: 700;
     color: var(--c-text);
   }
 
-  // step-result__metric-row
+  // step-result__metric-row（兩欄：左＝area｜右＝pct+val 群組）
   &__metric-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto;
     align-items: center;
     gap: 10px;
-    padding: 3px 0;
-    font-size: 14px;
 
     // step-result__metric-row--home
     &--home {
@@ -787,25 +799,33 @@
     }
   }
 
-  // step-result__metric-area
+  // step-result__metric-area（左欄；grid 1fr 撐滿，min-width:0 讓長字可截斷）
   &__metric-area {
-    flex: 1;
+    min-width: 0;
   }
 
-  // step-result__metric-pct
+  // step-result__metric-right（右欄；再分兩欄＝pct｜val，靠右對齊）
+  &__metric-right {
+    display: grid;
+    grid-template-columns: auto minmax(60px, auto);
+    align-items: center;
+    gap: 10px;
+  }
+
+  // step-result__metric-pct（右欄第一格；home 列無 pct 時此格留空）
   &__metric-pct {
+    grid-column: 1;
     background: var(--color-r01);
     color: var(--c-text-inverse);
     font-size: 12px;
-    font-weight: 700;
-    padding: 1px 6px;
-    border-radius: 4px;
+    line-height: 1;
+    padding: 3px 5px;
     white-space: nowrap;
   }
 
-  // step-result__metric-val
+  // step-result__metric-val（右欄第二格；固定靠右對齊，跨列數值對齊）
   &__metric-val {
-    min-width: 60px;
+    grid-column: 2;
     text-align: right;
     font-weight: 700;
     color: var(--c-text);
