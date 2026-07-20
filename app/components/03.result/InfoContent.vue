@@ -149,10 +149,9 @@ import AppFooter from '../AppFooter.vue';
 
   // info__source-note（備註，12/18 灰字）
   &__source-note {
-    margin: 4px 0 0;
+    margin-top: 1rem;
     font-size: 12px;
     line-height: 18px;
-    color: var(--c-text-muted);
   }
 
   // info__foot（頁尾滿版：抵銷 body 的 20px 水平內距與底部，貼齊 dialog 邊緣；套於 AppFooter 根）

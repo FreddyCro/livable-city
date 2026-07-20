@@ -560,7 +560,7 @@
     // 已選：Reka 掛 data-state="checked"
     &[data-state='checked'] {
       background: var(--c-info-bg);
-      color: var(--c-info);
+      // color: var(--c-info);
       font-weight: 600;
     }
   }
