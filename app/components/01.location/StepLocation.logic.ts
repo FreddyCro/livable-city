@@ -61,12 +61,20 @@ export function useStepLocation(
   }
   let blockRo: ResizeObserver | null = null;
 
+  // 任一下拉選單展開時，只許展開、不許「收回封面」，避免選縣市/鄉鎮滑動清單時誤退回首屏。
+  // 用 DOM 偵測 open（Reka 在 trigger 掛 data-state="open"，與 SCSS chevron 判斷同源），
+  // 不必把兩個 SelectDropdown 的 open 狀態往上拉到這層。
+  const anyDropdownOpen = () =>
+    !!document.querySelector('.lc-sd__control[data-state="open"]');
+
   // 滾輪：向下展開、向上收回。lock 避免單一手勢的連續事件造成抖動。
   let wheelLock = false;
   function onWheel(e: WheelEvent) {
     if (wheelLock || Math.abs(e.deltaY) < 8) return;
     // 在下拉選單內滾動時不切換階段，避免操作 select 時誤觸回主視覺
     if ((e.target as HTMLElement | null)?.closest?.('.lc-sd')) return;
+    // 下拉選單展開時禁止收回（選單打開就不能退回封面；此時已展開，reveal 為 no-op）
+    if (e.deltaY < 0 && anyDropdownOpen()) return;
     wheelLock = true;
     setTimeout(() => (wheelLock = false), 500);
     e.deltaY > 0 ? reveal() : collapse();
@@ -80,6 +88,11 @@ export function useStepLocation(
   function onTouchMove(e: TouchEvent) {
     const dy = touchStartY - (e.touches[0]?.clientY ?? 0);
     if (Math.abs(dy) < 30) return;
+    // 與 wheel 一致：在下拉選單內滑動不切換階段（原本觸控漏了這道守門，
+    // 導致手機滑動縣市/鄉鎮清單時會誤觸收回首屏）。
+    if ((e.target as HTMLElement | null)?.closest?.('.lc-sd')) return;
+    // 下拉選單展開時禁止收回（選單打開就不能退回封面）
+    if (dy < 0 && anyDropdownOpen()) return;
     dy > 0 ? reveal() : collapse();
   }
 
