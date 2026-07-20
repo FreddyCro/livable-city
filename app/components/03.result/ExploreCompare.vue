@@ -4,6 +4,7 @@
 // 格式化 helper（pct / formatVal）皆由 StepResult 統籌後以 props 傳入（輕量抽取，不重算邏輯）。
 import str from '../../locales/explore.json';
 import type { FilterDataCache } from '../../types/filter';
+import useTrackingEvent from '../../composables/useTrackingEvent';
 
 defineProps<{
   detailTown: { name: string; county: string };
@@ -28,6 +29,9 @@ defineEmits<{
   'go-by': [delta: number];
   'cycle-compare': [];
 }>();
+
+// GA：result 資訊卡片展開（term = 區塊名）
+const { gaClickOpen } = useTrackingEvent();
 </script>
 
 <template>
@@ -54,7 +58,10 @@ defineEmits<{
             {{ str.population }}{{ detailPopulation.toLocaleString() }}
           </span>
         </div>
-        <button class="lc-sr__compare-toggle" @click="$emit('cycle-compare')">
+        <button
+          class="lc-sr__compare-toggle"
+          @click="compareState !== 'open' && gaClickOpen('資訊卡片'); $emit('cycle-compare')"
+        >
           {{ compareState === 'open' ? str.collapse : str.seeMore }}
           <!-- chevron 取自 public/img/icon/menu_chevron_up/down.svg source；fill 用 currentColor 跟隨按鈕文字色。
                全開→向下（收合）；收合／半開→向上（看更多，面板自底部往上展開） -->

@@ -301,16 +301,24 @@
 
   // step-criteria__head（標題 + 提示；MOB/PAD 靠左，PC 置中）
   &__head {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    // MOB：精簡標題(title-mob) 與提示(hint-mob) 連成一句 → 用一般 block 流、
+    //   子元素(&__title/&__hint) 改 inline 接續排列；line-height 統一 36，
+    //   避免 title(32)/hint(36) 混排導致行距不齊。
+    display: block;
     width: 100%;
+    line-height: 36px;
     text-align: left;
     color: #000;
 
+    @include rwd-min(pad) {
+      // PAD/PC：標題與提示各自成行 → flex 直向堆疊
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
     @include rwd-min(pc) {
-      align-items: center;
-      text-align: center;
+      // PC：標題與提示維持靠左（align-items:flex-start / text-align:left 沿用 base 與 pad）
       // 進場②：與卡片格同時 fade up
       animation: lc-sc-fadeup 500ms ease 600ms both;
     }
@@ -322,6 +330,13 @@
     font-size: 20px;
     font-weight: 700;
     line-height: 32px;
+
+    // MOB：改 inline 以接續提示連成一句（見 &__head）
+    display: inline;
+
+    @include rwd-min(pad) {
+      display: block;
+    }
   }
 
   // step-criteria__title-pc（PAD/PC 完整標題；MOB 隱藏）
@@ -349,6 +364,13 @@
     font-size: 18px;
     font-weight: 400;
     line-height: 36px;
+
+    // MOB：改 inline 以接續標題連成一句（見 &__head）
+    display: inline;
+
+    @include rwd-min(pad) {
+      display: block;
+    }
   }
 
   // step-criteria__hint-mob（手機：接續標題的說明文字 + 計數膠囊；PAD/PC 隱藏）

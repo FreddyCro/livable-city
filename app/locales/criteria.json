@@ -3,6 +3,7 @@
   "title": "與你現在居住的地區相比，你希望搬到什麼樣的地區？",
   "titleMob": "與現居地區相比，你希望搬到什麼樣的地區？",
   "hint": "請選擇3項你最重視的居住條件",
+  "hintMob": "請選擇3項居住條件",
   "selectedLabel": "已選",
   "viewResults": "查看你的理想居住地區",
   "_comment": "顯示文字（label）已移至 filter data（public/data/index.json）；此處僅保留 criteria 專用圖示",

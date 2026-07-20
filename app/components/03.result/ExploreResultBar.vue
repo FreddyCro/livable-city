@@ -6,6 +6,7 @@ import type { AcceptableValue } from 'reka-ui';
 import str from '../../locales/explore.json';
 import type { ResultTown } from '../../composables/useResultTowns';
 import { useAssets } from '../../composables/useAssets';
+import useTrackingEvent from '../../composables/useTrackingEvent';
 
 const props = defineProps<{
   listOpen: boolean;
@@ -24,6 +25,9 @@ const { img } = useAssets();
 // 只顯示有鄉鎮的 county group（item 為 0 的 group 不顯示，避免只剩孤立的縣市標題）
 const groups = computed(() => props.resultGroups.filter((g) => g.towns.length > 0));
 const iconUrl = (name: string) => img(`icon/${name}.svg`);
+
+// GA：result 結果清單展開（term = 區塊名）
+const { gaClickOpen } = useTrackingEvent();
 </script>
 
 <template>
@@ -40,6 +44,7 @@ const iconUrl = (name: string) => img(`icon/${name}.svg`);
     <CollapsibleTrigger
       class="lc-sr__list-head"
       :class="{ 'lc-sr__list-head--open': listOpen }"
+      @click="!listOpen && gaClickOpen('結果列表')"
     >
       <!-- 展開態（State=clicked）：← 請選擇 -->
       <template v-if="listOpen">

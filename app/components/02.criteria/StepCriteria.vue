@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import str from '../../locales/criteria.json';
 import type { FilterMeta } from '../../types/filter';
 import { useAssets } from '../../composables/useAssets';
+import useTrackingEvent from '../../composables/useTrackingEvent';
 import {
   useStepCriteria,
   MAX_SELECT,
@@ -31,10 +32,14 @@ function criteriaIcon(id: string): string {
   return slug ? iconUrl(slug) : '';
 }
 
+// GA：stage2 事件（term = 條件文字／按鈕文字／區塊名）
+const { gaClickOption, gaClickBtn, gaClickOpen } = useTrackingEvent();
+
 // 行動版（<768）：資訊面板改為底部可展開 sheet，location 列當 toggle。
 // 桌機/pad 為常駐左欄，此 state 無 CSS 作用（媒體查詢內才參照 --open）。
 const infoOpen = ref(false);
 function toggleInfo() {
+  if (!infoOpen.value) gaClickOpen('現居地區資訊'); // click_open 只在展開時送
   infoOpen.value = !infoOpen.value;
 }
 
@@ -105,7 +110,7 @@ const { countyName, townName, atMax, canProceed, hintText, toggleFilter, statTex
           <p class="lc-sc__hint">
             <!-- 手機（<pad）：接續標題的說明文字 + 已選計數膠囊 -->
             <!-- prettier-ignore -->
-            <span class="lc-sc__hint-mob">{{ str.hint }}<span class="lc-sc__hint-count">{{ selectedFilters.length }}/{{ MAX_SELECT }}</span></span>
+            <span class="lc-sc__hint-mob">{{ str.hintMob }}<span class="lc-sc__hint-count">{{ selectedFilters.length }}/{{ MAX_SELECT }}</span></span>
             <!-- 平板以上：完整提示文字（含括號計數）-->
             <span class="lc-sc__hint-pc">{{ hintText }}</span>
           </p>
@@ -122,7 +127,7 @@ const { countyName, townName, atMax, canProceed, hintText, toggleFilter, statTex
               'lc-sc__card--disabled': !selectedFilters.includes(f.id) && atMax,
             }"
             :aria-pressed="selectedFilters.includes(f.id)"
-            @click="toggleFilter(f.id)"
+            @click="gaClickOption(cardLabel(f)); toggleFilter(f.id)"
           >
             <img
               class="lc-sc__card-icon"
@@ -138,7 +143,7 @@ const { countyName, townName, atMax, canProceed, hintText, toggleFilter, statTex
           <UiNextButton
             :label="str.viewResults"
             :disabled="!canProceed"
-            @click="$emit('next')"
+            @click="gaClickBtn(str.viewResults); $emit('next')"
           />
         </div>
       </section>

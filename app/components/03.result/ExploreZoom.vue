@@ -4,6 +4,7 @@
 import str from '../../locales/explore.json';
 import InfoContent from './InfoContent.vue';
 import { useAssets } from '../../composables/useAssets';
+import useTrackingEvent from '../../composables/useTrackingEvent';
 
 defineEmits<{
   'zoom-in': [];
@@ -12,6 +13,9 @@ defineEmits<{
 
 const { img } = useAssets();
 const iconUrl = (name: string) => img(`icon/${name}.svg`);
+
+// GA：result 資料說明按鈕（term = 區塊名）
+const { gaClickBtn } = useTrackingEvent();
 </script>
 
 <template>
@@ -33,7 +37,11 @@ const iconUrl = (name: string) => img(`icon/${name}.svg`);
     </button>
 
     <DialogRoot>
-      <DialogTrigger class="lc-sr__zoom-btn lc-sr__zoom-btn--info" :aria-label="str.info">
+      <DialogTrigger
+        class="lc-sr__zoom-btn lc-sr__zoom-btn--info"
+        :aria-label="str.info"
+        @click="gaClickBtn('資料說明')"
+      >
         <img :src="iconUrl('button_information')" alt="" />
       </DialogTrigger>
       <DialogPortal>

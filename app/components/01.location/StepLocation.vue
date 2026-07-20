@@ -21,6 +21,8 @@ const {
   countyOptions,
   townOptions,
   onCountySelect,
+  onTownSelect,
+  gaClickBtn,
   visualVideo,
   onVisualEnded,
   activePoster,
@@ -116,13 +118,13 @@ const {
               :options="townOptions"
               :placeholder="str.townPlaceholder"
               :disabled="!countyCode"
-              @update:model-value="$emit('update:townCode', $event)"
+              @update:model-value="onTownSelect"
             />
           </div>
           <UiNextButton
             :label="str.next"
             :disabled="!townCode"
-            @click="$emit('next')"
+            @click="gaClickBtn(str.next); $emit('next')"
           />
         </div>
       </div>

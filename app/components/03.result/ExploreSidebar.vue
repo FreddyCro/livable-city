@@ -6,6 +6,7 @@ import type { AcceptableValue } from 'reka-ui';
 import str from '../../locales/explore.json';
 import type { FilterMeta } from '../../types/filter';
 import { useAssets } from '../../composables/useAssets';
+import useTrackingEvent from '../../composables/useTrackingEvent';
 
 defineProps<{
   filterIndex: FilterMeta[];
@@ -22,6 +23,9 @@ defineEmits<{
 
 const { img } = useAssets();
 const iconUrl = (name: string) => img(`icon/${name}.svg`);
+
+// GA：result 側欄事件（term = 條件文字／按鈕文字／區塊名）
+const { gaClickOption, gaClickBtn, gaClickOpen } = useTrackingEvent();
 </script>
 
 <template>
@@ -40,7 +44,10 @@ const iconUrl = (name: string) => img(`icon/${name}.svg`);
     <div class="lc-sr__sidebar-top">
       <div class="lc-sr__head">
         <!-- 標題列＝MOB 收合 sheet 的可點 bar（trigger）；reselect 另置（避免 button 巢套） -->
-        <CollapsibleTrigger class="lc-sr__head-toggle">
+        <CollapsibleTrigger
+          class="lc-sr__head-toggle"
+          @click="isMobile && !asideOpen && gaClickOpen('條件選單')"
+        >
           <span class="lc-sr__title">{{ str.sidebarTitle }}</span>
           <!-- chevron 僅 MOB 顯示：收合→向上（可展開）/ 展開→向下（可收合） -->
           <svg
@@ -59,7 +66,10 @@ const iconUrl = (name: string) => img(`icon/${name}.svg`);
             />
           </svg>
         </CollapsibleTrigger>
-        <button class="lc-sr__reselect" @click="$emit('reselect')">
+        <button
+          class="lc-sr__reselect"
+          @click="gaClickBtn(str.reselect); $emit('reselect')"
+        >
           {{ str.reselect }} ↺
         </button>
       </div>
@@ -75,6 +85,7 @@ const iconUrl = (name: string) => img(`icon/${name}.svg`);
             :key="f.id"
             :value="f.id"
             class="lc-sr__card"
+            @click="gaClickOption(f.label ?? f.name)"
           >
             <span class="lc-sr__card-label">{{ f.label ?? f.name }}</span>
             <!-- CheckboxIndicator 僅在勾選時 render（等同原本 ✕ 的 v-if）；圖示用 button_close（X circle） -->
@@ -92,6 +103,7 @@ const iconUrl = (name: string) => img(`icon/${name}.svg`);
         href="#"
         target="_blank"
         rel="noopener"
+        @click="gaClickBtn(str.banner1Title + ' ' + str.banner1Sub)"
       >
         <span class="lc-sr__banner-text"
           ><strong>{{ str.banner1Title }}</strong>
@@ -106,6 +118,7 @@ const iconUrl = (name: string) => img(`icon/${name}.svg`);
         href="#"
         target="_blank"
         rel="noopener"
+        @click="gaClickBtn(str.banner2Title + ' ' + str.banner2Sub)"
       >
         <span class="lc-sr__banner-text"
           ><strong>{{ str.banner2Title }}</strong>

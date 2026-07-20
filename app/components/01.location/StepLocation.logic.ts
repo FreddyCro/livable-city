@@ -2,6 +2,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { GeoMeta } from '../../types/geo';
 import { useAssets } from '../../composables/useAssets';
 import { byRank } from '../../utils/sort';
+import useTrackingEvent from '../../composables/useTrackingEvent';
 
 export interface StepLocationProps {
   meta: GeoMeta | null;
@@ -100,9 +101,20 @@ export function useStepLocation(
       .sort(byRank(rank, (o) => o.value));
   });
 
+  // GA：stage1 縣市／鄉鎮選單點擊、下一步（term = 選到的名稱／按鈕文字）
+  const { gaClickCity, gaClickDistrict, gaClickBtn } = useTrackingEvent();
+
   function onCountySelect(val: string) {
+    const label = countyOptions.value.find((o) => o.value === val)?.label ?? val;
+    gaClickCity(label);
     emit('update:countyCode', val);
     emit('update:townCode', '');
+  }
+
+  function onTownSelect(val: string) {
+    const label = townOptions.value.find((o) => o.value === val)?.label ?? val;
+    gaClickDistrict(label);
+    emit('update:townCode', val);
   }
 
   // ── 主視覺背景影片 ───────────────────────────────────
@@ -205,6 +217,8 @@ export function useStepLocation(
     countyOptions,
     townOptions,
     onCountySelect,
+    onTownSelect,
+    gaClickBtn,
     visualVideo,
     onVisualEnded,
     activePoster,
