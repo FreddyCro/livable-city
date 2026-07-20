@@ -27,6 +27,25 @@ const cards = str.cards as Record<string, { icon: string }>;
 function cardLabel(f: FilterMeta): string {
   return f.label ?? f.name;
 }
+
+// PM 指定的語意斷行：label → 在第 N 字後斷行；未列出者不斷（單行）。
+// 斷點多為 5，「交通事故死傷率更低」特別在第 4 字後。
+const LABEL_BREAK: Record<string, number> = {
+  癌症發生率更低: 5,
+  交通事故死傷率更低: 4,
+  公托覆蓋率更高: 5,
+  圖書館資源更多: 5,
+  青壯年人口比率更高: 5,
+  餐飲及住宿店家密度更高: 5,
+  大規模崩塌災害風險更低: 5,
+  居住地綠地空間更大: 5,
+};
+// 依斷點切成 1～2 段供逐行 span 渲染；完整字串仍由 cardLabel 提供給 GA / a11y。
+function labelLines(label: string): string[] {
+  const at = LABEL_BREAK[label];
+  return at ? [label.slice(0, at), label.slice(at)] : [label];
+}
+
 function criteriaIcon(id: string): string {
   const slug = cards[id]?.icon;
   return slug ? iconUrl(slug) : '';
@@ -135,7 +154,14 @@ const { countyName, townName, atMax, canProceed, hintText, toggleFilter, statTex
               alt=""
               aria-hidden="true"
             />
-            <span class="lc-sc__card-label">{{ cardLabel(f) }}</span>
+            <span class="lc-sc__card-label">
+              <span
+                v-for="(line, i) in labelLines(cardLabel(f))"
+                :key="i"
+                class="lc-sc__card-line"
+                >{{ line }}</span
+              >
+            </span>
           </button>
         </div>
 

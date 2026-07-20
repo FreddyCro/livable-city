@@ -519,6 +519,11 @@
     font-weight: 700;
   }
 
+  // step-criteria__card-line（PM 指定語意斷行：每行各一個 span，block 上下堆疊）
+  &__card-line {
+    display: block;
+  }
+
   // step-criteria__submit（CTA 鈕版位；外觀見共用 UiNextButton；MOB/PAD 滿版，PC 400）
   &__submit {
     flex-shrink: 0;
