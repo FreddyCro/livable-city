@@ -198,6 +198,18 @@ export function useStepLocation(
   };
 
   onMounted(() => {
+    // Safari（尤其經 SPA 路由進來時）判斷能否 muted autoplay 看的是 muted DOM property，
+    // 而 Vue 的裸 <video muted> 只保證寫 attribute、不保證同步 property。故在此強制設定
+    // property 並主動 play()：SSR / SPA 兩條路徑都確保靜音，也繞過 template 只設 attribute 的坑。
+    // play() 被拒（Low Power Mode / 網站「永不自動播放」等 runtime 政策）無法由頁面覆蓋，
+    // 交回 Safari 原生播放鍵接手，故僅吞下 rejection。
+    const videoEl = visualVideo.value;
+    if (videoEl) {
+      videoEl.muted = true;
+      videoEl.playsInline = true;
+      void videoEl.play().catch(() => {});
+    }
+
     mqlPad = window.matchMedia('(min-width: 768px)');
     mqlPc = window.matchMedia('(min-width: 1024px)');
     // 初值只同步 poster；影片首屏已由 <source media> 在解析時挑對，不需（也不該）在此重載。
