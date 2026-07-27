@@ -70,7 +70,7 @@ export const MAP_CAMERA: MapCameraConfig = {
   nudge: {
     x: 360,
     narrowMaxWidth: 767.98,
-    mobileBottom: 160,
+    mobileBottom: 185,
   },
   fly: {
     duration: 800,
