@@ -93,3 +93,12 @@
 - **原因**：CSS 規範——一軸設成非 `visible`（`auto`/`scroll`/`hidden`）時，另一軸的 `visible` 會被**強制計算成 `auto`**。故 `overflow-y: auto` 等同同時給了 `overflow-x: auto`，只要有子元素比容器寬就冒水平 scrollbar。
 - **修法**：明確寫 `overflow: hidden auto`（x 裁掉、y 捲動）；若子元素本不該撐寬，另外約束其寬度（例如把外部滿版元件設 `max-width:100%`）。
 - **位置**：`InfoContent.vue`（`&__body`）。
+
+## fonts（字型 / `@nuxtjs/google-fonts`，`nuxt.config.ts`）
+
+### `@nuxtjs/google-fonts` 的 self-host（`download`/`outputDir`）模式會把 CJK 字型「塌縮」成豆腐字
+
+- **症狀**：開了 self-host（設 `outputDir`）後，中文大量變 **豆腐字（口口口）**，比不載字型還糟。
+- **原因**：CJK 被 Google 切成上百個 unicode-range 分片，此模組下載時全塌縮成同一個 `*-text.woff2`（只剩約 250 字）；缺字依 `unicode-range` 語意不 fallback，直接 render notdef。
+- **修法**：不要開 self-host，用 runtime `<link>`：`googleFonts: { download: false, preconnect: true }`。真要自架須改 `@nuxt/fonts` 或 `cn-font-split` 靜態子集。
+- **位置**：`nuxt.config.ts` 的 `googleFonts`。

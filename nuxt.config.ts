@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
 
-  modules: ["reka-ui/nuxt", "nuxt-jsonld"],
+  modules: ["reka-ui/nuxt", "nuxt-jsonld", "@nuxtjs/google-fonts"],
 
   // 元件掃描：三個 step 目錄加 01/02/03 編號前綴（對齊流程順序），
   // pathPrefix: false 讓「目錄名（含編號）不進入 component 名稱」，
@@ -57,6 +57,26 @@ export default defineNuxtConfig({
         return "/";
       }
     })(),
+  },
+
+  // 字型：app 全域宣告 Noto Sans TC（base.scss），外部選單 NmdMenu 用 Noto Serif TC。
+  // 專案先前未載入任何字型檔 → 各裝置各自 fallback 到系統字型（iOS 選單落到宋體、Windows 新細明體…），
+  // 造成「同一畫面在不同裝置字體跑掉」。此處以 @nuxtjs/google-fonts 載入，確保跨裝置一致。
+  // weight 依 app 實際用量：Sans 300/400/500/600/700（app 預設字型）、Serif 600（選單項目）。
+  //
+  // ⚠️ 不要開 self-host（download / outputDir）：@nuxtjs/google-fonts 的下載模式對 CJK 會把
+  //   Google 上百個中文分片全塌縮成一個「僅約 250 字」的小 woff2，缺字依 unicode-range 語意不會
+  //   fallback 而是直接變豆腐字（實測「宜居城市指南」6 字全缺）。故用 runtime <link> 模式：
+  //   download:false → 瀏覽器向 Google 依 unicode-range 按需抓分片，CJK 完整且只載實際用到的字。
+  //   （runtime <link> 走 Google 絕對網址，不受本站 sub-path 影響，無 baseURL 問題。）
+  googleFonts: {
+    families: {
+      "Noto+Sans+TC": [300, 400, 500, 600, 700],
+      "Noto+Serif+TC": [600],
+    },
+    display: "swap",
+    download: false,
+    preconnect: true,
   },
 
   vite: {
