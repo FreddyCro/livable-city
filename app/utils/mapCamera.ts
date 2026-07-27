@@ -63,7 +63,7 @@ export const MAP_CAMERA: MapCameraConfig = {
   view: {
     longitude: 120.9,
     latitude: 23.6,
-    zoom: 7,
+    zoom: 6,
     minZoom: 5,
     maxZoom: 14,
   },
