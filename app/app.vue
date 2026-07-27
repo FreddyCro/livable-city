@@ -86,7 +86,7 @@ const { meta } = useGeoMeta();
 const { population } = usePopulation();
 
 // Data state: filter index + dataset cache
-const { filterIndex, filterDataCache, preloadAllFilters } = useFilterData({
+const { filterIndex, filterDataCache, loadFilters, preloadAllFilters } = useFilterData({
   selectedFilters,
 });
 
@@ -105,13 +105,17 @@ const mapRef = ref<InstanceType<typeof TaiwanMap> | null>(null);
 const selectedTownThumb = ref<TownThumb | null>(null);
 
 // ── Loading / 轉場視窗（PRD §2.5 + 3.6/3.7）─────────────────
-// 先驗證「出現時機」：結果為同步 computed，故以計時器模擬載入時長顯示視窗（動態本身之後再做）。
+// 資料驅動：等 loadFilters 真正載完 + 一段最短顯示時間才收遮罩（見 enterResult / watch(selectedFilters)），
+// 而非盲計時——否則慢網路下遮罩會先關、露出還沒載完的「—」。
 type Overlay = { variant: 'loading' | 'result-count' | 'empty'; dim: boolean };
 const overlay = ref<Overlay | null>(null);
-let overlayTimer: ReturnType<typeof setTimeout> | undefined;
+// overlay 收尾用遞增 token：快速連點 / 關閉 / restart 時作廢仍在 await 中的舊流程，避免它稍後又蓋回視窗。
+let overlayRun = 0;
 
-const TRANSITION_MS = 900; // 2.5a 載入視窗顯示時長（criteria→result）
-const RELOAD_MS = 600; // 3.6 explore-reloading 顯示時長（filter 切換）
+const TRANSITION_MS = 900; // 2.5a 載入視窗「最短」顯示時長（criteria→result，防閃爍）
+const RELOAD_MS = 600; // 3.6 explore-reloading「最短」顯示時長（filter 切換，防閃爍）
+// 最短顯示時間：與實際載入 race，取較慢者收遮罩
+const overlayDelay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 // Step-transition choreography: composables own layer/thumb/default updates;
 // here we only sequence the per-step camera moves and filter preloading.
@@ -140,18 +144,18 @@ watch(currentStep, async (step) => {
 
 // explore 內每次切換 filter：3.6 載入視窗（不刷暗）→ 0 筆則 3.7 無結果視窗，有結果則收起。
 // 注意：restart() 會先清空 filters 再切回 step 1，watcher 為 flush 後執行，屆時 currentStep 已是 1，故自動略過。
-watch(selectedFilters, () => {
+watch(selectedFilters, async () => {
   if (currentStep.value !== 3) return;
+  const run = ++overlayRun;
   overlay.value = { variant: 'loading', dim: false };
-  clearTimeout(overlayTimer);
-  overlayTimer = setTimeout(() => {
-    const hasResult = resultTowns.value.length > 0;
-    overlay.value = hasResult ? null : { variant: 'empty', dim: false };
-    // 篩選改變後 useResultTowns 會把 active 重設為第一筆結果；比照 resultbar 選取（selectResult），
-    // 飛入當前 active item。放在 reload 遮罩收起這一刻：結果集/active 已 settle，接著才飛（比照
-    // resultbar，飛入動畫是刻意可見的）。
-    if (hasResult) mapRef.value?.focusTown(selectedResultCode.value);
-  }, RELOAD_MS);
+  // 資料驅動：等選取的 filter 資料真的載完（+ 最短顯示 RELOAD_MS 防閃爍）再判斷結果，
+  // 故慢網路下遮罩會撐到資料就緒，不會提早收起露出「—」。
+  await Promise.all([loadFilters(selectedFilters.value), overlayDelay(RELOAD_MS)]);
+  if (run !== overlayRun || currentStep.value !== 3) return; // 期間又改條件 / 離開 / 關閉 → 交給新流程
+  const hasResult = resultTowns.value.length > 0;
+  overlay.value = hasResult ? null : { variant: 'empty', dim: false };
+  // 有結果：useResultTowns 已把 active 重設為第一筆；比照 resultbar 選取，飛入當前 active item。
+  if (hasResult) mapRef.value?.focusTown(selectedResultCode.value);
 });
 
 // Navigation
@@ -186,23 +190,25 @@ function selectResult(code: string | null) {
   if (code) mapRef.value?.focusTown(code);
 }
 
-// 關閉所有彈出視窗並取消待觸發的計時器（✕ 關閉、reset 皆共用）。
+// 關閉所有彈出視窗並作廢仍在 await 中的 loading 流程（✕ 關閉、reset 皆共用）。
 function closeOverlay() {
-  clearTimeout(overlayTimer);
+  overlayRun++; // 作廢進行中的流程，避免它稍後又蓋回視窗
   overlay.value = null;
 }
 
 // criteria 點「查看你的理想居住地區」：2.5a 載入（刷暗）→ 依結果數切到 2.5b / 2.5c。
-function enterResult() {
+// 資料驅動：等結果所需資料載完（+ 最短顯示 TRANSITION_MS）再切，慢網路下不會露出未載完的數字，
+// 也不會因 resultTowns 尚為空（useResultTowns 缺資料時回 []）而誤判成 empty。
+async function enterResult() {
+  const run = ++overlayRun;
   overlay.value = { variant: 'loading', dim: true };
   goToStep(3);
-  clearTimeout(overlayTimer);
-  overlayTimer = setTimeout(() => {
-    overlay.value =
-      resultTowns.value.length > 0
-        ? { variant: 'result-count', dim: true }
-        : { variant: 'empty', dim: true };
-  }, TRANSITION_MS);
+  await Promise.all([loadFilters(selectedFilters.value), overlayDelay(TRANSITION_MS)]);
+  if (run !== overlayRun) return; // 期間被關閉 / restart / 再次觸發 → 放棄本次收尾
+  overlay.value =
+    resultTowns.value.length > 0
+      ? { variant: 'result-count', dim: true }
+      : { variant: 'empty', dim: true };
 }
 </script>
 
