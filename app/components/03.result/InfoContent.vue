@@ -93,7 +93,9 @@ import AppFooter from '../AppFooter.vue';
   &__body {
     flex: 1 1 auto;
     min-height: 0;
-    overflow-y: auto;
+    // 只允許垂直捲動：AppFooter 的 NmdFooter 為整頁滿版設計，塞進窄對話框時內部寬度會超出，
+    // 而 overflow-y:auto 依規範會讓 overflow-x 也變 auto → 冒出水平 scrollbar；明確用 hidden 裁掉橫向。
+    overflow: hidden auto;
     display: flex;
     flex-direction: column;
     gap: 10px; // 手機：前言／分隔線／各來源段落間距（對齊 Figma sections gap 10）

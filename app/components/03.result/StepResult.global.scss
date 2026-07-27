@@ -53,7 +53,14 @@
       left: 50%;
       z-index: 1001;
       width: min(620px, calc(100vw - 32px));
+      // max-height 以 dvh 為主：iOS/iPadOS Safari 的 100vh 是「工具列隱藏時」的大視窗、比可視區高，
+      // 會讓 fixed 盒子底部掉出畫面（見 StepLocation/StepCriteria 同一坑），dvh 才扣掉工具列。
+      // 100vh 打底、@supports 內用 dvh 覆蓋：不支援 dvh 的老瀏覽器（iOS <15.4）退回 100vh
+      // ——即修改前的行為，屬優雅降級、不算退步。
       max-height: calc(100vh - #{$app-header-h} - 50px * 2);
+      @supports (height: 100dvh) {
+        max-height: calc(100dvh - #{$app-header-h} - 50px * 2);
+      }
       transform: translateX(-50%);
       border-radius: 20px; // 桌機四角圓角
 
@@ -69,8 +76,8 @@
 // ── 3.8 info-dialog 開關動態：自畫面外 fly in（開）/ 反向 fly out（關）──────────────
 // 起始位移讓卡片頂端正好落在 100vh（完全在畫面外底部）：
 //   手機＝貼底蓋板（inset:36px 0 0，高＝100vh-36），故 translateY(100%)＝自身高＝剛好出畫面；
-//   桌機＝top:header+50 的浮層、非貼底，改用 calc(100vh - header - 50px) 讓頂端落在 100vh，
-//         並全程保留 translateX(-50%) 維持水平置中。
+//   桌機＝top:header+50 的浮層、非貼底，用 calc(100vh - header - 50px) 讓頂端落到畫面外底部，
+//         並全程保留 translateX(-50%) 維持水平置中。（此為畫面外起始位移，用 100vh 即可、無 dvh 相容問題）
 @keyframes lc-info-in {
   from {
     transform: translateY(100%);
