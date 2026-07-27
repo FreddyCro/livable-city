@@ -84,7 +84,7 @@ export const parseVal = (v) => {
 export const cleanName = (file) => file
   .replace(/^\d+(?:-\d+)*\.\s*/, '')        // 去 "12. " 編號前綴
   .replace(/-\d+年\d+月/, '')               // 去 "-2026年4月" 日期
-  .replace(/（上線前數據會再更新）/g, '')   // 去佔位附註
+  .replace(/（[^）]*更新）/g, '')           // 去資料更新附註（如「上線前數據會再更新」「0723更新」「資料有更新」）
   .replace(/\s*的副本/, '')
   .replace(/\.xlsx$/, '')
   .trim();
