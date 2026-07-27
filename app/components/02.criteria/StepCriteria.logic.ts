@@ -1,5 +1,4 @@
 import { computed } from 'vue';
-import str from '../../locales/criteria.json';
 import type { GeoMeta } from '../../types/geo';
 import type { FilterMeta, FilterDataCache } from '../../types/filter';
 import type { TownThumb } from '../../composables/useTaiwanMap';
@@ -42,11 +41,6 @@ export function useStepCriteria(props: StepCriteriaProps, emit: StepCriteriaEmit
   // 必須選滿 MAX_SELECT 項才能進入 step 3（與 hint「請選擇3項」一致）
   const canProceed = computed(() => props.selectedFilters.length === MAX_SELECT);
 
-  const hintText = computed(
-    () =>
-      `${str.hint}（${str.selectedLabel}${props.selectedFilters.length}/${MAX_SELECT}）`,
-  );
-
   function toggleFilter(id: string) {
     const filters = [...props.selectedFilters];
     const idx = filters.indexOf(id);
@@ -76,7 +70,6 @@ export function useStepCriteria(props: StepCriteriaProps, emit: StepCriteriaEmit
     townName,
     atMax,
     canProceed,
-    hintText,
     toggleFilter,
     formatVal,
     statText,

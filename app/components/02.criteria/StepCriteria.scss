@@ -76,7 +76,9 @@
     padding: 0;
     border-top: 0.5px solid var(--c-line-main);
     border-radius: 15px 15px 0 0;
-    background: var(--c-surface-translucent); // 半透明白底 80%，透出下層並讓 backdrop-blur 生效
+    background: var(
+      --c-surface-translucent
+    ); // 半透明白底 80%，透出下層並讓 backdrop-blur 生效
     transition: max-height 0.3s ease;
 
     @include rwd-min(pad) {
@@ -90,7 +92,9 @@
       padding: 20px;
       border: 0.5px solid var(--c-line-main); // 主線條 #403a2c
       border-radius: 10px;
-      background: var(--c-surface-translucent); // 同 MOB：半透明白底 80% + backdrop-blur
+      background: var(
+        --c-surface-translucent
+      ); // 同 MOB：半透明白底 80% + backdrop-blur
       transition: none;
     }
 
@@ -155,7 +159,9 @@
     flex-shrink: 0;
     height: 60px;
     padding: 0 27px;
-    background: var(--c-surface-translucent); // 收合態＝可見的整片 aside，維持半透明；sticky 捲動時仍可讀
+    background: var(
+      --c-surface-translucent
+    ); // 收合態＝可見的整片 aside，維持半透明；sticky 捲動時仍可讀
     cursor: pointer;
 
     @include rwd-min(pad) {
@@ -308,7 +314,6 @@
     //   避免 title(32)/hint(36) 混排導致行距不齊。
     display: block;
     width: 100%;
-    line-height: 36px;
     text-align: left;
     color: #000;
 
@@ -347,13 +352,18 @@
     margin: 0;
     font-size: 20px;
     font-weight: 700;
-    line-height: 32px;
+    line-height: 28px;
 
     // MOB：改 inline 以接續提示連成一句（見 &__head）
     display: inline;
 
     @include rwd-min(pad) {
       display: block;
+      line-height: 32px;
+    }
+
+    @include rwd-min(pc) {
+      line-height: 36px;
     }
   }
 
@@ -391,7 +401,7 @@
     }
   }
 
-  // step-criteria__hint-mob（手機：接續標題的說明文字 + 計數膠囊；PAD/PC 隱藏）
+  // step-criteria__hint-mob（手機：接續標題的精簡說明文字；PAD/PC 隱藏）
   &__hint-mob {
     display: inline;
     font-weight: 700; // 與精簡標題同粗細，讀起來接續標題成一句
@@ -410,7 +420,7 @@
     }
   }
 
-  // step-criteria__hint-count（已選計數膠囊：淺藍底 B02 + 灰字，接在說明文字後）
+  // step-criteria__hint-count（已選計數膠囊：淺藍底 B02 + 灰字，接在說明文字後；全尺寸通用，無 RWD 斷點）
   &__hint-count {
     display: inline-flex;
     align-items: center;
@@ -528,8 +538,8 @@
     color: #000;
 
     @include rwd-min(pad) {
-    font-size: 18px;
-    line-height: 28px;
+      font-size: 18px;
+      line-height: 28px;
     }
   }
 

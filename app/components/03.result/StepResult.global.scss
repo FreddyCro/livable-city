@@ -9,6 +9,13 @@
     z-index: 10000;
     background: rgb(var(--c-shadow) / 0.45);
 
+    // 遮罩淡入淡出（與 dialog 本體的 fly in/out 同步節奏）。標準 bottom-sheet：背景 fade、卡片 slide。
+    // Reka 於 data-state=open/closed 切換；usePresence 會等 CSS animation 結束才卸載，故用 @keyframes 而非 transition。
+    animation: lc-info-overlay-in 0.3s ease both;
+    &[data-state='closed'] {
+      animation: lc-info-overlay-out 0.25s ease both;
+    }
+
     // 平板以上：浮層 box 落在 header 下方，遮罩不需蓋過 header
     @include rwd-min(pad) {
       z-index: 1000;
@@ -32,6 +39,13 @@
     @include blur(2px);
     overflow: hidden; // 讓 footer 滿版且底部圓角能裁切；內距改由 InfoContent 各區塊自負
 
+    // toggle 動態：自畫面外（底部）fly in（開）/ 反向 fly out（關），純位移不淡入。
+    // 手機 transform 僅 translateY；平板以上另需保留置中的 translateX(-50%)，故 keyframes 分兩套（見下方 --pc）。
+    animation: lc-info-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    &[data-state='closed'] {
+      animation: lc-info-out 0.25s ease-in both;
+    }
+
     // 平板以上：視窗置中的浮層 box
     @include rwd-min(pad) {
       inset: auto; // 取消手機的貼齊四邊
@@ -42,6 +56,76 @@
       max-height: calc(100vh - #{$app-header-h} - 50px * 2);
       transform: translateX(-50%);
       border-radius: 20px; // 桌機四角圓角
+
+      // 桌機：改用含 translateX(-50%) 的 keyframes，動畫全程維持水平置中
+      animation: lc-info-in-pc 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+      &[data-state='closed'] {
+        animation: lc-info-out-pc 0.25s ease-in both;
+      }
     }
+  }
+}
+
+// ── 3.8 info-dialog 開關動態：自畫面外 fly in（開）/ 反向 fly out（關）──────────────
+// 起始位移讓卡片頂端正好落在 100vh（完全在畫面外底部）：
+//   手機＝貼底蓋板（inset:36px 0 0，高＝100vh-36），故 translateY(100%)＝自身高＝剛好出畫面；
+//   桌機＝top:header+50 的浮層、非貼底，改用 calc(100vh - header - 50px) 讓頂端落在 100vh，
+//         並全程保留 translateX(-50%) 維持水平置中。
+@keyframes lc-info-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes lc-info-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes lc-info-in-pc {
+  from {
+    transform: translateX(-50%) translateY(calc(100vh - #{$app-header-h} - 50px));
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+  }
+}
+@keyframes lc-info-out-pc {
+  from {
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    transform: translateX(-50%) translateY(calc(100vh - #{$app-header-h} - 50px));
+  }
+}
+@keyframes lc-info-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes lc-info-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+// 尊重減少動態偏好：關閉 info-dialog 開關動畫（瞬間顯示／隱藏）
+@media (prefers-reduced-motion: reduce) {
+  .lc-sr__dialog,
+  .lc-sr__dialog[data-state='closed'],
+  .lc-sr__dialog-overlay,
+  .lc-sr__dialog-overlay[data-state='closed'] {
+    animation: none;
   }
 }

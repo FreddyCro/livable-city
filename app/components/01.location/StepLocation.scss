@@ -267,6 +267,10 @@ $title-h-pc: 120px;
     // background: rgba(0, 0, 0, 0.2); // 暗淡軌道
     overflow: hidden;
 
+    @include rwd-short-phone {
+      height: 36px;
+    }
+
     @include rwd-min(pc) {
       height: 130px;
     }

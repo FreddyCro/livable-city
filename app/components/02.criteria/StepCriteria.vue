@@ -63,7 +63,7 @@ function toggleInfo() {
 }
 
 // view 邏輯抽至 co-located 的 StepCriteria.logic.ts（單一元件專用）。
-const { countyName, townName, atMax, canProceed, hintText, toggleFilter, statText } =
+const { countyName, townName, atMax, canProceed, toggleFilter, statText } =
   useStepCriteria(props, emit);
 </script>
 
@@ -122,16 +122,16 @@ const { countyName, townName, atMax, canProceed, hintText, toggleFilter, statTex
       <section class="lc-sc__main">
         <header class="lc-sc__head">
           <!-- 標題：桌機/pad 用完整版；手機（<sm）改用精簡版，兩者以 CSS 切換 -->
-          <h2 class=" ">
+          <h2 class="lc-sc__title">
             <span class="lc-sc__title-pc">{{ str.title }}</span>
             <span class="lc-sc__title-mob">{{ str.titleMob }}</span>
           </h2>
           <p class="lc-sc__hint">
-            <!-- 手機（<pad）：接續標題的說明文字 + 已選計數膠囊 -->
-            <!-- prettier-ignore -->
-            <span class="lc-sc__hint-mob">{{ str.hintMob }}<span class="lc-sc__hint-count">{{ selectedFilters.length }}/{{ MAX_SELECT }}</span></span>
-            <!-- 平板以上：完整提示文字（含括號計數）-->
-            <span class="lc-sc__hint-pc">{{ hintText }}</span>
+            <!-- 手機（<pad）：接續標題的精簡說明；平板以上：完整說明。兩者以 CSS 切換 -->
+            <span class="lc-sc__hint-mob">{{ str.hintMob }}</span>
+            <span class="lc-sc__hint-pc">{{ str.hint }}</span>
+            <!-- 已選計數膠囊：全尺寸通用，接在說明文字後 -->
+            <span class="lc-sc__hint-count">{{ selectedFilters.length }}/{{ MAX_SELECT }}</span>
           </p>
         </header>
 
