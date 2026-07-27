@@ -62,6 +62,7 @@
     flex-direction: column;
     align-items: center;
     overflow: hidden;
+
     @include blur(10px);
     // MOB：固定底部可展開 sheet（疊在卡片上、不加遮罩）
     position: fixed;
@@ -76,9 +77,7 @@
     padding: 0;
     border-top: 0.5px solid var(--c-line-main);
     border-radius: 15px 15px 0 0;
-    background: var(
-      --c-surface-translucent
-    ); // 半透明白底 80%，透出下層並讓 backdrop-blur 生效
+    background: rgba($color: #fff, $alpha: 0.8);
     transition: max-height 0.3s ease;
 
     @include rwd-min(pad) {
@@ -92,9 +91,6 @@
       padding: 20px;
       border: 0.5px solid var(--c-line-main); // 主線條 #403a2c
       border-radius: 10px;
-      background: var(
-        --c-surface-translucent
-      ); // 同 MOB：半透明白底 80% + backdrop-blur
       transition: none;
     }
 
@@ -159,9 +155,7 @@
     flex-shrink: 0;
     height: 60px;
     padding: 0 27px;
-    background: var(
-      --c-surface-translucent
-    ); // 收合態＝可見的整片 aside，維持半透明；sticky 捲動時仍可讀
+    background: rgba($color: #fff, $alpha: 0.8);
     cursor: pointer;
 
     @include rwd-min(pad) {

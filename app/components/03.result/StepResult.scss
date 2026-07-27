@@ -573,18 +573,20 @@
   &__compare-wrap {
     position: absolute;
     left: calc(#{$explore-sidebar-w} + (100% - #{$explore-sidebar-w}) / 2);
-    transform: translateX(-50%);
-    max-width: 500px;
-    pointer-events: none; // 面板與按鈕各自開啟，縫隙仍可拖曳地圖
+
     // C4：MOB → 底部近滿版 sheet（量測 w=320、距底 70，置中由 base var=0 達成）
     // 兩側各留 48px（10 邊距＋30 paddle＋8 間距）給左右鈕，窄螢幕卡片自動縮，paddle 不溢出視窗
     bottom: 70px;
     width: calc(100% - 96px);
+    max-width: 500px;
+    transform: translateX(-50%);
+    pointer-events: none;
 
     @include rwd-min(pad) {
       // PAD/PC：sidebar 佔住左側，寬度扣掉 sidebar，讓面板只佔地圖區
       bottom: 24px;
       width: calc(100% - #{$explore-sidebar-w} - 120px);
+      height: calc(100% - #{$app-header-h} - 40px);
     }
   }
 
@@ -596,7 +598,6 @@
     max-height: 48vh;
     display: flex;
     flex-direction: column;
-    // 對齊 Figma：浮卡半透明白底（rgba(255,255,255,0.8)），讓下方地圖淡淡透出
     background: var(--c-surface-translucent);
     border: 1px solid var(--c-line-main);
     border-radius: 14px;
@@ -606,7 +607,11 @@
     position: relative; // C4b：MOB 收合鈕改絕對定位置中，故容器設為定位參考
 
     @include rwd-min(pad) {
-      position: static;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 100%;
+      max-height: 600px;
     }
   }
 
