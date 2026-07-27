@@ -1,0 +1,212 @@
+@use './variables';
+@use './mixins';
+
+:root {
+  --hero-min-h: 568px;
+  --white: var(--color-grey-0);
+  --z-index-dialog-open: 9999;
+  --z-index-snack-bar-open: 1100;
+  --z-index-dialog-close: -1000;
+}
+
+// explore-sidebar 寬度隨斷點縮放（單一來源；TaiwanMap 左內縮、MapTooltip、StepResult
+// 側欄／浮層的 width / left calc 全部以 var(--explore-sidebar-w) 計算，覆寫此處即一致跟著縮）。
+// 預設 420（PC，定義於 theme.css）。
+@include mixins.rwd-between(sm, md) {
+  // PAD：側欄縮為 240
+  :root {
+    --explore-sidebar-w: 246px;
+  }
+}
+
+@include mixins.rwd-max(sm) {
+  // MOB：側欄改底部 sheet，不再佔左側 → 0，使地圖滿版
+  :root {
+    --explore-sidebar-w: 0px;
+  }
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  // 停用瀏覽器 double-tap（連點兩下）放大與舊版 300ms click 延遲；仍保留捲動與雙指 pinch-zoom
+  //（無障礙需要）。Safari iOS 13+ / Chrome 皆支援。地圖 canvas 由 deck.gl 自設 touch-action:none，不受影響。
+  touch-action: manipulation;
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+html {
+  // Figma design system：主字體 Noto Sans TC（weight 300 / 400 / 700）
+  font-family: 'Noto Sans TC', sans-serif;
+  font-style: normal;
+  line-height: 150%;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+figure {
+  margin: 0;
+}
+
+button,
+a {
+  cursor: pointer;
+}
+
+canvas {
+  pointer-events: none;
+}
+
+.noto-serif-tc {
+  font-family: 'Noto Serif TC', serif;
+}
+
+.noto-sans-tc {
+  font-family: 'Noto Sans TC', sans-serif;
+}
+
+.montserrat {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.lc-p {
+  font-size: 18px;
+  line-height: 36px;
+}
+
+// lc-h1 = 響應式標題（mob_H1 → pc_H1）
+.lc-h1 {
+  @include mixins.text-style(mob-h1);
+
+  @include mixins.rwd-min(pad) {
+    @include mixins.text-style(pc-h1);
+  }
+}
+
+// lc-h2 = 響應式標題（mob_H2 → pc_H2）
+.lc-h2 {
+  @include mixins.text-style(mob-h2);
+
+  @include mixins.rwd-min(pad) {
+    @include mixins.text-style(pc-h2);
+  }
+}
+
+// lc-h3 = Figma pc_H3（無 mob 對應，固定 20/32）
+.lc-h3 {
+  @include mixins.text-style(pc-h3);
+}
+
+// lc-article-h3 = 文章內文標題級距（非 Figma pc/mob，editorial scale）
+.lc-article-h3 {
+  font-size: 22px;
+  line-height: 30px;
+  margin-bottom: 8px;
+
+  @include mixins.rwd-min(pad) {
+    font-size: 28px;
+    line-height: 40px;
+  }
+  @include mixins.rwd-min(pc) {
+    font-size: 32px;
+    line-height: 48px;
+  }
+}
+
+// lc-article-h4 = 文章內文標題級距（editorial scale）
+.lc-article-h4 {
+  font-size: 24px;
+  line-height: 36px;
+
+  @include mixins.rwd-min(pad) {
+    font-size: 28px;
+    line-height: 46px;
+  }
+}
+
+.lc-h1,
+.lc-h2,
+.lc-h3,
+.lc-h4,
+.lc-h5,
+.lc-article-h3,
+.lc-article-h4 {
+  &--no-mb {
+    margin-bottom: 0;
+  }
+}
+
+.lc-caption {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--c-text-muted);
+
+  &--white {
+    color: var(--c-text-inverse);
+  }
+}
+
+// 文字樣式（對齊 Figma main/* text styles，Noto Sans TC / weight 400）
+// lc-text--btn      = main/Primary_Button
+.lc-text--btn {
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 400;
+}
+
+// lc-text--btn-sm   = main/Secondary_Button_P
+.lc-text--btn-sm {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
+}
+
+// lc-text--note     = main/輔助說明
+.lc-text--note {
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+}
+
+// lc-text--body     = main/P（內文段落）
+.lc-text--body {
+  @include mixins.text-style(p);
+  font-weight: 400;
+}
+
+// lc-text--annotation = 註解字-粗字（粗體註解）
+.lc-text--annotation {
+  @include mixins.text-style(annotation-bold);
+  font-weight: 700;
+}
+
+// 分隔線（對齊 Figma Line styles）
+// lc-line           = Primary Line：黑 1px
+.lc-line {
+  border: none;
+  border-top: 1px solid var(--c-line-primary);
+
+  // lc-line--thin     = Primary Line 2：黑 0.5px
+  &--thin {
+    border-top-width: 0.5px;
+  }
+
+  // lc-line--faint    = Secondary Line 2：黑 50% / 0.5px
+  &--faint {
+    border-top: 0.5px solid var(--c-line-secondary);
+  }
+}

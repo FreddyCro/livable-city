@@ -1,0 +1,898 @@
+// step-result
+.lc-sr {
+  // ── RWD 策略：mobile-first；斷點樣式一律內嵌於各 element 的 rwd-min mixin，同一 class 只出現一次 ──
+  //   base（MOB / < sm / <768，設計稿 633-17957 / 414×736）：側欄＝底部可展開 filter sheet、
+  //     banners 移頂部橫列（y=59 h=44）、工具列 y=113（pill x=10 / reselect x=154 / zoom 右）、
+  //     compare 底部 sheet（w=320 距底 70）、filter bar 滿版。
+  //   rwd-min(pad)（≥ sm / 768，設計稿 633-11031）：還原 PC 架構（常駐左側欄＋右側浮層），
+  //     PAD 只縮窄側欄內距、filter 卡片改單欄。
+  //   rwd-min(pc)（≥ md / 1024）：僅 __cards 由 PAD 單欄改回 2 欄，其餘與 PAD 相同。
+  //   __sidebar / __list / __compare-wrap 的寬度與左偏移沿用 $explore-sidebar-w
+  //   （＝var(--explore-sidebar-w)，base.scss 依斷點覆寫 PC 420 / PAD 240 / MOB 0），
+  //   會自動跟著縮，故不必逐斷點重寫寬度。
+  $mob-toolbar-top: calc(
+    #{$app-header-h} + 53px
+  ); // 60 + banners 44 + 9 間距 ≈ 113
+
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none; // panels re-enable; map stays draggable in the gaps
+
+  // step-result__sidebar（3.1 explore-sidebar；MOB＝底部 filter sheet，PAD/PC＝常駐左側欄）
+  &__sidebar {
+    position: absolute;
+    left: 0;
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+    pointer-events: auto;
+    background: var(--c-surface);
+    // MOB：C1/C2 側欄 → 底部可展開 filter sheet（Collapsible）
+    top: auto;
+    bottom: 0;
+    right: 0;
+    width: auto;
+    height: auto;
+    max-height: 80vh;
+    padding: 0;
+    border-radius: 20px 20px 0 0;
+    border: solid 1px var(--c-line-main);
+    box-shadow: 0 -4px 16px rgb(var(--c-shadow) / 0.12);
+    overflow: visible; // banners / reselect 以 fixed 抽離；捲動交給 cards-body
+    z-index: 30; // C8：filter sheet 疊在 compare sheet 之上
+
+    @include rwd-min(pad) {
+      // PAD/PC：常駐左側欄
+      top: $app-header-h;
+      bottom: auto;
+      right: auto;
+      width: $explore-sidebar-w;
+      height: calc(100vh - #{$app-header-h});
+      max-height: none;
+      padding: 24px 20px 0;
+      border-radius: 0;
+      border: 0;
+      box-shadow: 2px 0 12px rgb(var(--c-shadow) / 0.06);
+      // overflow-y: auto 會連帶把 overflow-x 算成 auto（見 gotchas）；banners 靠負邊界
+      // 剛好貼齊 padding box，任何寬度縮減/次像素捨入都會冒 x scrollbar，故明確裁掉 x。
+      overflow: hidden auto;
+      z-index: auto;
+    }
+  }
+
+  // step-result__sidebar-top（MOB：filter sheet 內容包裹層，撐滿並讓 cards-body 捲動）
+  &__sidebar-top {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    // MOB：撐滿 sheet 剩餘高度
+    min-height: 0;
+    flex: 1;
+
+    @include rwd-min(pad) {
+      flex: 0 1 auto;
+      height: auto;
+      min-height: auto;
+    }
+
+    @include rwd-min(pc) {
+      height: 100%;
+    }
+  }
+
+  // step-result__topbar
+  &__topbar {
+    margin-bottom: 12px;
+  }
+
+  // step-result__back
+  &__back {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    color: var(--c-text-muted);
+    cursor: pointer;
+
+    &:hover {
+      color: var(--c-text);
+    }
+  }
+
+  // step-result__head（MOB＝收合態 bar；PAD/PC＝側欄內標題列）
+  &__head {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    // MOB：收合態 bar（標題 + chevron），固定 60px 高
+    height: 60px;
+    padding: 0 16px;
+    margin: 0;
+    border-bottom: none;
+
+    @include rwd-min(pad) {
+      // PAD/PC：底線分隔的標題列
+      height: auto;
+      padding: 0 0 16px;
+      margin: 0 0 18px;
+      border-bottom: 1px solid rgb(0 0 0 / 0.3);
+    }
+
+    @include rwd-between(pad, pc) {
+      // PAD 窄側欄：改 block 讓 reselect 用 float 卡進標題換行尾端（flex 失效，
+      // 原 justify-content 一併移除）；標題文字繞著 float 排。
+      display: block;
+    }
+  }
+
+  // step-result__title
+  &__title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--c-text);
+
+    @include rwd-min(pad) {
+      font-size: 18px;
+    }
+  }
+
+  // step-result__head-toggle（CollapsibleTrigger；MOB＝整條可點 bar，PAD/PC 桌機 disabled＝純標題）
+  &__head-toggle {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    text-align: left;
+    color: inherit;
+    cursor: pointer; // MOB：整條 bar 可點開合
+
+    &:disabled {
+      cursor: default;
+    }
+
+    @include rwd-min(pad) {
+      cursor: default; // 桌機恆開、不可點
+    }
+
+    @include rwd-between(pad, pc) {
+      // 盒子消失，內含 __title 升格為 __head 的 inline 內容，可繞 __reselect 的 float。
+      // pad 斷點本就 disabled 純裝飾，離開 a11y 樹影響極小。
+      display: contents;
+    }
+  }
+
+  // step-result__head-chevron（filter sheet 開合箭頭；僅 MOB 顯示）
+  &__head-chevron {
+    display: block; // C2：MOB 顯示開合箭頭
+    width: 13px;
+    height: auto;
+    flex-shrink: 0;
+    color: var(--c-text-muted);
+
+    @include rwd-min(pad) {
+      display: none;
+    }
+  }
+
+  // step-result__reselect（MOB 抽離到頂部工具列；PAD/PC 回側欄 head 內流排）
+  &__reselect {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    border: 1px solid var(--c-text-muted);
+    border-radius: 999px;
+    padding: 4px 20px;
+    background: var(--c-surface);
+    font-size: 12px;
+    color: var(--c-text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    // C3：MOB 抽離到頂部工具列（pill 右側）
+    position: fixed;
+    top: $mob-toolbar-top;
+    left: 154px;
+    margin: 0;
+    z-index: 31;
+
+    &:hover {
+      border-color: var(--c-border-hover);
+    }
+
+    @include rwd-min(pad) {
+      // PAD/PC：回側欄 head 內流排
+      position: static;
+      top: auto;
+      left: auto;
+      z-index: auto;
+    }
+
+    @include rwd-between(pad, pc) {
+      // PAD 窄側欄：浮到右側，讓標題文字繞著它換行、按鈕落在文字尾端（見 __head）。
+      float: right;
+    }
+  }
+
+  // step-result__cards-body（CollapsibleContent；MOB 展開時可捲動）
+  &__cards-body {
+    height: 100%;
+    // MOB：展開時撐滿並捲動
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 16px;
+
+    @include rwd-min(pad) {
+      flex: 0 1 auto;
+      min-height: auto;
+      max-height: 960px;
+      overflow-y: visible;
+      padding: 0;
+    }
+  }
+
+  // step-result__cards（MOB 2 欄；PAD 單欄；PC 回 2 欄）
+  &__cards {
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding-bottom: 16px; // MOB：sheet 內底部留白
+
+    @include rwd-min(pad) {
+      // B2：PAD filter 卡片 2 欄 → 1 欄
+      grid-template-columns: 1fr;
+      padding-bottom: 0;
+    }
+
+    @include rwd-min(pc) {
+      // PC：filter 卡片 2 欄
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  // step-result__card（對齊 Figma result filter；與 criteria filter 同款黃色狀態）
+  &__card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    // grid item 預設 min-width:auto 會被長 label 撐破半欄；歸零讓每張卡固定為 aside 半寬
+    min-width: 0;
+    min-height: 36px;
+    padding: 7px 10px;
+    border: 0.5px solid var(--c-line-main); // 主線條 #403a2c
+    border-radius: 10px;
+    background: transparent;
+    font-size: 15px;
+    line-height: 22px;
+    color: #000;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      border-color 0.15s,
+      background 0.15s;
+
+    // hover（未選）：底部往上黃色放射漸層 @ 0.5 疊白底、黑框（對齊 State=hover）
+    // 只在有真實游標的裝置套用，避免觸控裝置點掉後 hover 底色殘留（見 A.4 回饋）
+    @include hover {
+      border-color: #000;
+      background:
+        radial-gradient(
+          ellipse 100% 100% at 50% 100%,
+          rgb(255 242 193 / 0.5) 0%,
+          rgb(244 204 52 / 0.5) 100%
+        ),
+        #fff;
+    }
+
+    // 已選（activated）：實心黃 Y01、同色框佔位、粗體、顯示 X（對齊 State=activated）
+    &[data-state='checked'] {
+      background: var(--color-y01); // 黃 #f4cc34
+      border-color: var(--color-y01);
+      font-weight: 700;
+
+      // activated hover：全不透明黃漸層 + 黑框 + 還原非粗體，暗示點擊可移除（State=activated hover）
+      @include hover {
+        border-color: #000;
+        font-weight: 400;
+        background:
+          radial-gradient(
+            ellipse 100% 100% at 50% 100%,
+            rgb(255 242 193) 0%,
+            rgb(244 204 52) 100%
+          ),
+          var(--color-y01);
+      }
+    }
+  }
+
+  // step-result__card-label（撐滿、過長截斷）
+  &__card-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // step-result__card-x（已選卸除圖示，button_close／X circle）
+  &__card-x {
+    display: flex;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  }
+
+  // step-result__banners（MOB＝頂部橫列；PAD/PC＝沿側欄底部滿版直向）
+  &__banners {
+    display: flex;
+    // C6：MOB → 頂部橫列（2 欄等寬），抽離 sheet
+    position: fixed;
+    top: $app-header-h;
+    left: 0;
+    right: 0;
+    margin: 0;
+    flex-direction: row;
+    z-index: 30;
+
+    @include rwd-min(pad) {
+      // PAD/PC：沿側欄底部滿版、直向堆疊
+      position: static;
+      margin: 24px -20px 0;
+      flex-direction: column;
+      z-index: auto;
+    }
+  }
+
+  // step-result__banner
+  &__banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--c-text-inverse);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 400; // banners 一律不使用粗體
+    // MOB：等寬填滿頂部橫列、單行 44px 高
+    flex: 1;
+    min-width: 0;
+    height: 44px;
+    padding: 0 16px;
+
+    transition: opacity 0.15s;
+
+    @include rwd-min(pad) {
+      // PAD/PC：側欄底部區塊、標準內距
+      flex: 0 1 auto;
+      min-width: auto;
+      height: auto;
+      padding: 16px 24px;
+    }
+
+    // step-result__banner--data（hover 整體淡出至 90%，對齊設計稿 hover 態；hover mixin 僅游標裝置生效）
+    &--data {
+      background: var(--color-b03);
+
+      @include hover {
+        opacity: 0.9;
+      }
+    }
+
+    // step-result__banner--report（hover 整體淡出至 80%）
+    &--report {
+      background: var(--color-g01);
+
+      @include hover {
+        opacity: 0.8;
+      }
+    }
+  }
+
+  // step-result__banner-sub（副標；MOB/PAD 窄版容不下故隱藏，PC 才顯示）
+  &__banner-sub {
+    display: none;
+
+    @include rwd-min(pc) {
+      display: inline;
+    }
+  }
+
+  // step-result__banner-text（MOB/PAD 窄版單行截斷，PC 才還原多行）
+  &__banner-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    @include rwd-min(pc) {
+      overflow: visible;
+      white-space: normal;
+      text-overflow: clip;
+    }
+  }
+
+  // step-result__banner-icon（button_external_link，白色，襯在彩色 banner 上）
+  &__banner-icon {
+    display: flex;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+  }
+
+  // step-result__list（3.2 explore-result-bar；對齊 Figma 結果搜尋元件：
+  //   半透明白底＋0.5px 黑框＋backdrop-blur，收合為膠囊、展開為上下圓角卡片。
+  //   MOB＝頂部工具列左側，PAD/PC＝側欄右側浮層）
+  &__list {
+    position: absolute;
+    z-index: 10;
+    width: 140px;
+    max-height: calc(70vh - #{$app-header-h} - 32px);
+    display: flex;
+    flex-direction: column;
+    background: rgb(255 255 255 / 0.8); // Figma：白 80%
+    backdrop-filter: blur(2px);
+    border: 0.5px solid var(--c-line-primary); // 0.5px 黑
+    border-radius: 15px; // 收合 30px 高即為膠囊；展開時上下圓角
+    overflow: hidden;
+    pointer-events: auto;
+    // C3：MOB → 頂部工具列左側
+    top: $mob-toolbar-top;
+    left: 10px;
+
+    @include rwd-min(pad) {
+      // PAD/PC：側欄右側浮層
+      top: calc(#{$app-header-h} + 20px);
+      left: calc(#{$explore-sidebar-w} + 16px);
+    }
+  }
+
+  // step-result__list-head（收合 toggle；收合態 justify-between、展開態靠左）
+  &__list-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    width: 100%;
+    height: 28px; // 30 = 28 + 2px border
+    padding: 0 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    flex-shrink: 0;
+
+    // step-result__list-head--open（展開態：← 請選擇，靠左排）
+    &--open {
+      justify-content: flex-start;
+      color: var(
+        --c-text-faint
+      ); // 對齊 Figma 灰字（BK-40%）；箭頭以 currentColor 跟隨
+    }
+  }
+
+  // step-result__list-label（收合：共N項結果 15px；展開：請選擇 12px 灰）
+  &__list-label {
+    font-size: 15px;
+    color: var(--c-text-secondary);
+  }
+
+  &__list-head--open &__list-label {
+    font-size: 12px;
+    line-height: 18px;
+    color: inherit;
+  }
+
+  // step-result__list-back（展開態 ← 細箭頭，inline currentColor）
+  &__list-back {
+    width: 13px;
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  // step-result__list-search（收合態放大鏡，button_search）
+  &__list-search {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+
+  // step-result__list-body（CollapsibleContent；撐滿剩餘高度並自行捲動）
+  &__list-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  // step-result__listbox（ListboxRoot；可聚焦容器，移除預設外框）
+  &__listbox {
+    outline: none;
+  }
+
+  // step-result__list-county（ListboxGroupLabel）
+  &__list-county {
+    padding: 10px 10px 4px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--c-text);
+  }
+
+  // step-result__list-item（ListboxItem）
+  &__list-item {
+    padding: 5px 10px;
+    font-size: 13px;
+    color: var(--c-text-secondary);
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+
+    &:hover {
+      background: var(--c-info-bg);
+    }
+
+    // 鍵盤導航高亮：Reka 掛 data-highlighted
+    &[data-highlighted] {
+      background: var(--c-info-bg);
+    }
+
+    // 已選：Reka 掛 data-state="checked"
+    &[data-state='checked'] {
+      background: var(--c-info-bg);
+      // color: var(--c-info);
+      font-weight: 600;
+    }
+  }
+
+  // step-result__list-empty
+  &__list-empty {
+    padding: 14px;
+    font-size: 12px;
+    color: var(--c-text-faint);
+  }
+
+  // step-result__compare-wrap（負責定位＋容納左右 paddle；不裁切，讓按鈕可溢出兩側）
+  &__compare-wrap {
+    position: absolute;
+    left: calc(#{$explore-sidebar-w} + (100% - #{$explore-sidebar-w}) / 2);
+
+    // C4：MOB → 底部近滿版 sheet（量測 w=320、距底 70，置中由 base var=0 達成）
+    // 兩側各留 48px（10 邊距＋30 paddle＋8 間距）給左右鈕，窄螢幕卡片自動縮，paddle 不溢出視窗
+    bottom: 70px;
+    width: calc(100% - 96px);
+    max-width: 500px;
+    transform: translateX(-50%);
+    pointer-events: none;
+
+    @include rwd-min(pad) {
+      // PAD/PC：sidebar 佔住左側，寬度扣掉 sidebar，讓面板只佔地圖區
+      bottom: 24px;
+      width: calc(100% - #{$explore-sidebar-w} - 120px);
+      height: calc(100% - #{$app-header-h} - 80px);
+    }
+  }
+
+  // step-result__compare（3.4 explore-compare，浮於地圖正下方、地圖區水平置中）
+  &__compare {
+    width: 100%;
+    // 48vh ＝沿用舊版「48% of .lc-sr（fixed inset:0，撐滿視窗）」；
+    // 改掛在 wrap 下後其高度不定，百分比無從解析，故改用等效的視窗高度
+    max-height: 48vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--c-surface-translucent);
+    border: 1px solid var(--c-line-main);
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgb(var(--c-shadow) / 0.1);
+    overflow: hidden;
+    pointer-events: auto;
+    position: relative; // C4b：MOB 收合鈕改絕對定位置中，故容器設為定位參考
+
+    @include rwd-min(pad) {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      // 高度改由內容（lc-sr__metric 數量／compareState half↔open）決定：移除 height:100%
+      // 的固定滿版，面板自底部往上長。上限取 min(設計稿 600, wrap 高)——後者防短視窗溢出，
+      // 等效於舊「height:100% + max-height:600」的天花板，但不再鎖死成固定高度。
+      max-height: min(600px, 100%);
+    }
+  }
+
+  // step-result__paddle（左右切換鈕；對齊 Figma「左右按鈕」：白圓鈕＋1px 硬陰影＋chevron。
+  //   MOB＝30px 小圓鈕、貼卡片兩側外緣；PAD/PC＝40px、外緣 -52px）
+  &__paddle {
+    position: absolute;
+    bottom: 0;
+    // C5：MOB 30px 小圓鈕（設計稿 633-18758）
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--c-line-main);
+    border-radius: 999px;
+    background: var(--c-surface); // default：白底
+    color: var(--c-text); // 箭頭深色，各態皆維持（不轉白）
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 1px 1px 0 var(--c-line-main); // 1px 硬陰影
+    transition:
+      background 0.15s,
+      box-shadow 0.15s,
+      transform 0.15s;
+
+    @include rwd-min(pad) {
+      width: 40px;
+      height: 40px;
+    }
+
+    // hover：黃底 Y01、保留硬陰影（對齊 Figma property1=hover）
+    &:hover:not(:disabled) {
+      background: var(--color-y01);
+    }
+
+    // mouse down：黃底壓下、移除陰影並位移至陰影位置（對齊 Figma property1=mouse down）
+    &:active:not(:disabled) {
+      background: var(--color-y01);
+      box-shadow: none;
+      transform: translate(1px, 1px);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    // step-result__paddle--prev（左：上一個地區；MOB 外緣 -38px、PAD/PC -52px）
+    &--prev {
+      left: -38px;
+
+      @include rwd-min(pad) {
+        left: -52px;
+      }
+    }
+
+    // step-result__paddle--next（右：下一個地區；MOB 外緣 -38px、PAD/PC -52px）
+    &--next {
+      right: -38px;
+
+      @include rwd-min(pad) {
+        right: -52px;
+      }
+    }
+  }
+
+  // step-result__compare-head
+  &__compare-head {
+    flex-shrink: 0; // body 捲動時標題列不被壓縮
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 40px 22px 10px; // C4b：MOB 讓出 pt 空間給置中的收合鈕
+
+    &::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 22px;
+      width: calc(100% - 44px);
+      height: 0.5px;
+      background: var(--c-line-primary);
+    }
+
+    @include rwd-min(pad) {
+      padding: 18px 22px;
+    }
+  }
+
+  // step-result__compare-titles（標題＋人口並排；對齊 Figma 標題列）
+  &__compare-titles {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  // step-result__compare-title
+  &__compare-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--c-text);
+  }
+
+  // step-result__compare-pop（人口；Figma 標題列灰字，與「收合」同色 #808080）
+  &__compare-pop {
+    font-size: 18px;
+    color: var(--c-text-muted);
+    white-space: nowrap;
+  }
+
+  // step-result__compare-toggle（MOB 置中吸附卡片頂端；PAD/PC 回標題列內流排）
+  &__compare-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    font-size: 13px;
+    color: var(--c-text-muted);
+    cursor: pointer;
+    // C4b：MOB 收合/看更多鈕置中吸附卡片頂端（設計稿 633-18758 node 633:24434：top≈14.5、水平置中）
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+
+    @include rwd-min(pad) {
+      position: static;
+      transform: none;
+    }
+  }
+
+  // step-result__compare-chevron（menu_chevron inline；fill=currentColor）
+  &__compare-chevron {
+    width: 11px;
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  // step-result__compare-body
+  &__compare-body {
+    // 面板 height:auto + max-height 時，讓 body 成為唯一捲動區：flex-basis:auto 使面板隨
+    // metric 內容自然增高（未達上限時不捲動）；min-height:0 讓它在被 max-height 夾住後可縮小
+    // 並自行捲動（否則 flex item min-height:auto 會撐破面板高度上限）。
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 6px 22px 18px;
+  }
+
+  // step-result__compare-empty
+  &__compare-empty {
+    padding: 16px 0;
+    color: var(--c-text-faint);
+  }
+
+  // step-result__metric
+  &__metric {
+    padding: 14px 0;
+    border-bottom: 1px solid rgb(0 0 0 / 0.3);
+    font-size: 15px;
+    line-height: 22px;
+
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+  }
+
+  // step-result__metric-name
+  &__metric-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--c-text);
+  }
+
+  // step-result__metric-row（兩欄：左＝area｜右＝pct+val 群組）
+  &__metric-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 10px;
+
+    // step-result__metric-row--home
+    &--home {
+      color: var(--c-text-muted);
+    }
+  }
+
+  // step-result__metric-area（左欄；grid 1fr 撐滿，min-width:0 讓長字可截斷）
+  &__metric-area {
+    min-width: 0;
+  }
+
+  // step-result__metric-right（右欄；再分兩欄＝pct｜val，靠右對齊）
+  &__metric-right {
+    display: grid;
+    grid-template-columns: auto minmax(60px, auto);
+    align-items: center;
+    gap: 10px;
+  }
+
+  // step-result__metric-pct（右欄第一格；home 列無 pct 時此格留空）
+  &__metric-pct {
+    grid-column: 1;
+    background: var(--color-r01);
+    color: var(--c-text-inverse);
+    font-size: 12px;
+    line-height: 1;
+    padding: 3px 5px;
+    white-space: nowrap;
+  }
+
+  // step-result__metric-val（右欄第二格；固定靠右對齊，跨列數值對齊）
+  &__metric-val {
+    grid-column: 2;
+    text-align: right;
+    font-weight: 700;
+    color: var(--c-text);
+  }
+
+  &__metric-row--home &__metric-val {
+    color: var(--c-text-muted);
+  }
+
+  // step-result__zoom（3.5 explore-zoom；MOB 移到工具列同列右側）
+  &__zoom {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: auto;
+    // MOB：工具列同列右側
+    top: $mob-toolbar-top;
+    right: 10px;
+
+    @include rwd-min(pad) {
+      top: calc(#{$app-header-h} + 20px);
+      right: 24px;
+    }
+  }
+
+  // step-result__zoom-btn（圓底與描邊由 SVG 自帶，故按鈕本身透明、僅提供陰影與點擊範圍）
+  // 寬高 30px：對齊 Figma 右上方縮放/資訊按鈕（lc-sr__zoom 整體寬度隨按鈕＝30px）
+  &__zoom-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgb(var(--c-shadow) / 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: box-shadow 0.15s;
+
+    &--info {
+      margin-top: 8px;
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    &:hover {
+      box-shadow: 0 2px 8px rgb(var(--c-shadow) / 0.18);
+    }
+  }
+}

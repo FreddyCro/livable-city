@@ -1,0 +1,27 @@
+{
+  "currentArea": "你現在居住的地區",
+  "title": "與你現在居住的地區相比，你希望搬到什麼樣的地區？",
+  "titleMob": "與現居地區相比，你希望搬到什麼樣的地區？",
+  "hint": "請選擇3項你最重視的居住條件",
+  "hintMob": "請選擇3項居住條件",
+  "selectedLabel": "已選",
+  "viewResults": "查看你的理想居住地區",
+  "_comment": "顯示文字（label）已移至 filter data（public/data/index.json）；此處僅保留 criteria 專用圖示",
+  "cards": {
+    "1": { "icon": "ic_house_price" },
+    "2": { "icon": "ic_house_rent" },
+    "3": { "icon": "ic_hospital" },
+    "4": { "icon": "ic_disease" },
+    "5": { "icon": "ic_crime" },
+    "6": { "icon": "ic_car_crash" },
+    "7": { "icon": "ic_childcare" },
+    "8": { "icon": "ic_elderly_care" },
+    "9": { "icon": "ic_library" },
+    "10": { "icon": "ic_population" },
+    "11": { "icon": "ic_youth" },
+    "12": { "icon": "ic_convenience_store" },
+    "13": { "icon": "ic_dining" },
+    "14": { "icon": "ic_landslide" },
+    "15": { "icon": "ic_tree" }
+  }
+}

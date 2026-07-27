@@ -1,0 +1,37 @@
+# CartoAgent 設定（machine config）。人類可讀的專案規範見 CLAUDE.md。
+project:
+  name: livable-city
+  description: >
+    宜居城市互動地圖 — 2026 九合一選舉聯合報互動專題。
+    三步驟流程（定位現居地 → 選擇條件 → 探索結果），從真實數據找理想居住地。
+  repo_type: single-app
+  language: TypeScript
+  framework: Nuxt 4 (Vue 3.5, SSR) + deck.gl
+
+agent:
+  type: claude-code # constitution file = CLAUDE.md（既有，不由 CA 覆寫）
+
+key_paths:
+  # ca-explorer drift check 會 Glob 這些路徑比對 nodes.yaml
+  modules:
+    - app/components
+    - app/composables
+    - app/utils
+    - scripts
+  shared:
+    - app/utils
+    - app/types
+    - app/assets/styles
+  infra:
+    - nuxt.config.ts
+    - tsconfig.json
+    - package.json
+  docs:
+    nodes: architecture/nodes.yaml
+    adr_path: architecture/adr/
+    adr_index: architecture/adr/INDEX.md
+    gotchas: architecture/map/gotchas.md
+    prd: architecture/PRD.md # 產品需求（流程 mermaid / UI / 轉場設計規格），自訂文件
+
+dev:
+  commands: 見 package.json scripts # dev / build / generate / preview

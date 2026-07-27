@@ -1,0 +1,138 @@
+// step-result（Dialog 經 DialogPortal teleport 至 <body>，
+// Vue scoped 屬性套不到 portal 內元素，故此區改為 global；class 已以 lc-sr 命名空間隔離）
+.lc-sr {
+  // step-result__dialog-overlay（半透明遮罩）
+  &__dialog-overlay {
+    position: fixed;
+    inset: 0;
+    // 手機：資料來源蓋板為全螢幕接管，遮罩須蓋過固定 header（.nmd-header z-index 9998）並一併壓暗
+    z-index: 10000;
+    background: rgb(var(--c-shadow) / 0.45);
+
+    // 遮罩淡入淡出（與 dialog 本體的 fly in/out 同步節奏）。標準 bottom-sheet：背景 fade、卡片 slide。
+    // Reka 於 data-state=open/closed 切換；usePresence 會等 CSS animation 結束才卸載，故用 @keyframes 而非 transition。
+    animation: lc-info-overlay-in 0.3s ease both;
+    &[data-state='closed'] {
+      animation: lc-info-overlay-out 0.25s ease both;
+    }
+
+    // 平板以上：浮層 box 落在 header 下方，遮罩不需蓋過 header
+    @include rwd-min(pad) {
+      z-index: 1000;
+    }
+  }
+
+  // step-result__dialog（資料來源視窗；對齊 Figma「蓋板資料來源視窗」。
+  //   手機：由頂端 36px 起、左右與底部貼齊視窗的下拉式蓋板，僅上緣兩角圓角（底部切齊螢幕邊）、蓋過 header；
+  //   平板以上：改為視窗置中的浮層 box（四角圓角、落在 header 下方）。
+  //   內容由 InfoContent 元件渲染，其 class 以 lc-info 命名空間另行定義。）
+  &__dialog {
+    position: fixed;
+    inset: 36px 0 0; // 手機：top 36、right/bottom/left 0（滿版下拉蓋板）
+    z-index: 10001;
+    display: flex;
+    flex-direction: column;
+    background: var(--c-surface);
+    border: 0.5px solid var(--c-line-main);
+    border-radius: 20px 20px 0 0; // 僅上緣兩角圓角，底部切齊螢幕
+    box-shadow: 0 8px 32px rgb(var(--c-shadow) / 0.2);
+    @include blur(2px);
+    overflow: hidden; // 讓 footer 滿版且底部圓角能裁切；內距改由 InfoContent 各區塊自負
+
+    // toggle 動態：自畫面外（底部）fly in（開）/ 反向 fly out（關），純位移不淡入。
+    // 手機 transform 僅 translateY；平板以上另需保留置中的 translateX(-50%)，故 keyframes 分兩套（見下方 --pc）。
+    animation: lc-info-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    &[data-state='closed'] {
+      animation: lc-info-out 0.25s ease-in both;
+    }
+
+    // 平板以上：視窗置中的浮層 box
+    @include rwd-min(pad) {
+      inset: auto; // 取消手機的貼齊四邊
+      top: calc(#{$app-header-h} + 50px);
+      left: 50%;
+      z-index: 1001;
+      width: min(620px, calc(100vw - 32px));
+      // max-height 以 dvh 為主：iOS/iPadOS Safari 的 100vh 是「工具列隱藏時」的大視窗、比可視區高，
+      // 會讓 fixed 盒子底部掉出畫面（見 StepLocation/StepCriteria 同一坑），dvh 才扣掉工具列。
+      // 100vh 打底、@supports 內用 dvh 覆蓋：不支援 dvh 的老瀏覽器（iOS <15.4）退回 100vh
+      // ——即修改前的行為，屬優雅降級、不算退步。
+      max-height: calc(100vh - #{$app-header-h} - 50px * 2);
+      @supports (height: 100dvh) {
+        max-height: calc(100dvh - #{$app-header-h} - 50px * 2);
+      }
+      transform: translateX(-50%);
+      border-radius: 20px; // 桌機四角圓角
+
+      // 桌機：改用含 translateX(-50%) 的 keyframes，動畫全程維持水平置中
+      animation: lc-info-in-pc 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+      &[data-state='closed'] {
+        animation: lc-info-out-pc 0.25s ease-in both;
+      }
+    }
+  }
+}
+
+// ── 3.8 info-dialog 開關動態：自畫面外 fly in（開）/ 反向 fly out（關）──────────────
+// 起始位移讓卡片頂端正好落在 100vh（完全在畫面外底部）：
+//   手機＝貼底蓋板（inset:36px 0 0，高＝100vh-36），故 translateY(100%)＝自身高＝剛好出畫面；
+//   桌機＝top:header+50 的浮層、非貼底，用 calc(100vh - header - 50px) 讓頂端落到畫面外底部，
+//         並全程保留 translateX(-50%) 維持水平置中。（此為畫面外起始位移，用 100vh 即可、無 dvh 相容問題）
+@keyframes lc-info-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes lc-info-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes lc-info-in-pc {
+  from {
+    transform: translateX(-50%) translateY(calc(100vh - #{$app-header-h} - 50px));
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+  }
+}
+@keyframes lc-info-out-pc {
+  from {
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    transform: translateX(-50%) translateY(calc(100vh - #{$app-header-h} - 50px));
+  }
+}
+@keyframes lc-info-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes lc-info-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+// 尊重減少動態偏好：關閉 info-dialog 開關動畫（瞬間顯示／隱藏）
+@media (prefers-reduced-motion: reduce) {
+  .lc-sr__dialog,
+  .lc-sr__dialog[data-state='closed'],
+  .lc-sr__dialog-overlay,
+  .lc-sr__dialog-overlay[data-state='closed'] {
+    animation: none;
+  }
+}

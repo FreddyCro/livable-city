@@ -1,0 +1,456 @@
+@use '../../assets/styles/mixins' as *;
+
+// 固定標題版位（各斷點）：top 偏移 + 標題區渲染高度（badge + gap + heading 行高）。
+// step 1-2 表單層 padding-top 由「title-top + title-h + title-gap」推導，與標題版位
+// 單一來源；改標題位置或間距時，下方留白自動跟著走，不用各自重算魔術數字。
+$title-top-mob: 77px;
+$title-top-pad: 87px;
+$title-top-pc: 100px;
+$title-h-mob: 124px; // badge 32 + gap 4 + heading 2 行（44×2）
+$title-h-pad: 120px; // badge 36 + gap 4 + heading 1 行 80
+$title-h-pc: 120px;
+
+// step-location
+.lc-sl {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: $color-b01; // 最淺藍底（B01 #e6f5fa）
+  overflow: hidden;
+  // 父層 .lc-mv 被 deck.gl 設為 pointer-events:none，此屬性會「繼承」；
+  // step 面板須自行宣告 auto，否則整頁（含 @wheel/@touch 下滑揭露）無法互動。
+  pointer-events: auto;
+
+  // 主視覺層滿版鋪底；共用區塊（標題＋前言＋表單）疊在其上
+  // ── step 1-1：首屏主視覺層 ──────────────────────────
+  // step-location__visual-layer
+  &__visual-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    transition:
+      opacity 0.45s ease,
+      transform 0.45s ease;
+  }
+
+  // step-location__visual（全幅背景影片；依斷點換片、object-fit 裁切置中。poster 同樣套用 object-fit）
+  &__visual {
+    // ── 羽化可調參數（只改這幾個）─────────────────────
+    // 距離：左右邊（x）與上下邊（y）的淡出過渡範圍寬度，可分開設定（越大過渡越寬）。
+    --lc-sl-feather-x: 50px;
+    --lc-sl-feather-y: 5px;
+    // 強度：淡出曲線的凹度 0～1（x／y 共用）。0＝線性（最弱、均勻淡出）；
+    //   1＝最凹（最外緣幾乎全透明、僅內側拉回實心，最能吃掉色差）。
+    --lc-sl-feather-strength: 1;
+
+    // ── 以下為推導值，勿手動改 ─────────────────────────
+    // 中繼色標位置（各佔對應軸 size 的 30%／60%／80%）
+    --lc-sl-feather-x-p1: calc(var(--lc-sl-feather-x) * 0.3);
+    --lc-sl-feather-x-p2: calc(var(--lc-sl-feather-x) * 0.6);
+    --lc-sl-feather-x-p3: calc(var(--lc-sl-feather-x) * 0.8);
+    --lc-sl-feather-y-p1: calc(var(--lc-sl-feather-y) * 0.3);
+    --lc-sl-feather-y-p2: calc(var(--lc-sl-feather-y) * 0.6);
+    --lc-sl-feather-y-p3: calc(var(--lc-sl-feather-y) * 0.8);
+    // 中繼色標不透明度：由強度在「線性(強度0)↔最凹(強度1)」間內插（x／y 共用）
+    --lc-sl-feather-a1: calc(0.3 - 0.27 * var(--lc-sl-feather-strength));
+    --lc-sl-feather-a2: calc(0.6 - 0.45 * var(--lc-sl-feather-strength));
+    --lc-sl-feather-a3: calc(0.8 - 0.3 * var(--lc-sl-feather-strength));
+
+    position: absolute;
+    top: 10%;
+    left: 0;
+    width: 100%;
+    height: 90%;
+    object-fit: contain;
+    object-position: center center;
+    pointer-events: none; // 不攔截互動，直接穿透到下方的 block content（step2）
+
+    // poster：影片解出首幀前顯示的背景圖，解出後被影片幀蓋過。依斷點由 CSS 換圖
+    // （URL 來自 template 綁的 --lc-sl-poster-* 變數，含 CDN 前綴）。background-size: contain
+    // 對齊上方 object-fit: contain；背景與影片同吃下方的四邊羽化 mask。mobile first：預設 mob。
+    background-image: var(--lc-sl-poster-mob);
+    background-size: contain;
+    background-position: center center;
+    background-repeat: no-repeat;
+
+    // 水平＋垂直兩道漸層取交集 → 四邊皆羽化的矩形遮罩（角落自然雙重淡出）。
+    // 中繼色標用 rgb(.. / calc) 帶入強度推導的 alpha：過渡寬度＝size，凹度＝strength，
+    // 兩者互不影響，改上面兩個變數即可分別調整羽化的「距離」與「強度」。
+    mask-image:
+      linear-gradient(
+        to right,
+        rgb(0 0 0 / 0) 0,
+        rgb(0 0 0 / var(--lc-sl-feather-a1)) var(--lc-sl-feather-x-p1),
+        rgb(0 0 0 / var(--lc-sl-feather-a2)) var(--lc-sl-feather-x-p2),
+        rgb(0 0 0 / var(--lc-sl-feather-a3)) var(--lc-sl-feather-x-p3),
+        #000 var(--lc-sl-feather-x),
+        #000 calc(100% - var(--lc-sl-feather-x)),
+        rgb(0 0 0 / var(--lc-sl-feather-a3))
+          calc(100% - var(--lc-sl-feather-x-p3)),
+        rgb(0 0 0 / var(--lc-sl-feather-a2))
+          calc(100% - var(--lc-sl-feather-x-p2)),
+        rgb(0 0 0 / var(--lc-sl-feather-a1))
+          calc(100% - var(--lc-sl-feather-x-p1)),
+        rgb(0 0 0 / 0) 100%
+      ),
+      linear-gradient(
+        to bottom,
+        rgb(0 0 0 / 0) 0,
+        rgb(0 0 0 / var(--lc-sl-feather-a1)) var(--lc-sl-feather-y-p1),
+        rgb(0 0 0 / var(--lc-sl-feather-a2)) var(--lc-sl-feather-y-p2),
+        rgb(0 0 0 / var(--lc-sl-feather-a3)) var(--lc-sl-feather-y-p3),
+        #000 var(--lc-sl-feather-y),
+        #000 calc(100% - var(--lc-sl-feather-y)),
+        rgb(0 0 0 / var(--lc-sl-feather-a3))
+          calc(100% - var(--lc-sl-feather-y-p3)),
+        rgb(0 0 0 / var(--lc-sl-feather-a2))
+          calc(100% - var(--lc-sl-feather-y-p2)),
+        rgb(0 0 0 / var(--lc-sl-feather-a1))
+          calc(100% - var(--lc-sl-feather-y-p1)),
+        rgb(0 0 0 / 0) 100%
+      );
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in; // Safari 舊語法對應 intersect
+
+    @include rwd-min(pad) {
+      --lc-sl-feather-x: 120px;
+      top: 120px;
+      // 用 100%（相對定位父層 __visual-layer inset:0＝可視視窗）而非 100vh：
+      // iOS/iPadOS Safari 的 100vh 是「工具列隱藏時」的大視窗，比實際可視區高，
+      // 會把 object-fit:contain 的主視覺底部（含說明字）推到摺線下被裁切（iPad Pro 橫式尤明顯）。
+      height: calc(100% - 120px);
+      background-image: var(--lc-sl-poster-pad);
+    }
+
+    @include rwd-min(pc) {
+      --lc-sl-feather-x: 180px;
+      background-image: var(--lc-sl-poster-pc);
+    }
+  }
+
+  // step-location__visual-credit（影片來源標註；左下角）
+  &__visual-credit {
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    z-index: 2;
+    font-size: 13px;
+    color: var(--c-text-faint);
+    pointer-events: none;
+  }
+
+  // ── 標題（badge + 主標題）────────────────────────────
+  // step-location__title
+  &__title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    padding: 0 20px;
+  }
+
+  // step-location__block（共用區塊：標題＋前言＋表單）
+  // step1：translateY=標題版位（貼頂，只見標題）；step2：整組垂直置中，
+  //   translateY 由元件量測 = max(titleTop, (wrapperH − blockH) / 2)：一般垂直置中，
+  //   但下限為標題版位（--lc-sl-title-top ≈ header 下緣），置中位置過高時改貼齊該線，
+  //   確保置中時不鑽進固定 header。
+  // --lc-sl-title-top：各斷點標題版位（step1 貼頂位置），同時作為 step2 置中的上緣下限，
+  //   由元件讀取（單一來源，勿在 TS 硬寫 header 高度）。
+  // --lc-sl-block-y 預設引用 title-top（step1）；revealed 時由元件 inline 覆寫成置中 px，
+  //   transform 因此平滑過渡（向下位移）。標題本身不淡出，只隨整組位移。
+  &__block {
+    --lc-sl-title-top: #{$title-top-mob};
+    --lc-sl-block-y: var(--lc-sl-title-top);
+
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    transform: translate(-50%, var(--lc-sl-block-y));
+    transition: transform 0.5s ease; // step1 貼頂 ↔ step2 置中 的向下位移
+
+    @include rwd-min(pad) {
+      --lc-sl-title-top: #{$title-top-pad};
+
+      gap: 40px;
+    }
+
+    @include rwd-min(pc) {
+      --lc-sl-title-top: #{$title-top-pc};
+    }
+  }
+
+  // step-location__badge（黃色膠囊標籤）
+  &__badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 4px 20px;
+    border-radius: 70px;
+    background: $color-y01; // Y01 #f4cc34
+    color: #000;
+    white-space: nowrap;
+
+    @include rwd-min(pad) {
+      height: 36px;
+      padding: 2px 20px;
+    }
+  }
+
+  // step-location__heading（主標題）
+  &__heading {
+    margin: 0;
+    font-weight: 700;
+    text-align: center;
+    color: #000;
+
+    @include text-outline(
+      4px,
+      $color-b01
+    ); // 白底沿字形輪廓，壓在背景影片上仍清晰
+
+    // 矮螢幕手機（SE2 等）：mob 級距 36/44（兩行 ≈ 88px）在 667px 高的視窗過大，
+    // 會把首屏擠到「下滑看更多」壓上主視覺說明字。收斂字級讓出垂直空間（覆寫 .lc-h1）。
+    @include rwd-short-phone {
+      font-size: 28px;
+      line-height: 34px;
+    }
+  }
+
+  // ── 下滑提示 ────────────────────────────────────────
+  // step-location__scroll-hint
+  &__scroll-hint {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    background: transparent;
+    font-weight: 300;
+    color: #000;
+
+    // 電腦版：移到右側、文字直書
+    @include rwd-min(pc) {
+      bottom: 0;
+      left: auto;
+      right: 54px;
+      transform: none;
+    }
+  }
+
+  // step-location__scroll-hint-text
+  &__scroll-hint-text {
+    font-size: 15px;
+
+    @include rwd-min(pc) {
+      writing-mode: vertical-rl;
+      letter-spacing: 2px;
+    }
+  }
+
+  // step-location__scroll-hint-line（靜態細軌＋向下循環的亮段，做出「向下」暗示）
+  &__scroll-hint-line {
+    position: relative;
+    width: 0.5px;
+    height: 74px;
+    // background: rgba(0, 0, 0, 0.2); // 暗淡軌道
+    overflow: hidden;
+
+    @include rwd-short-phone {
+      height: 36px;
+    }
+
+    @include rwd-min(pc) {
+      height: 130px;
+    }
+
+    // 亮段沿軌道由上往下跑（跑馬燈循環）
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0 0 auto;
+      height: 70%;
+      background: #000;
+      animation: lc-sl-line 2.2s cubic-bezier(0.4, 0, 0.3, 1) infinite;
+    }
+  }
+
+  // ── step 1-2：前言＋表單（block 內，標題下方）──────────
+  // step-location__content（step1 隱藏不可互動；step2 fade / slide in）
+  &__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    padding: 0 20px;
+    opacity: 0;
+    pointer-events: none;
+    // 容器本身不做轉場（瞬間切換）；淡入＋上滑改由 __intro / __form 各自分階段呈現
+
+    @include rwd-min(pad) {
+      max-width: 530px;
+      padding: 0;
+      gap: 40px;
+    }
+
+    @include rwd-min(pc) {
+      max-width: 620px;
+      gap: 20px;
+    }
+  }
+
+  // step-location__intro（前言；兩端對齊）
+  &__intro {
+    margin: 0;
+    text-align: justify;
+    color: #1e1e1e;
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 0.5s ease 0.3s,
+      transform 0.5s ease 0.3s;
+
+    // 矮螢幕手機（SE2 等）：前言 .lc-p 18/36 多行過高，step 1-2 整組（標題＋前言＋表單）
+    // 會超出視窗被裁掉（「下一步」被工具列擋住）。收斂字級讓表單完整入框（覆寫 .lc-p）。
+    @include rwd-short-phone {
+      font-size: 15px;
+      line-height: 26px;
+    }
+
+    @include rwd-min(pc) {
+      padding: 20px 0;
+    }
+  }
+
+  // step-location__form
+  &__form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 360px;
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 0.5s ease 0.6s,
+      transform 0.5s ease 0.6s;
+
+    @include rwd-min(pc) {
+      max-width: 400px;
+    }
+  }
+
+  // step-location__question
+  &__question {
+    margin: 0;
+    padding-bottom: 12px;
+    font-weight: 700;
+    text-align: center;
+    color: #1e1e1e;
+    font-size: 24px;
+    line-height: 1;
+
+    @include rwd-min(pc) {
+      font-size: 20px;
+      line-height: 38px;
+      padding-bottom: 4px;
+    }
+  }
+
+  // step-location__selects（兩個 select 等分並排）
+  &__selects {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+
+    > * {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+  }
+
+  // CTA 主按鈕（下一步）外觀已抽至共用 UiNextButton；版位由 &__form 控制。
+
+  // ── 展開狀態（切換到 step 1-2）────────────────────────
+  // 主視覺：上移 + fade out
+  &--revealed &__visual-layer {
+    opacity: 0;
+    transform: translateY(-48px);
+    pointer-events: none;
+  }
+
+  // 首屏淡出後，下滑提示已不可見，停掉亮段動畫省去無謂的 compositor 工作
+  &--revealed &__scroll-hint-line::after {
+    animation: none;
+  }
+
+  // 容器：瞬間顯示並恢復互動（不淡入，標題不淡出，整組由 block transform 向下位移置中）
+  &--revealed &__content {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  // 前言：淡入＋上滑，delay 0.3s
+  &--revealed &__intro {
+    opacity: 1;
+    transform: none;
+  }
+
+  // 表單：淡入＋上滑，delay 0.6s（接在前言之後分階段呈現）
+  &--revealed &__form {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// 下滑提示亮段：由軌道上方跑到下方並淡出，循環往復
+@keyframes lc-sl-line {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(250%);
+    opacity: 0;
+  }
+}
+
+// 尊重「減少動態」偏好
+@media (prefers-reduced-motion: reduce) {
+  .lc-sl__visual-layer,
+  .lc-sl__block,
+  .lc-sl__intro,
+  .lc-sl__form {
+    transition-duration: 0.01ms;
+  }
+
+  // block 的 transform 是定位用途，不可清除；僅視覺層與前言／表單的滑入位移可省略
+  .lc-sl__visual-layer,
+  .lc-sl__intro,
+  .lc-sl__form {
+    transform: none;
+  }
+
+  .lc-sl__scroll-hint-line::after {
+    animation: none;
+  }
+}

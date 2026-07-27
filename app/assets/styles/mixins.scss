@@ -1,0 +1,99 @@
+@use 'sass:map';
+@use './variables.scss' as vars;
+
+@mixin rwd-min($key) {
+  $bp: map.get(vars.$breakpoints, $key);
+  @if $bp {
+    @media screen and (min-width: #{$bp}) {
+      @content;
+    }
+  } @else {
+    @warn "Breakpoint `#{$key}` not found in \$breakpoints.";
+  }
+}
+
+@mixin rwd-max($key) {
+  $bp: map.get(vars.$breakpoints, $key);
+  @if $bp {
+    $adjusted: calc(#{$bp} - 0.02px);
+    @media screen and (max-width: #{$adjusted}) {
+      @content;
+    }
+  } @else {
+    @warn "Breakpoint `#{$key}` not found in \$breakpoints.";
+  }
+}
+
+@mixin rwd-between($minKey, $maxKey) {
+  $min: map.get(vars.$breakpoints, $minKey);
+  $max: map.get(vars.$breakpoints, $maxKey);
+  @if $min and $max {
+    $adjustedMax: calc(#{$max} - 0.02px);
+    @media screen and (min-width: #{$min}) and (max-width: #{$adjustedMax}) {
+      @content;
+    }
+  } @else {
+    @warn "Breakpoint `#{$minKey}` or `#{$maxKey}` not found in \$breakpoints.";
+  }
+}
+
+// 矮螢幕手機（如 iPhone SE2：375×667）：min-width 斷點無法涵蓋「視窗高度不足」，
+// 以 max-height + 手機寬度收斂字級，補足這個情境。$maxH 預設 700px（涵蓋 SE 級距 667/568，
+// 不觸及 iPhone 13 mini 812 等一般手機）；寬度上界對齊 rwd-max(pad) 的 768 - 0.02。
+@mixin rwd-short-phone($maxH: 700px) {
+  @media screen and (max-width: 767.98px) and (max-height: #{$maxH}) {
+    @content;
+  }
+}
+
+@mixin font-style(
+  $family: Noto Sans TC,
+  $size,
+  $weight,
+  $lineHeight,
+  $text-align: left,
+  $color
+) {
+  font-family: $family;
+  font-size: $size;
+  font-weight: $weight;
+  line-height: $lineHeight;
+  text-align: $text-align;
+  color: $color;
+}
+
+// 依 key 套用 Figma Text style（size + line-height），對照 vars.$text-styles
+@mixin text-style($key) {
+  $style: map.get(vars.$text-styles, $key);
+
+  @if $style {
+    font-size: map.get($style, size);
+    line-height: map.get($style, line-height);
+  } @else {
+    @warn "Text style `#{$key}` not found in \$text-styles.";
+  }
+}
+
+// 文字輪廓白底：沿字形外擴一圈底色，讓深色字壓在影片/雜亂背景上仍清晰。
+// 原理：paint-order 先畫 stroke 墊底、再畫 fill 蓋上，白邊只露在輪廓外圈。
+// 可見白邊約為 $width 的一半。
+@mixin text-outline($width: 12px, $color: #fff) {
+  -webkit-text-stroke: $width $color;
+  paint-order: stroke fill;
+}
+
+@mixin blur($blur: 10px) {
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+}
+
+// hover：僅在支援真實游標（滑鼠）的裝置套用 :hover。
+// 觸控裝置點擊後 :hover 會殘留（sticky hover），導致按鈕點掉後底色仍留著 hover 樣式；
+// 包一層 (hover: hover) 讓觸控裝置點掉後回到預設（透明）底色。
+@mixin hover {
+  @media (hover: hover) {
+    &:hover {
+      @content;
+    }
+  }
+}
