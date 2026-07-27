@@ -158,9 +158,9 @@ export function useStepLocation(
   // 影片來源改用 <source media>：瀏覽器在「解析 HTML 時」就依 media 挑對斷點來源
   // （SSR 首屏即正確、不必等 JS，桌機不會先抓 mob 再切）。跨斷點 resize 時再由 JS 呼叫
   // el.load()，讓瀏覽器重跑資源選擇、依 media 重挑來源（見下方 onBpChange）。
-  // poster 無法用 media 選（單一 URL），仍由 bp 驅動（首屏 SSR 為 mob，掛載後修正）。
-  const bp = ref<Bp>('mob');
-  const activePoster = computed(() => visualPoster[bp.value]);
+  // poster 無法用 media 選（單一 URL）：改由 CSS media query 換背景圖（見 SCSS 的 --lc-sl-poster-*），
+  // URL 經 template 的 CSS 變數從 visualPoster 帶入（含 CDN 前綴）。CSS 於各視口即選對圖，
+  // SSR 正確、無 hydration 閃爍、桌機只下載命中的那張，故此處不再需要 bp / activePoster。
 
   // 前奏（0–4s）只在首播放一次；播到結尾後不回 0、而是回到 4s，之後固定 loop「4s → 結尾」
   // 段落（故 <video> 不加原生 loop，改由 ended 接管）。換片重載後若前奏已播畢，亦從 4s 續播。
@@ -175,17 +175,14 @@ export function useStepLocation(
     void el.play();
   }
 
-  // matchMedia 追蹤斷點
+  // matchMedia 追蹤斷點：跨越門檻時重載影片，讓瀏覽器依 <source media> 重挑來源
   let mqlPad: MediaQueryList | null = null;
   let mqlPc: MediaQueryList | null = null;
-  const resolveBp = (): Bp =>
-    mqlPc?.matches ? 'pc' : mqlPad?.matches ? 'pad' : 'mob';
 
   // 跨斷點（change 事件只在「實際跨越」門檻時觸發，掛載當下不會，故不會多做一次重載）：
-  //   1) 更新 bp → poster 換圖；
-  //   2) el.load() 讓瀏覽器依 <source media> 重挑影片來源，載入後依前奏狀態決定起點。
+  // el.load() 讓瀏覽器依 <source media> 重挑影片來源，載入後依前奏狀態決定起點。
+  // （poster 由 CSS media query 自動換圖，無需在此處理。）
   const onBpChange = () => {
-    bp.value = resolveBp();
     const el = visualVideo.value;
     if (!el) return;
     el.load();
@@ -212,8 +209,8 @@ export function useStepLocation(
 
     mqlPad = window.matchMedia('(min-width: 768px)');
     mqlPc = window.matchMedia('(min-width: 1024px)');
-    // 初值只同步 poster；影片首屏已由 <source media> 在解析時挑對，不需（也不該）在此重載。
-    bp.value = resolveBp();
+    // 只註冊跨斷點監聽：影片首屏已由 <source media> 在解析時挑對、poster 由 CSS media query 選圖，
+    // 故掛載時不需（也不該）在此重載影片或同步任何斷點狀態。
     mqlPad.addEventListener('change', onBpChange);
     mqlPc.addEventListener('change', onBpChange);
 
@@ -246,7 +243,7 @@ export function useStepLocation(
     gaClickBtn,
     visualVideo,
     onVisualEnded,
-    activePoster,
+    videoPoster: visualPoster,
     videoSrc: visualVideoSrc,
   };
 }

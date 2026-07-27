@@ -65,6 +65,14 @@ $title-h-pc: 120px;
     object-position: center center;
     pointer-events: none; // 不攔截互動，直接穿透到下方的 block content（step2）
 
+    // poster：影片解出首幀前顯示的背景圖，解出後被影片幀蓋過。依斷點由 CSS 換圖
+    // （URL 來自 template 綁的 --lc-sl-poster-* 變數，含 CDN 前綴）。background-size: contain
+    // 對齊上方 object-fit: contain；背景與影片同吃下方的四邊羽化 mask。mobile first：預設 mob。
+    background-image: var(--lc-sl-poster-mob);
+    background-size: contain;
+    background-position: center center;
+    background-repeat: no-repeat;
+
     // 水平＋垂直兩道漸層取交集 → 四邊皆羽化的矩形遮罩（角落自然雙重淡出）。
     // 中繼色標用 rgb(.. / calc) 帶入強度推導的 alpha：過渡寬度＝size，凹度＝strength，
     // 兩者互不影響，改上面兩個變數即可分別調整羽化的「距離」與「強度」。
@@ -108,10 +116,12 @@ $title-h-pc: 120px;
       --lc-sl-feather-x: 120px;
       top: 120px;
       height: calc(100vh - 120px);
+      background-image: var(--lc-sl-poster-pad);
     }
 
     @include rwd-min(pc) {
       --lc-sl-feather-x: 180px;
+      background-image: var(--lc-sl-poster-pc);
     }
   }
 

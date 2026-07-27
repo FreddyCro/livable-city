@@ -25,7 +25,7 @@ const {
   gaClickBtn,
   visualVideo,
   onVisualEnded,
-  activePoster,
+  videoPoster,
   videoSrc,
 } = useStepLocation(props, emit);
 </script>
@@ -43,11 +43,17 @@ const {
       <!-- 主視覺背景影片。來源用 <source media>：瀏覽器解析 HTML 時即依斷點挑對來源
            （SSR 首屏正確、不必等 JS，桌機不會先抓 mob）；順序 pc → pad → mob(fallback)，
            取第一個 media 命中且格式支援者。跨斷點 resize 由 JS 呼叫 el.load() 重挑（見 logic）。
-           poster 無法用 media 選，仍由 activePoster 驅動、object-fit 裁切置中。 -->
-      <!-- :poster="activePoster" -->
+           poster 無法用 media 選（單一 URL）：改由 CSS 依斷點換背景圖（見 SCSS 的 --lc-sl-poster-*）。
+           URL 經此處 CSS 變數帶入（含 CDN 前綴）；影片解出首幀前顯示，之後被影片幀蓋過，
+           與影片同吃 object-fit(contain) 對應的 background-size 與四邊羽化 mask。 -->
       <video
         ref="visualVideo"
         class="lc-sl__visual"
+        :style="{
+          '--lc-sl-poster-mob': `url('${videoPoster.mob}')`,
+          '--lc-sl-poster-pad': `url('${videoPoster.pad}')`,
+          '--lc-sl-poster-pc': `url('${videoPoster.pc}')`,
+        }"
         autoplay
         muted
         playsinline

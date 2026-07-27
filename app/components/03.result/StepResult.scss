@@ -367,6 +367,7 @@
     color: var(--c-text-inverse);
     text-decoration: none;
     font-size: 14px;
+    font-weight: 400; // banners 一律不使用粗體
     // MOB：等寬填滿頂部橫列、單行 44px 高
     flex: 1;
     min-width: 0;
@@ -381,10 +382,6 @@
       min-width: auto;
       height: auto;
       padding: 16px 24px;
-    }
-
-    strong {
-      font-weight: 700;
     }
 
     // step-result__banner--data（hover 整體淡出至 90%，對齊設計稿 hover 態；hover mixin 僅游標裝置生效）

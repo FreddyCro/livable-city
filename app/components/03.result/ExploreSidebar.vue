@@ -106,7 +106,7 @@ const { gaClickOption, gaClickBtn, gaClickOpen } = useTrackingEvent();
         @click="gaClickBtn(str.banner1Title + ' ' + str.banner1Sub)"
       >
         <span class="lc-sr__banner-text"
-          ><strong>{{ str.banner1Title }}</strong>
+          ><span>{{ str.banner1Title }}</span>
           <span class="lc-sr__banner-sub">{{ str.banner1Sub }}</span></span
         >
         <span class="lc-sr__banner-icon"
@@ -121,7 +121,7 @@ const { gaClickOption, gaClickBtn, gaClickOpen } = useTrackingEvent();
         @click="gaClickBtn(str.banner2Title + ' ' + str.banner2Sub)"
       >
         <span class="lc-sr__banner-text"
-          ><strong>{{ str.banner2Title }}</strong>
+          ><span>{{ str.banner2Title }}</span>
           <span class="lc-sr__banner-sub">{{ str.banner2Sub }}</span></span
         >
         <span class="lc-sr__banner-icon"
