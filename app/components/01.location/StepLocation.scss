@@ -145,7 +145,7 @@ $title-h-pc: 120px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
     width: 100%;
     padding: 0 20px;
   }
@@ -241,6 +241,10 @@ $title-h-pc: 120px;
     color: #000;
 
     // 電腦版：移到右側、文字直書
+    @include rwd-min(pad) {
+      gap: 4px;
+    }
+
     @include rwd-min(pc) {
       bottom: 0;
       left: auto;
