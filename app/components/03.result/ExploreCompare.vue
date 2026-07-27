@@ -22,7 +22,8 @@ defineProps<{
   hasNext: boolean;
   // 格式化 helper 由 parent 傳入：pct 依賴 filterDataCache/選取地區，維持單一計算來源
   pct: (fid: string) => string | null;
-  formatVal: (val: number | null | undefined) => string;
+  // formatVal 需帶指標 id：小數位依指標而定（與 step 2 現居地資訊欄共用同一設定）
+  formatVal: (id: string, val: number | null | undefined) => string;
 }>();
 
 defineEmits<{
@@ -95,7 +96,7 @@ const { gaClickOpen } = useTrackingEvent();
                 pct(fid)
               }}</span>
               <span class="lc-sr__metric-val">{{
-                formatVal(filterDataCache[fid]?.[selectedResultCode!])
+                formatVal(fid, filterDataCache[fid]?.[selectedResultCode!])
               }}</span>
             </div>
           </div>
@@ -105,7 +106,7 @@ const { gaClickOpen } = useTrackingEvent();
             >
             <div class="lc-sr__metric-right">
               <span class="lc-sr__metric-val">{{
-                formatVal(filterDataCache[fid]?.[selectedTownCode])
+                formatVal(fid, filterDataCache[fid]?.[selectedTownCode])
               }}</span>
             </div>
           </div>

@@ -8,6 +8,12 @@
 
 優先將 memory 存放在本專案的 `.claude/memory/` 目錄（`.claude\memory\`），而非全域 memory 目錄。MEMORY.md index 同樣存放於此目錄。
 
+## Gotchas（知識累積）
+
+- 運作過程中若發現「光看程式碼不易察覺、下次容易再踩」的陷阱或關鍵知識，主動寫入 [`architecture/gotchas.md`](architecture/gotchas.md)，避免下次重複踩雷。
+- 依該檔既有格式：以**模組名稱**分節，每則條列 **症狀 / 原因 / 修法 / 位置**（必要時補「延伸」）。有對應模組區塊就接在其下，否則新增區塊。
+- 與 memory 分工：`gotchas.md` 記**程式碼層級、會進 git 的技術陷阱**；`.claude/memory/` 記使用者偏好、專案脈絡等 session 知識。
+
 ## Output Files
 
 所有 skill 或任務產生的暫存、輸出檔案，優先寫入 `temp/` 目錄。若該子目錄不存在，先建立再寫入。

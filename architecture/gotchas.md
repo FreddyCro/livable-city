@@ -79,3 +79,17 @@
 - **修法**：該區 `<style>` 改 **non-scoped**，靠 `lc-` BEM 命名空間隔離。
 - **位置**：`InfoContent.vue`、`AppFooter.vue`、`StepResult/StepResult.global.scss`（與 scoped 的 `StepResult.scss` 分檔，用 `<style src>` 各自引入）。
 - **延伸**：`nuxt.config.ts` 的 `css.preprocessorOptions.scss.additionalData` 會把 `mixins`/`variables` 注入**每個** scss（含 `<style src>` 外部檔），故外部 `.scss` 用 `$app-header-h`、`@include rwd-min(...)` 免再手動 `@use`。
+
+### `max-height: calc(100vh - …)` 在 iOS/iPadOS 會超出可視區 → 用 `dvh`
+
+- **症狀**：iPad（尤其橫向）上，`position:fixed` 的浮層／對話框（如 info-dialog）上下超出視窗、底部被切掉。
+- **原因**：iOS/iPadOS Safari（及 iPad 上 WebKit 系瀏覽器）的 `100vh` 是「工具列隱藏時」的**大視窗**、比實際可視區高；以 `calc(100vh - …)` 當 `max-height` 會算出比可見範圍還大的高度，盒子底部就掉出畫面。
+- **修法**：改 `100dvh`（dynamic viewport height，會扣掉工具列）。老瀏覽器 fallback：`100vh` 打底 + `@supports (height: 100dvh) { … }` 覆蓋（dvh 支援起於 iOS 15.4 / Chrome 108）。純「畫面外起始位移」用途的 vh（如 fly-in keyframe，只要夠遠即可）不受影響、免改。
+- **位置**：`StepResult.global.scss`（info-dialog `&__dialog`）。專案他處早已知此坑並避開：`StepLocation.scss`（改用 `100%`）、`StepCriteria.scss`（用 `dvh`）——唯獨此對話框當時漏改。
+
+### `overflow-y: auto` 會連帶把 `overflow-x` 變 `auto` → 冒出非預期的水平 scrollbar
+
+- **症狀**：只想垂直捲動的容器卻出現水平 scrollbar（如 info-dialog 內塞入為整頁滿版設計的 `NmdFooter`）。
+- **原因**：CSS 規範——一軸設成非 `visible`（`auto`/`scroll`/`hidden`）時，另一軸的 `visible` 會被**強制計算成 `auto`**。故 `overflow-y: auto` 等同同時給了 `overflow-x: auto`，只要有子元素比容器寬就冒水平 scrollbar。
+- **修法**：明確寫 `overflow: hidden auto`（x 裁掉、y 捲動）；若子元素本不該撐寬，另外約束其寬度（例如把外部滿版元件設 `max-width:100%`）。
+- **位置**：`InfoContent.vue`（`&__body`）。

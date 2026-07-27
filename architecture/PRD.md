@@ -156,7 +156,7 @@ flowchart TD
 
 | 編號 | 元件 / 區塊 | 狀態 | 功能 | 說明 |
 | --- | --- | :--: | --- | --- |
-| 2.1 | `criteria-stats`（`.lc-sc__info`） | ✅ | 現居地數據面板 | 頂部小地圖（僅渲染被選鄉鎮輪廓，`selectedTownThumb` 正規化 SVG path 由地圖產出）＋現居地名稱＋**全 15 指標數據**逐項（`statText(f)`）。行動版（<768）改為底部可展開 sheet，location 列當 toggle（`infoOpen`）。 |
+| 2.1 | `criteria-stats`（`.lc-sc__info`） | ✅ | 現居地數據面板 | 頂部小地圖（僅渲染被選鄉鎮輪廓，`selectedTownThumb` 正規化 SVG path 由地圖產出）＋現居地名稱＋**全 15 指標數據**逐項（`statText(f)`；數值小數位由 [formatMetric](../app/utils/formatMetric.ts) 統一，與 step 3 比較卡一致）。行動版（<768）改為底部可展開 sheet，location 列當 toggle（`infoOpen`）。 |
 | 2.2 | `criteria-cards`（`.lc-sc__cards`） | ✅ | 居住條件卡片格 | 每個 `filterIndex` 一張卡（圖示 + `label` 方向性文字）。點擊 `toggleFilter(id)` 進 `selectedFilters`。 |
 | — | 選取上限與啟用條件 | ✅ | 硬性選滿 3 項 | 達上限（`atMax`）後未選卡片加 `--disabled`；`canProceed = length === 3` 才啟用「查看你的理想居住地區」。已選計數以膠囊 `lc-sc__hint-count`（全尺寸通用）顯示、隨已選數更新。 |
 | — | 桌機進場動畫 | ✅ | fade-up 依序進場 | **僅桌機（≥1024）**：1→2 PUSH 走完後，① `.lc-sc__info` → ② `.lc-sc__head`+`.lc-sc__cards` → ③ `.lc-sc__submit` 依序 fade-up（各 500ms、間隔 300ms；`@keyframes lc-sc-fadeup`）。pad / 手機不套用。 |
@@ -219,7 +219,7 @@ criteria 送出後：
 | 3.2 | `explore-result-bar`（`.lc-sr__list`） | ✅ | 結果清單「共 N 項結果」 | Reka **Collapsible + Listbox**：收合為膠囊（「共 N 項結果 🔍」）、展開為依縣市分組（`resultGroups`，**0 筆 group 不顯示**）、依 `order.json` 排序（「← 請選擇」）。點清單項 → 選取並飛入。單選**不可取消**（`selection-behavior="replace"`，已選項再點維持選取）。**非**共用 SelectDropdown。 |
 | 3.3 | `explore-map`（[TaiwanMap.vue](../app/components/TaiwanMap.vue)） | ✅ | 地圖 + 標點 | 見「地圖引擎」。點結果黃點 / 清單項 → 飛入並顯示比較卡。 |
 | — | hover tooltip（[MapTooltip.vue](../app/components/MapTooltip.vue)） | ⬜ | 滑過鄉鎮顯示縣市／區名 | 元件已存在，但**目前在 [TaiwanMap.vue](../app/components/TaiwanMap.vue) 內註解停用**，尚未渲染。 |
-| 3.4 | `explore-compare`（`.lc-sr__compare-wrap`） | ✅ | 比較 / 詳情浮卡 | 地圖下方可收合浮卡，兩側 **paddle nav（◀ ▶）** 依結果清單順序切換上／下一筆並同步飛入。標題含「縣市 鄉鎮」+ **人口數**（`usePopulation`）。**兩態 `compareState`：`half`（首個指標，預設）/ `open`（全指標，含 vs 現居的 % 差）；切換鈕在兩態間來回，點外部收合為 `half`。`collapsed`（只剩標題）型別／template 保留但流程不再進入**。 |
+| 3.4 | `explore-compare`（`.lc-sr__compare-wrap`） | ✅ | 比較 / 詳情浮卡 | 地圖下方可收合浮卡，兩側 **paddle nav（◀ ▶）** 依結果清單順序切換上／下一筆並同步飛入。標題含「縣市 鄉鎮」+ **人口數**（`usePopulation`）。**兩態 `compareState`：`half`（首個指標，預設）/ `open`（全指標，含 vs 現居的 % 差）；切換鈕在兩態間來回，點外部收合為 `half`。`collapsed`（只剩標題）型別／template 保留但流程不再進入**。數值（target／home 兩排）小數位由 [formatMetric](../app/utils/formatMetric.ts) 的 `formatVal(id, val)` 統一，與 step 2 現居地資訊欄一致。 |
 | 3.5 | `explore-zoom`（`.lc-sr__zoom`） | ✅ | 縮放 + ⓘ | 自訂 SVG 圓鈕：＋ / −（`zoomBy`）+ ⓘ（開 info-dialog）。 |
 | 3.6 | `explore-reloading` | 🟡 | 切換 filter 的載入呈現 | 改 filter 由 app.vue 疊 `loading` 浮卡（**不刷暗**，`RELOAD_MS = 600`）；豐富動畫同 2.5a 待補。 |
 | 3.7 | `explore-empty` | 🟡 | 無結果視窗 | 0 筆時疊 `empty` 浮卡（與 2.5c 共用）。清單內另有 `.lc-sr__list-empty` 內嵌文字 fallback。 |
@@ -310,6 +310,7 @@ criteria 送出後：
 | [useClickOutside.ts](../app/composables/useClickOutside.ts) | click-outside composable | 監聽 `document` capture 階段 `pointerdown`，點在 target 外呼叫 handler；target 可為原生元素或 Reka 元件實例（解析 `$el`）。SSR 安全（`onMounted` 才掛、卸載自動移除）。 |
 | [share.ts](../app/utils/share.ts) | 社群分享連結 | `shareURL_fb` / `shareURL_line`（依裝置切手機／桌機版）/ `shareURL_twitter`，文案網址自 [meta.json](../app/locales/meta.json)；`detectMob()` 供 `<ClientOnly>` 判斷。 |
 | [utils/sort.ts](../app/utils/sort.ts) | `byRank()` 排序 | 依 `order.json` rank 排序縣市／鄉鎮（無 rank 者排最後）。 |
+| [utils/formatMetric.ts](../app/utils/formatMetric.ts) | 指標數值顯示格式化 | `formatMetricNumber(id, val)`：step 2 現居地資訊欄（`statText`）與 step 3 比較卡（`formatVal`）**共用**，確保同一指標兩處小數位一致。PM 指定固定小數位者**補零**：`3` 醫療院所平均每家服務人數→**0 位**、`4` 癌症發生率→**1 位**、`8` 每萬名老人…關懷據點數→**2 位**、`13` 餐飲及住宿店家密度→**2 位**；未列入的指標維持原始精度（raw `toLocaleString`）。屬**顯示層**設定，**不寫進 index.json**（那由 `process-xlsx` 產生、手改會被覆蓋）。 |
 
 ---
 

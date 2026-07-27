@@ -2,6 +2,7 @@ import { computed } from 'vue';
 import type { GeoMeta } from '../../types/geo';
 import type { FilterMeta, FilterDataCache } from '../../types/filter';
 import type { TownThumb } from '../../composables/useTaiwanMap';
+import { formatMetricNumber } from '../../utils/formatMetric';
 
 export const MAX_SELECT = 3;
 
@@ -53,16 +54,12 @@ export function useStepCriteria(props: StepCriteriaProps, emit: StepCriteriaEmit
     emit('update:selectedFilters', filters);
   }
 
-  function formatVal(val: number | null | undefined): string {
-    if (val == null) return '—';
-    return val.toLocaleString();
-  }
-
   // 現居地區資訊面板：數值後緊接單位（如「51.02萬／坪」「12.5%」）；缺值僅顯示「—」不接單位。
+  // 小數位依 formatMetricNumber 的指標設定（與 step 3 比較卡共用），未指定者維持原始精度。
   function statText(f: FilterMeta): string {
     const val = props.filterDataCache[f.id]?.[props.selectedTownCode];
     if (val == null) return '—';
-    return `${val.toLocaleString()}${f.unit ?? ''}`;
+    return `${formatMetricNumber(f.id, val)}${f.unit ?? ''}`;
   }
 
   return {
@@ -71,7 +68,6 @@ export function useStepCriteria(props: StepCriteriaProps, emit: StepCriteriaEmit
     atMax,
     canProceed,
     toggleFilter,
-    formatVal,
     statText,
   };
 }

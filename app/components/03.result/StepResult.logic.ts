@@ -4,6 +4,7 @@ import { useClickOutside, unrefElement } from '../../composables/useClickOutside
 import type { GeoMeta } from '../../types/geo';
 import type { FilterMeta, FilterDataCache, FilterDataset } from '../../types/filter';
 import type { ResultTown } from '../../composables/useResultTowns';
+import { formatMetricNumber } from '../../utils/formatMetric';
 
 export interface StepResultProps {
   meta: GeoMeta | null;
@@ -160,9 +161,10 @@ export function useStepResult(props: StepResultProps, emit: StepResultEmit) {
     return `${p > 0 ? '+' : ''}${p}%`;
   }
 
-  function formatVal(val: number | null | undefined): string {
+  // 依指標 id 格式化比較卡數值：小數位由 formatMetricNumber 統一（與 step 2 現居地資訊欄共用）。
+  function formatVal(id: string, val: number | null | undefined): string {
     if (val == null) return '—';
-    return typeof val === 'number' ? val.toLocaleString() : String(val);
+    return formatMetricNumber(id, val);
   }
 
   // ── click-outside 收合 ─────────────────────────────────────────
