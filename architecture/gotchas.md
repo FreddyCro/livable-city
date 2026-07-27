@@ -92,7 +92,15 @@
 - **症狀**：只想垂直捲動的容器卻出現水平 scrollbar（如 info-dialog 內塞入為整頁滿版設計的 `NmdFooter`）。
 - **原因**：CSS 規範——一軸設成非 `visible`（`auto`/`scroll`/`hidden`）時，另一軸的 `visible` 會被**強制計算成 `auto`**。故 `overflow-y: auto` 等同同時給了 `overflow-x: auto`，只要有子元素比容器寬就冒水平 scrollbar。
 - **修法**：明確寫 `overflow: hidden auto`（x 裁掉、y 捲動）；若子元素本不該撐寬，另外約束其寬度（例如把外部滿版元件設 `max-width:100%`）。
-- **位置**：`InfoContent.vue`（`&__body`）。
+- **位置**：`InfoContent.vue`（`&__body`）、`StepResult.scss`（`&__sidebar` 的 `rwd-min(pad)`；PAD/PC 常駐左側欄，`__banners` 用 `margin:0 -20px` 滿版出血剛好貼齊 padding box，屬刀刃寫法，已改 `overflow: hidden auto` 根除）。
+
+### flex 面板設 `height: 100%` 會鎖死高度 → 無法隨內容（子項數量）伸縮
+
+- **症狀**：`lc-sr__compare` 比較卡在 PAD/PC 恆為固定高（`half` 只有 1 個 `lc-sr__metric` 也是滿版一大片空白），改 `compareState` half↔open 或增減 metric 都不影響高度。
+- **原因**：面板設了 `height: 100%`（撐滿 `__compare-wrap`）再配 `max-height`，等於把高度鎖成 `min(wrap 高, max-height)` 的**固定值**，與內容多寡無關。`max-height` 只在 `height:auto`（內容決定高度）時才有「上限」語意。MOB 版沒設 `height`（預設 auto）故正常。
+- **修法**：面板改 `height: auto` + `max-height`（上限用 `min(600px, 100%)`：`100%` 兼顧短視窗不超出 wrap，等效舊天花板但不鎖死）；捲動交給內部 body：flex 子項加 `flex: 1 1 auto; min-height: 0; overflow-y: auto`（`min-height:0` 解除 flex item 預設 `min-height:auto`，未達上限不捲、達上限才縮並自捲），header 加 `flex-shrink: 0` 免被壓縮。此即 header＋可捲 body 的標準 modal 版型。
+- **位置**：`StepResult.scss`（`&__compare` 的 `rwd-min(pad)`、`&__compare-head`、`&__compare-body`）。
+- **延伸**：Sass（Dart Sass ≥ 1.11）對混合單位的 `min(600px, 100%)` 會原樣輸出成 CSS `min()`（px 與 % 無法化簡故不當 Sass 函式算），可安心使用。
 
 ## fonts（字型 / `@nuxtjs/google-fonts`，`nuxt.config.ts`）
 

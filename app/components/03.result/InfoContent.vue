@@ -30,7 +30,12 @@ import AppFooter from '../AppFooter.vue';
             >{{ s.link.label }}</a
           ><span v-if="s.after">{{ s.after }}</span>
         </p>
-        <p v-if="s.extra" class="lc-info__source-text">{{ s.extra }}</p>
+        <p
+          v-if="s.extra"
+          class="lc-info__source-text lc-info__source-text--extra"
+        >
+          {{ s.extra }}
+        </p>
         <p v-if="s.note" class="lc-info__source-note">{{ s.note }}</p>
       </section>
     </template>
@@ -137,6 +142,11 @@ import AppFooter from '../AppFooter.vue';
     font-size: 15px;
     line-height: 22px;
     color: var(--c-text);
+
+    // info__source-text--extra（after 內文與 extra 補充說明之間的特規間距 1rem）
+    &--extra {
+      margin-top: 1rem;
+    }
   }
 
   // info__source-link（來源連結）
