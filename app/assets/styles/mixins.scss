@@ -37,6 +37,15 @@
   }
 }
 
+// 矮螢幕手機（如 iPhone SE2：375×667）：min-width 斷點無法涵蓋「視窗高度不足」，
+// 以 max-height + 手機寬度收斂字級，補足這個情境。$maxH 預設 700px（涵蓋 SE 級距 667/568，
+// 不觸及 iPhone 13 mini 812 等一般手機）；寬度上界對齊 rwd-max(pad) 的 768 - 0.02。
+@mixin rwd-short-phone($maxH: 700px) {
+  @media screen and (max-width: 767.98px) and (max-height: #{$maxH}) {
+    @content;
+  }
+}
+
 @mixin font-style(
   $family: Noto Sans TC,
   $size,

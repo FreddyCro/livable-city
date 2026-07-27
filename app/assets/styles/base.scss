@@ -30,6 +30,9 @@ html,
 body {
   margin: 0;
   padding: 0;
+  // 停用瀏覽器 double-tap（連點兩下）放大與舊版 300ms click 延遲；仍保留捲動與雙指 pinch-zoom
+  //（無障礙需要）。Safari iOS 13+ / Chrome 皆支援。地圖 canvas 由 deck.gl 自設 touch-action:none，不受影響。
+  touch-action: manipulation;
 
   * {
     box-sizing: border-box;

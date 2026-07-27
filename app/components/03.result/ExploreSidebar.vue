@@ -100,7 +100,7 @@ const { gaClickOption, gaClickBtn, gaClickOpen } = useTrackingEvent();
     <div class="lc-sr__banners">
       <a
         class="lc-sr__banner lc-sr__banner--data"
-        href="#"
+        :href="str.banner1Link"
         target="_blank"
         rel="noopener"
         @click="gaClickBtn(str.banner1Title + ' ' + str.banner1Sub)"
@@ -115,7 +115,7 @@ const { gaClickOption, gaClickBtn, gaClickOpen } = useTrackingEvent();
       </a>
       <a
         class="lc-sr__banner lc-sr__banner--report"
-        href="#"
+        :href="str.banner2Link"
         target="_blank"
         rel="noopener"
         @click="gaClickBtn(str.banner2Title + ' ' + str.banner2Sub)"
