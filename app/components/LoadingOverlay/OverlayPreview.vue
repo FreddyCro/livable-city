@@ -112,9 +112,11 @@ function replay() {
   }
 
   // loading-overlay-preview__stage：把 <LoadingOverlay> 殼（.lc-lo）從 fixed 全螢幕改為 inline，才能三張並排
+  // padding: 0 抵銷 --float（非 dim）的地圖區內縮，否則預覽被 sidebar 寬的左內縮撐開
   &__stage.lc-lo {
     position: static;
     inset: auto;
+    padding: 0;
     pointer-events: auto;
   }
 }

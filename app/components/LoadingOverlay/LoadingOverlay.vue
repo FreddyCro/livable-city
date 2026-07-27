@@ -25,7 +25,9 @@ useClickOutside(frameEl, () => {
 </script>
 
 <template>
-  <div class="lc-lo" :class="{ 'lc-lo--dim': dim }">
+  <!-- dim（2.5a/b/c 進場）：刷暗 + 對整個 viewport 置中；
+       非 dim（3.6/3.7 explore 內切 filter）：不刷暗 + 對「地圖區塊」置中（見 --float） -->
+  <div class="lc-lo" :class="dim ? 'lc-lo--dim' : 'lc-lo--float'">
     <!-- frame：包住卡片，作為 ✕ 的定位基準與「點外部關閉」的判定範圍 -->
     <div ref="frameEl" class="lc-lo__frame">
       <OverlayLoading v-if="variant === 'loading'" />
@@ -76,11 +78,20 @@ useClickOutside(frameEl, () => {
   justify-content: center;
   pointer-events: none; // 預設不擋互動；dim 遮罩與視窗各自開啟
 
-  // loading-overlay--dim（2.5a/b/c：背景刷暗 + 模糊）
+  // loading-overlay--dim（2.5a/b/c：背景刷暗 + 模糊，對整個 viewport 置中）
   &--dim {
     pointer-events: auto;
     background: rgb(216 216 216 / 0.5);
     backdrop-filter: blur(5px);
+  }
+
+  // loading-overlay--float（3.6/3.7：explore 內切 filter，不刷暗）
+  // 浮卡改對「地圖區塊」置中，而非整個 viewport：地圖區＝sidebar 右側、header 下方。
+  // 以 padding 內縮 flex 的置中範圍（box-sizing:border-box，padding 計入 inset:0 的 100vw/vh），
+  // $explore-sidebar-w（=var(--explore-sidebar-w)）隨斷點自動縮（PC426/PAD246/MOB0），故不必逐斷點重寫。
+  &--float {
+    padding-top: $app-header-h;
+    padding-left: $explore-sidebar-w;
   }
 
   // loading-overlay__frame（包卡片：✕ 的定位基準 + 點外關閉判定範圍）
