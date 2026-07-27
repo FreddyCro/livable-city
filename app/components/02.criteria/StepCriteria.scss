@@ -264,15 +264,19 @@
 
   // step-criteria__stat-label
   &__stat-label {
-    flex: 0 0 105px;
-    width: 110px;
+    // 優先保 value 單行：label 欄可縮（值過長時讓出寬度），max-width 封頂維持短值時的對齊
+    flex: 1 1 auto;
+    max-width: 110px;
+    min-width: 0;
     font-weight: 700;
   }
 
   // step-criteria__stat-val
   &__stat-val {
-    flex: 1;
+    // 數值＋單位一律排成一行：不換行、依內容定寬；寬度不足時由 label 欄讓出空間
+    flex: 0 0 auto;
     text-align: right;
+    white-space: nowrap;
   }
 
   // ── 右欄：條件選擇 ──────────────────────────────────
