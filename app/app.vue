@@ -145,8 +145,12 @@ watch(selectedFilters, () => {
   overlay.value = { variant: 'loading', dim: false };
   clearTimeout(overlayTimer);
   overlayTimer = setTimeout(() => {
-    overlay.value =
-      resultTowns.value.length > 0 ? null : { variant: 'empty', dim: false };
+    const hasResult = resultTowns.value.length > 0;
+    overlay.value = hasResult ? null : { variant: 'empty', dim: false };
+    // 篩選改變後 useResultTowns 會把 active 重設為第一筆結果；比照 resultbar 選取（selectResult），
+    // 飛入當前 active item。放在 reload 遮罩收起這一刻：結果集/active 已 settle，接著才飛（比照
+    // resultbar，飛入動畫是刻意可見的）。
+    if (hasResult) mapRef.value?.focusTown(selectedResultCode.value);
   }, RELOAD_MS);
 });
 

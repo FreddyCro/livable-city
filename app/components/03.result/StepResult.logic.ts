@@ -143,7 +143,8 @@ export function useStepResult(props: StepResultProps, emit: StepResultEmit) {
     emit('update:selectedFilters', value as string[]);
   }
 
-  // Listbox 單選 + 預設 toggle 行為：點未選項→選取，點已選項→回傳 undefined（取消）
+  // Listbox 單選、不可取消（ListboxRoot selection-behavior=replace）：只會收到被點的 item 值，
+  // 已選項再次點擊維持選取、不回傳 undefined。?? null 僅為型別保險。
   function onResultSelect(val: AcceptableValue | undefined) {
     emit('update:selectedResultCode', (val as string | undefined) ?? null);
   }

@@ -76,9 +76,12 @@ const { gaClickOpen } = useTrackingEvent();
       </template>
     </CollapsibleTrigger>
     <CollapsibleContent class="lc-sr__list-body">
+      <!-- selection-behavior=replace：單選且不可取消。已選 item 再次點擊維持選取
+           （reka 預設 toggle 會把已選項回傳 undefined＝取消），符合「再次點擊不觸發任何行為」。 -->
       <ListboxRoot
         v-if="resultTowns.length"
         :model-value="selectedResultCode ?? undefined"
+        selection-behavior="replace"
         @update:model-value="$emit('result-select', $event)"
       >
         <!-- ListboxContent 才會掛 role=listbox 與方向鍵/Enter/type-ahead keydown -->
