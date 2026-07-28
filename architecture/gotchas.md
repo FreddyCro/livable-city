@@ -86,9 +86,6 @@
 - **原因**：iOS/iPadOS Safari（及 iPad 上 WebKit 系瀏覽器）的 `100vh` 是「工具列隱藏時」的**大視窗**、比實際可視區高；以 `calc(100vh - …)` 當 `max-height` 會算出比可見範圍還大的高度，盒子底部就掉出畫面。
 - **修法**：改 `100dvh`（dynamic viewport height，會扣掉工具列）。老瀏覽器 fallback：`100vh` 打底 + `@supports (height: 100dvh) { … }` 覆蓋（dvh 支援起於 iOS 15.4 / Chrome 108）。純「畫面外起始位移」用途的 vh（如 fly-in keyframe，只要夠遠即可）不受影響、免改。
 - **位置**：`StepResult.global.scss`（info-dialog `&__dialog`）。專案他處早已知此坑並避開：`StepLocation.scss`（改用 `100%`）、`StepCriteria.scss`（用 `dvh`）——唯獨此對話框當時漏改。
-- **位置（`height` 版）**：`StepResult.scss`（`&__sidebar` 的 `rwd-min(pad)`，`height: calc(100vh - 60px)` → 改 `calc(100% - 60px)`，父層 `.lc-sr` 為 `fixed inset:0`＝可視視窗）。
-- **延伸：寫在 `height` 上會「被裁切但不出現卷軸」**：side effect 更難察覺。iPad Pro 橫式（1194×834）下側欄可視高 ≈ 643px、宣告高 = `100vh-60` = 774px、內容 ≈ 710px → 內容超出**可視區**但仍小於**元素高度**，`overflow: hidden auto` 判定「裝得下」而不給卷軸，超出的 ~70px 被 `.lc-mv { overflow: hidden }` 裁掉，畫面就是「切一半又捲不動」。內容再多、突破 774px 才會冒卷軸，故不是每次都看得出來。診斷依據：同層 `fixed inset:0` 內的元素（compare 卡 `bottom:24px`、paddle）位置正常，只有寫 `vh` 的盒子超出 → 即 large/small viewport 落差。
-- **無法用桌機 Chrome 重製**：桌機 Chrome 沒有可收起的工具列，`100vh` == `innerHeight` == `fixed inset:0` 高度，落差為 0；DevTools 的 iPad Pro 模擬只改 viewport 尺寸與 UA，**不模擬 large/small viewport 落差**。要驗證請用真機 Safari，或 Android Chrome（同樣有動態工具列）。
 
 ### `overflow-y: auto` 會連帶把 `overflow-x` 變 `auto` → 冒出非預期的水平 scrollbar
 
