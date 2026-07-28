@@ -48,7 +48,11 @@
       bottom: auto;
       right: auto;
       width: $explore-sidebar-w;
-      height: calc(100vh - #{$app-header-h});
+      // 用 100%（定位父層 .lc-sr 為 fixed inset:0＝可視視窗）而非 100vh：
+      // iOS/iPadOS Safari 的 100vh 是「工具列隱藏時」的大視窗，比可視區高 50~70px，
+      // 側欄會比可視框高一截 → 底部被 .lc-mv 的 overflow:hidden 裁掉；且內容雖超出可視區
+      // 卻仍小於這個過高的 height，overflow:auto 判定「裝得下」而不給卷軸（iPad Pro 橫式最明顯）。
+      height: calc(100% - #{$app-header-h});
       max-height: none;
       padding: 24px 20px 0;
       border-radius: 0;
