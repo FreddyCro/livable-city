@@ -389,13 +389,18 @@
     margin: 0;
     font-size: 18px;
     font-weight: 400;
-    line-height: 36px;
+    line-height: 28px;
 
     // MOB：改 inline 以接續標題連成一句（見 &__head）
     display: inline;
 
     @include rwd-min(pad) {
       display: block;
+      line-height: 32px;
+    }
+
+    @include rwd-min(pc) {
+      line-height: 36px;
     }
   }
 
