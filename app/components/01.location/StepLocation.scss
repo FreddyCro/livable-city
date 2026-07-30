@@ -191,6 +191,16 @@ $title-h-pc: 120px;
     @include rwd-min(pc) {
       --lc-sl-title-top: #{$title-top-pc};
     }
+
+    // 1366 × 576–1024：pc 間距（title-top 100 + gap 40）會讓整組高 528px，
+    // 在 576 高的視窗底部溢出 52px、「下一步」整顆被切掉（.lc-sl 是 overflow:hidden，
+    // 捲不到）。收斂標題版位與組內間距讓整組降到 476px。
+    // 標題版位 70：header 60 之下仍留 10px，不會鑽進 header。
+    @include rwd-lap {
+      --lc-sl-title-top: 70px;
+
+      gap: 20px;
+    }
   }
 
   // step-location__badge（黃色膠囊標籤）
@@ -342,6 +352,12 @@ $title-h-pc: 120px;
 
     @include rwd-min(pc) {
       padding: 20px 0;
+    }
+
+    // 1366 × 576–1024：pc 的 20px 上下留白在矮視窗吃掉 40px，是整組最好讓的一段
+    // （文字本身不動，只收留白）。與 __block 的收斂合計回收 52px。
+    @include rwd-lap {
+      padding: 4px 0;
     }
   }
 
