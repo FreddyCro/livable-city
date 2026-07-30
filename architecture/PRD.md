@@ -27,7 +27,7 @@
 | `public/tw-towns-optimized.json` | 地圖底圖 TopoJSON | [useTaiwanMap.ts](../app/composables/useTaiwanMap.ts) | 以 `topojson-client` 動態解析為鄉鎮／縣市 GeoJSON。 |
 | `public/tw-towns-meta.json` | 鄉鎮／縣市 metadata（`towns` / `counties`） | [useGeoMeta.ts](../app/composables/useGeoMeta.ts) | 型別 [GeoMeta](../app/types/geo.ts)；供結果運算、地圖、各 step 共用。 |
 | `public/data/order.json` | 縣市／鄉鎮**官方顯示順序**（北→南、本島→離島） | [useGeoMeta.ts](../app/composables/useGeoMeta.ts) | 轉成 `countyRank` / `townRank` 併入 `meta`，是下拉與結果清單排序的**唯一依據**（見 ⚠️）。 |
-| `public/data/index.json` | 篩選指標 manifest（15 筆） | [useFilterData.ts](../app/composables/useFilterData.ts) | 每筆為 [FilterMeta](../app/types/filter.ts)：`id` / `name`（原始名）/ `label`（方向性描述，如「購屋房價更低」）/ `unit` / `lowerIsBetter`。 |
+| `public/data/index.json` | 篩選指標 manifest（15 筆） | [useFilterData.ts](../app/composables/useFilterData.ts) | 每筆為 [FilterMeta](../app/types/filter.ts)：`id` / `name`（原始名）/ `label`（方向性描述，如「購屋房價更低」）/ `unit` / `lowerIsBetter` / `zeroMeansNone`（0＝該地區沒有此設施＝最差，見 [gotchas](gotchas.md)）。 |
 | `public/data/{1..15}.json` | 各指標資料集（鄉鎮代碼 → 數值，缺值 `null`） | [useFilterData.ts](../app/composables/useFilterData.ts) | 型別 [FilterDataset](../app/types/filter.ts)；按需載入並快取（`filterDataCache`），已快取／載入中則略過。 |
 | `public/data/0.json` | 各鄉鎮人口數 | [usePopulation.ts](../app/composables/usePopulation.ts) | 非篩選指標，僅供 step 3 比較卡標題；載入失敗退回 `null` 不顯示（不致命）。 |
 | `public/img/...` | 圖示／插圖／pin | [useAssets.ts](../app/composables/useAssets.ts) | `img('icon/xxx.svg')` 補 `APP_ASSETS_PATH` 前綴（dev 空、正式指向 CDN）。 |

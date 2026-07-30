@@ -5,7 +5,7 @@
 import { writeFileSync, mkdirSync } from 'fs';
 import { resolve } from 'path';
 import {
-  PATHS, DIRECTION, LABELS, EXCLUDE_FROM_INDEX,
+  PATHS, DIRECTION, LABELS, EXCLUDE_FROM_INDEX, ZERO_MEANS_NONE,
   cleanName, parseVal, idOf, listXlsx, dataRows, loadLookup, matchRow, headerUnit,
 } from './lib/sources.mjs';
 
@@ -49,7 +49,14 @@ const index = files
     if (!(id in LABELS)) {
       console.warn(`  [index] no LABEL for id "${id}" (${file}) — falling back to name "${name}"`);
     }
-    return { id, name, label: LABELS[id] ?? name, unit: headerUnit(file), lowerIsBetter: DIRECTION[id] ?? true };
+    return {
+      id,
+      name,
+      label: LABELS[id] ?? name,
+      unit: headerUnit(file),
+      lowerIsBetter: DIRECTION[id] ?? true,
+      zeroMeansNone: ZERO_MEANS_NONE.has(id),
+    };
   })
   .filter(Boolean);
 

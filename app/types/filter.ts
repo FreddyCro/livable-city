@@ -12,6 +12,13 @@ export interface FilterMeta {
   unit: string
   /** true=值越低越好（房價、租金…），false=值越高越好（超商密度…） */
   lowerIsBetter: boolean
+  /**
+   * true=值為 0 代表「該地區沒有這項設施」＝最差，不是「數值最小＝最好」。
+   * 用於「人口 ÷ 設施家數」的比值指標（醫療院所平均每家服務人數、圖書館人口比），
+   * 家數為 0 時來源給 0。排名比較前需先換算成最差值（見 useResultTowns）。
+   * 來源：index.json，由 scripts/lib/sources.mjs 的 ZERO_MEANS_NONE 產生。
+   */
+  zeroMeansNone: boolean
 }
 
 /** 單一指標的資料集（data/{id}.json）：鄉鎮代碼 → 數值（缺值為 null） */

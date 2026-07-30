@@ -61,6 +61,21 @@
 - **修法**：資料管線 `parseVal()` 把數字字串轉 `number`、`"-"`/`"--"`/空 → `null`。改資料來源解析時務必保留此正規化。
 - **位置**：`scripts/lib/sources.mjs` `parseVal`、`app/composables/useResultTowns.ts`。
 
+## filter / 結果運算（`composables/useResultTowns.ts`、`public/data/index.json`）
+
+### 比值型指標的 `0` 是「完全沒有設施」＝最差，不是「數值最小」＝最好
+
+- **症狀**：勾「醫療資源更多」，結果卻篩出高雄市茂林區（醫療院所平均每家服務人數 **0** 人、比較卡顯示 `-100%`）；勾「圖書館資源更多」同理篩出金門縣烏坵鄉（圖書館人口比 0）。PM 0730 回報。
+- **原因**：這兩支指標是「人口 ÷ 設施家數」的比值，方向為 `lowerIsBetter`（每家服務人數越少＝資源越多）。但**家數為 0 時來源 xlsx 直接給 0**（分母為零，非缺值，故 `parseVal` 不會轉成 `null`），`val < refVal` 照數值比大小就讓「一家醫療院所／圖書館都沒有」的鄉鎮永遠排第一。
+  - 受影響資料（現況）：指標 3 有 5 個 0（嘉義縣大埔鄉、屏東縣獅子鄉、高雄市茂林區、台南市左鎮區、金門縣烏坵鄉）、指標 9 有 1 個 0（金門縣烏坵鄉）。
+  - **鏡像 bug（更難發現）**：現居地本身是 0 的使用者（上述 5 個鄉鎮），任何地區的值都 > 0，`val < refVal` 恆為 false → 該條件**永遠篩不出任何結果**（畫面像是「沒有更好的地區」，其實是比錯）。
+- **修法**：以 metadata 標記而非在前端 hardcode id ——
+  1. `scripts/lib/sources.mjs` 的 `ZERO_MEANS_NONE`（單一來源，與 `DIRECTION` 並列）→ `process-xlsx.mjs` 寫進 `index.json` 的 `zeroMeansNone` → `validate-sources.mjs` 交叉檢查（漏帶會 error，因為前端會靜默退回舊行為）。
+  2. `useResultTowns` 的 `metricScore()` 把 0 換算成該方向的最差值（`lowerIsBetter` → `Infinity`），**候選地區與現居地兩端都要換算**：只換一端就會製造上述鏡像 bug；兩端皆 0 時 `Infinity < Infinity` 為 false，自然排除。
+- **位置**：[useResultTowns.ts](../app/composables/useResultTowns.ts) `metricScore`、[sources.mjs](../scripts/lib/sources.mjs) `ZERO_MEANS_NONE`、[filter.ts](../app/types/filter.ts) `FilterMeta.zeroMeansNone`。
+- **⚠️ 判斷是否該列入 `ZERO_MEANS_NONE`**：只有「0 是分母為零的副產物」才算。指標 14 大規模崩塌潛勢區數的 `0`＝真的沒有潛勢區＝**最好**，加進去會反向壞掉；指標 8（每萬名老人關懷據點數）雖有 17 個 0＝沒有據點，但方向是 `lowerIsBetter=false`（越高越好），0 本來就排最後，無需標記。新增指標時先問：這支的 0 是「沒有」還是「很少」？
+- **延伸（未處理，已知）**：step 2 現居地資訊欄與 step 3 比較卡仍會把 0 顯示成「0 人」（看起來像最佳值），且 `pct()` 在現居地為 0 時回 `null`（不顯示百分比）。純顯示層問題，PM 本次只要求修篩選；若要處理，建議這類 0 顯示為「無」而非數字。
+
 ## data assets（`public/` 靜態資料，`utils/dataSource.ts`）
 
 ### `public/` 資產沒有 content hash——換了資料 URL 不變，快取會繼續給舊檔
