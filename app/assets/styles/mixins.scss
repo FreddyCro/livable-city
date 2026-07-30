@@ -47,14 +47,14 @@
 }
 
 // 矮視窗桌機／平板（1366×768 筆電：瀏覽器 chrome 吃掉後可視高僅約 576；
-// iPad Pro 12.9 橫式：1366×1024）：兩者共同特徵是「寬度夠寬吃到 pc 版型，
+// iPad Pro 12.9 橫式 1366×1024；iPad Pro 11 橫式 1194×834）：共同特徵是「寬度夠寬吃到 pc 版型，
 // 但高度不足以照 Figma 的 pc 間距排完一頁」，會把底部 CTA 擠出視窗外。
-// 寬度刻意設上界（對齊 rwd-between 的 xl，即 1366 ≤ w < 1440）：
+// 寬度刻意設上界（lap ≤ w < xl，即 1100 ≤ w < 1440）：
 // 1920×1080（可視高約 950）不命中此條件，維持原本的 pc 間距。
 // 高度只設上界：實務上只考慮 576 起跳，但不必寫下界（更矮的視窗同樣需要這組收斂樣式）。
 // $maxH 可收窄成更精準的高度上界。
 @mixin rwd-lap($maxH: 1024px) {
-  $min: map.get(vars.$breakpoints, lg);
+  $min: map.get(vars.$breakpoints, lap);
   $max: calc(#{map.get(vars.$breakpoints, xl)} - 0.02px);
   @media screen and (min-width: #{$min}) and (max-width: #{$max}) and (max-height: #{$maxH}) {
     @content;
