@@ -236,8 +236,8 @@ $title-h-pc: 120px;
     // 矮螢幕手機（SE2 等）：mob 級距 36/44（兩行 ≈ 88px）在 667px 高的視窗過大，
     // 會把首屏擠到「下滑看更多」壓上主視覺說明字。收斂字級讓出垂直空間（覆寫 .lc-h1）。
     @include rwd-short-phone {
-      font-size: 28px;
-      line-height: 34px;
+      font-size: 20px;
+      line-height: 24px;
     }
   }
 
@@ -347,7 +347,7 @@ $title-h-pc: 120px;
     // 會超出視窗被裁掉（「下一步」被工具列擋住）。收斂字級讓表單完整入框（覆寫 .lc-p）。
     @include rwd-short-phone {
       font-size: 15px;
-      line-height: 26px;
+      line-height: 20px;
     }
 
     @include rwd-min(pc) {
@@ -389,6 +389,11 @@ $title-h-pc: 120px;
     color: #1e1e1e;
     font-size: 24px;
     line-height: 1;
+
+    @include rwd-short-phone {
+      font-size: 18px;
+      line-height: 22px;
+    }
 
     @include rwd-min(pc) {
       font-size: 20px;
