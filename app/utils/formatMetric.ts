@@ -15,13 +15,14 @@ const METRIC_DECIMALS: Record<string, number> = {
 
 /**
  * 依指標 id 把數值格式化為顯示字串（不含單位；千分位沿用 toLocaleString）。
- * 有指定小數位者固定該位數並補零（如 21.10、452.6、1,978）；未指定者維持原始精度。
+ * 有指定小數位者以該位數為上限（四捨五入），但**不補零**：尾端的 0 一律省略
+ * （21.10→21.1、21.00→21、452.6→452.6、1,978→1,978）；未指定者維持原始精度。
  */
 export function formatMetricNumber(id: string, val: number): string {
   const decimals = METRIC_DECIMALS[id];
   if (decimals == null) return val.toLocaleString();
   return val.toLocaleString(undefined, {
-    minimumFractionDigits: decimals,
+    minimumFractionDigits: 0,
     maximumFractionDigits: decimals,
   });
 }

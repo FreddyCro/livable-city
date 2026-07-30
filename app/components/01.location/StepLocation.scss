@@ -128,6 +128,13 @@ $title-h-pc: 120px;
     }
   }
 
+  // step-location__visual--blocked（autoplay 被瀏覽器政策擋下時才加上）
+  // 平時 __visual 是 pointer-events:none（讓點擊穿透到下方內容），但被擋時 WebKit 會在影片上
+  // 疊一顆原生播放鍵，若維持 none 使用者連它都點不到 → 此時暫時開放點擊當作最後的救援路徑。
+  &__visual--blocked {
+    pointer-events: auto;
+  }
+
   // step-location__visual-credit（影片來源標註；左下角）
   &__visual-credit {
     position: absolute;
@@ -145,7 +152,7 @@ $title-h-pc: 120px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
     width: 100%;
     padding: 0 20px;
   }
@@ -184,6 +191,16 @@ $title-h-pc: 120px;
     @include rwd-min(pc) {
       --lc-sl-title-top: #{$title-top-pc};
     }
+
+    // 寬 1100–1440 × 高 ≤1024：pc 間距（title-top 100 + gap 40）會讓整組高 528px，
+    // 在 576 高的視窗底部溢出 52px、「下一步」整顆被切掉（.lc-sl 是 overflow:hidden，
+    // 捲不到）。收斂標題版位與組內間距讓整組降到 476px。
+    // 標題版位 70：header 60 之下仍留 10px，不會鑽進 header。
+    @include rwd-lap {
+      --lc-sl-title-top: 70px;
+
+      gap: 20px;
+    }
   }
 
   // step-location__badge（黃色膠囊標籤）
@@ -219,8 +236,8 @@ $title-h-pc: 120px;
     // 矮螢幕手機（SE2 等）：mob 級距 36/44（兩行 ≈ 88px）在 667px 高的視窗過大，
     // 會把首屏擠到「下滑看更多」壓上主視覺說明字。收斂字級讓出垂直空間（覆寫 .lc-h1）。
     @include rwd-short-phone {
-      font-size: 28px;
-      line-height: 34px;
+      font-size: 20px;
+      line-height: 24px;
     }
   }
 
@@ -241,6 +258,10 @@ $title-h-pc: 120px;
     color: #000;
 
     // 電腦版：移到右側、文字直書
+    @include rwd-min(pad) {
+      gap: 4px;
+    }
+
     @include rwd-min(pc) {
       bottom: 0;
       left: auto;
@@ -326,11 +347,17 @@ $title-h-pc: 120px;
     // 會超出視窗被裁掉（「下一步」被工具列擋住）。收斂字級讓表單完整入框（覆寫 .lc-p）。
     @include rwd-short-phone {
       font-size: 15px;
-      line-height: 26px;
+      line-height: 20px;
     }
 
     @include rwd-min(pc) {
       padding: 20px 0;
+    }
+
+    // 寬 1100–1440 × 高 ≤1024：pc 的 20px 上下留白在矮視窗吃掉 40px，是整組最好讓的一段
+    // （文字本身不動，只收留白）。與 __block 的收斂合計回收 52px。
+    @include rwd-lap {
+      padding: 4px 0;
     }
   }
 
@@ -362,6 +389,11 @@ $title-h-pc: 120px;
     color: #1e1e1e;
     font-size: 24px;
     line-height: 1;
+
+    @include rwd-short-phone {
+      font-size: 18px;
+      line-height: 22px;
+    }
 
     @include rwd-min(pc) {
       font-size: 20px;

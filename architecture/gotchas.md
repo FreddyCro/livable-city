@@ -61,6 +61,34 @@
 - **修法**：資料管線 `parseVal()` 把數字字串轉 `number`、`"-"`/`"--"`/空 → `null`。改資料來源解析時務必保留此正規化。
 - **位置**：`scripts/lib/sources.mjs` `parseVal`、`app/composables/useResultTowns.ts`。
 
+## filter / 結果運算（`composables/useResultTowns.ts`、`public/data/index.json`）
+
+### 比值型指標的 `0` 是「完全沒有設施」＝最差，不是「數值最小」＝最好
+
+- **症狀**：勾「醫療資源更多」，結果卻篩出高雄市茂林區（醫療院所平均每家服務人數 **0** 人、比較卡顯示 `-100%`）；勾「圖書館資源更多」同理篩出金門縣烏坵鄉（圖書館人口比 0）。PM 0730 回報。
+- **原因**：這兩支指標是「人口 ÷ 設施家數」的比值，方向為 `lowerIsBetter`（每家服務人數越少＝資源越多）。但**家數為 0 時來源 xlsx 直接給 0**（分母為零，非缺值，故 `parseVal` 不會轉成 `null`），`val < refVal` 照數值比大小就讓「一家醫療院所／圖書館都沒有」的鄉鎮永遠排第一。
+  - 受影響資料（現況）：指標 3 有 5 個 0（嘉義縣大埔鄉、屏東縣獅子鄉、高雄市茂林區、台南市左鎮區、金門縣烏坵鄉）、指標 9 有 1 個 0（金門縣烏坵鄉）。
+  - **鏡像 bug（更難發現）**：現居地本身是 0 的使用者（上述 5 個鄉鎮），任何地區的值都 > 0，`val < refVal` 恆為 false → 該條件**永遠篩不出任何結果**（畫面像是「沒有更好的地區」，其實是比錯）。
+- **修法**：以 metadata 標記而非在前端 hardcode id ——
+  1. `scripts/lib/sources.mjs` 的 `ZERO_MEANS_NONE`（單一來源，與 `DIRECTION` 並列）→ `process-xlsx.mjs` 寫進 `index.json` 的 `zeroMeansNone` → `validate-sources.mjs` 交叉檢查（漏帶會 error，因為前端會靜默退回舊行為）。
+  2. `useResultTowns` 的 `metricScore()` 把 0 換算成該方向的最差值（`lowerIsBetter` → `Infinity`），**候選地區與現居地兩端都要換算**：只換一端就會製造上述鏡像 bug；兩端皆 0 時 `Infinity < Infinity` 為 false，自然排除。
+- **位置**：[useResultTowns.ts](../app/composables/useResultTowns.ts) `metricScore`、[sources.mjs](../scripts/lib/sources.mjs) `ZERO_MEANS_NONE`、[filter.ts](../app/types/filter.ts) `FilterMeta.zeroMeansNone`。
+- **⚠️ 判斷是否該列入 `ZERO_MEANS_NONE`**：只有「0 是分母為零的副產物」才算。指標 14 大規模崩塌潛勢區數的 `0`＝真的沒有潛勢區＝**最好**，加進去會反向壞掉；指標 8（每萬名老人關懷據點數）雖有 17 個 0＝沒有據點，但方向是 `lowerIsBetter=false`（越高越好），0 本來就排最後，無需標記。新增指標時先問：這支的 0 是「沒有」還是「很少」？
+- **延伸（未處理，已知）**：step 2 現居地資訊欄與 step 3 比較卡仍會把 0 顯示成「0 人」（看起來像最佳值），且 `pct()` 在現居地為 0 時回 `null`（不顯示百分比）。純顯示層問題，PM 本次只要求修篩選；若要處理，建議這類 0 顯示為「無」而非數字。
+
+## data assets（`public/` 靜態資料，`utils/dataSource.ts`）
+
+### `public/` 資產沒有 content hash——換了資料 URL 不變，快取會繼續給舊檔
+
+- **症狀**：重跑 `process-xlsx.mjs` 換好新資料、部署完成，但線上（尤其回訪者）看到的人口數／房價還是舊值；且**只有部分指標舊**（新 JS 配舊 JSON），畫面數字彼此矛盾。硬重載可能好，換個裝置又出現。
+- **原因**：Nuxt 只對 `_nuxt/` 底下的 build assets 加 content hash；`public/` 是**原封不動複製**。所以 `data/0.json`、`data/1.json`、`index.json`、`order.json`、`tw-towns-*.json` 的 URL **永遠相同**，瀏覽器／CDN 無從得知內容已換。更無聲的是：來源 xlsx 檔名改了（`（0723更新）`）也不會影響產出檔名——`cleanName` 刻意剝掉更新註記，連 `index.json` 的 `name` 都一模一樣，整條鏈路對快取零信號。
+- **修法**：`dataSource.assetUrl()` 附加 `?v={DATA_VERSION}`，版本字串在 **build 時**由 `nuxt.config.ts` 取 git short SHA（無 git 環境退回時間戳），每次部署自然換 URL。重點是**每次部署都必須變**，否則等於沒加；用 `NUXT_PUBLIC_DATA_VERSION` 覆寫時尤其注意，**設成空字串會直接關閉**（`assetUrl` 視為 falsy 就不附加）。
+- **位置**：[app/utils/dataSource.ts](../app/utils/dataSource.ts) `assetUrl`、[nuxt.config.ts](../nuxt.config.ts) 頂端 `dataVersion` + `runtimeConfig.public.DATA_VERSION`。
+- **延伸**：
+  - `public/img/**` 走 `useAssets` 的 `APP_ASSETS_PATH`（正式指向 `nmdap.udn.com.tw` CDN），**刻意不加 `?v=`**——圖檔幾乎不改，每次 commit 都換 URL 只會白丟快取。真的換圖且被快取住，只能等 TTL 或請對方 purge（使用者自己硬重載清不掉 edge cache）。
+  - 要診斷是否中快取：`curl -sI "<部署網址>/data/1.json"` 看 `Cache-Control` / `ETag` / `Age` / `x-cache`（有 `Age` 或 `x-cache: HIT` 表示前面有 CDN 在快取）。
+  - 若主機 header 改得動，`data/*.json` 給 `Cache-Control: no-cache`（保留 ETag 走 304）是更省的做法；本專案部署在 udn 靜態主機、header 不一定能控，故選前端加版本參數。
+
 ## build / SFC（Nuxt 4 / Vue 3.5 編譯）
 
 ### `defineProps<ImportedType>()` 需要專案安裝 `typescript`
@@ -86,6 +114,9 @@
 - **原因**：iOS/iPadOS Safari（及 iPad 上 WebKit 系瀏覽器）的 `100vh` 是「工具列隱藏時」的**大視窗**、比實際可視區高；以 `calc(100vh - …)` 當 `max-height` 會算出比可見範圍還大的高度，盒子底部就掉出畫面。
 - **修法**：改 `100dvh`（dynamic viewport height，會扣掉工具列）。老瀏覽器 fallback：`100vh` 打底 + `@supports (height: 100dvh) { … }` 覆蓋（dvh 支援起於 iOS 15.4 / Chrome 108）。純「畫面外起始位移」用途的 vh（如 fly-in keyframe，只要夠遠即可）不受影響、免改。
 - **位置**：`StepResult.global.scss`（info-dialog `&__dialog`）。專案他處早已知此坑並避開：`StepLocation.scss`（改用 `100%`）、`StepCriteria.scss`（用 `dvh`）——唯獨此對話框當時漏改。
+- **位置（`height` 版）**：`StepResult.scss`（`&__sidebar` 的 `rwd-min(pad)`，`height: calc(100vh - 60px)` → 改 `calc(100% - 60px)`，父層 `.lc-sr` 為 `fixed inset:0`＝可視視窗）。
+- **延伸：寫在 `height` 上會「被裁切但不出現卷軸」**：side effect 更難察覺。iPad Pro 橫式（1194×834）下側欄可視高 ≈ 643px、宣告高 = `100vh-60` = 774px、內容 ≈ 710px → 內容超出**可視區**但仍小於**元素高度**，`overflow: hidden auto` 判定「裝得下」而不給卷軸，超出的 ~70px 被 `.lc-mv { overflow: hidden }` 裁掉，畫面就是「切一半又捲不動」。內容再多、突破 774px 才會冒卷軸，故不是每次都看得出來。診斷依據：同層 `fixed inset:0` 內的元素（compare 卡 `bottom:24px`、paddle）位置正常，只有寫 `vh` 的盒子超出 → 即 large/small viewport 落差。
+- **無法用桌機 Chrome 重製**：桌機 Chrome 沒有可收起的工具列，`100vh` == `innerHeight` == `fixed inset:0` 高度，落差為 0；DevTools 的 iPad Pro 模擬只改 viewport 尺寸與 UA，**不模擬 large/small viewport 落差**。要驗證請用真機 Safari，或 Android Chrome（同樣有動態工具列）。
 
 ### `overflow-y: auto` 會連帶把 `overflow-x` 變 `auto` → 冒出非預期的水平 scrollbar
 
@@ -102,6 +133,14 @@
 - **位置**：`StepResult.scss`（`&__compare` 的 `rwd-min(pad)`、`&__compare-head`、`&__compare-body`）。
 - **延伸**：Sass（Dart Sass ≥ 1.11）對混合單位的 `min(600px, 100%)` 會原樣輸出成 CSS `min()`（px 與 % 無法化簡故不當 Sass 函式算），可安心使用。
 
+### Reka `CheckboxIndicator` 預設「勾選才 render」——會讓卡片文字在勾選瞬間重排
+
+- **症狀**：result 側欄的居住條件卡片，一勾選文字就從完整變成截斷／從一行變兩行，卡片高度跟著跳動。
+- **原因**：`CheckboxIndicator` 內部包 `Presence`，`present = forceMount || state === true`，**預設未勾選時整個節點不存在**。它是 flex 的一個 item（16px + gap 5 = **21px**），所以勾選前後 label 的可用寬度差 21px。
+- **修法**：加 `force-mount`，改用 CSS 依 `data-state` 隱藏（`&[data-state='unchecked'] { visibility: hidden; }`）——`visibility` 保留盒子，`display:none` 不行。`data-state` 由 Reka 的 `getState()` 產生，值為 `checked` / `unchecked` / `indeterminate`。
+- **位置**：[ExploreSidebar.vue](../app/components/03.result/ExploreSidebar.vue) 的 `CheckboxIndicator`、`StepResult.scss` 的 `&__card-x`。
+- **延伸（取捨，不是 bug）**：預留這 21px 是有代價的——MOB 兩欄下 label 可用寬 ＝ `(viewport - 32 - 12) / 2 - 20 - 21`，故 414px（Figma 基準）得 144px、390px 得 132px、375px 得 124.5px。15px 的 CJK 每字剛好 15px，所以 **9 字 label（如「交通事故死傷率更低」＝135px）在 414 放得下、在 390/375 就會折行**且可能只剩一個字孤行。11 字的兩個 label（PM 0729 指名）已用 `LABEL_BREAK` 語意斷行（第 7 字後，對齊 Figma）；**9 字的三個刻意留給自然換行**——曾評估過「9 字也加語意斷行」，但那會讓 414px（設計稿基準）也變兩行，故決議不做，接受 390/375 折行＋可能孤字。文字在任何寬度都不會被截斷（`card-label` 已無 ellipsis），PM 的需求成立。若日後 PM 反應窄機型的孤字，再加 `LABEL_BREAK` 條目即可，不需動 CSS。
+
 ## fonts（字型 / `@nuxtjs/google-fonts`，`nuxt.config.ts`）
 
 ### `@nuxtjs/google-fonts` 的 self-host（`download`/`outputDir`）模式會把 CJK 字型「塌縮」成豆腐字
@@ -110,3 +149,19 @@
 - **原因**：CJK 被 Google 切成上百個 unicode-range 分片，此模組下載時全塌縮成同一個 `*-text.woff2`（只剩約 250 字）；缺字依 `unicode-range` 語意不 fallback，直接 render notdef。
 - **修法**：不要開 self-host，用 runtime `<link>`：`googleFonts: { download: false, preconnect: true }`。真要自架須改 `@nuxt/fonts` 或 `cn-font-split` 靜態子集。
 - **位置**：`nuxt.config.ts` 的 `googleFonts`。
+
+## video（主視覺背景影片，`app/components/01.location/`）
+
+### `<source>` 選中 webm 後解碼失敗**不會**退回 mp4——WebKit 上等於整支影片死掉
+
+- **症狀**：首屏主視覺影片在 MacBook Safari、iPhone Safari／Chrome（iOS Chrome 也是 WebKit）不自動播放，畫面停在 poster 並疊一顆 WebKit 原生播放鍵；桌機 Chrome／Firefox 正常。
+- **原因**：兩層疊加。
+  1. `<source type="video/webm">` 只寫容器不寫 codecs 時，WebKit 的 `canPlayType` 會回 `"maybe"` → 資源選擇演算法**挑中 webm 就定案**。之後若 VP9 影格解不出來（容器解析成功、解碼才失敗 → `MEDIA_ERR_DECODE`＝3），規格上**不會**為 decode 失敗退回下一個 `<source>`，直接卡死。iOS 對 WebM `<video>` 播放的支援很晚才有，且 SE2（A13）沒有 VP9 硬解。
+  2. WebKit 擋下 autoplay 後（背景分頁開啟、視窗未聚焦、Low Power Mode、Safari 站台「永不自動播放」）**不會自己重試**，`play()` 的 rejection 若被吞掉就永久停在封面。
+- **修法**：
+  - webm 的 `type` 寫明 `codecs="vp9"`（不支援者直接跳過）；mp4 的 `type` 反而**要留裸容器** `video/mp4`，才能永遠當候選。
+  - 補上規格缺的 fallback：監聽 `<video>` 的 `error`，手動把 `el.src` 指到同斷點 mp4 再 `load()`。注意 **`src` 屬性優先於 `<source>`**，之後跨斷點換片必須自己再設 `el.src`，`load()` 不會回頭重挑 `<source>`。
+  - `play()` 被拒時標記狀態並在「回前景 / `canplay` / 使用者第一次 `pointerdown`」重試（user gesture 內幾乎必成功）。
+- **位置**：[StepLocation.vue](../app/components/01.location/StepLocation.vue) 的 `<video>`、[StepLocation.logic.ts](../app/components/01.location/StepLocation.logic.ts) 的 `playVisual` / `onVisualError` / `retryVisual`。
+- **延伸**：影片設 `pointer-events: none`（讓點擊穿透到下方內容）時，autoplay 被擋後**連那顆原生播放鍵都點不到**，等於沒有救援路徑。故只在被擋時加 `lc-sl__visual--blocked` 暫時開放點擊。
+- **診斷**：實機（iOS 用 Mac Safari 的 Web Inspector 連線）看 `video.currentSrc`（選到 webm 還是 mp4）、`video.error?.code`（3=DECODE、4=SRC_NOT_SUPPORTED）、`play()` rejection 的 `err.name`（`NotAllowedError`＝政策擋下）。兩者要分清楚，修法完全不同。

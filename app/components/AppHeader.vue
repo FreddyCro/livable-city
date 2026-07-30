@@ -62,4 +62,14 @@ const menu = [
 .nmd-header {
   background-color: var(--color-grey-0);
 }
+
+/*
+ * common-components 的 .nmd-menu 是 @extend %font-serif（"Noto Serif TC",
+ * source-han-serif-tc, serif）。本站主字體是 Noto Sans TC，故整個選單面板
+ * （含 NmdMenuItem 與訂閱按鈕）覆寫回黑體，避免與其餘畫面不一致。
+ * 非 scoped：.nmd-menu 由 vendor 元件渲染，scoped 的 data 屬性選不到。
+ */
+.nmd-menu {
+  font-family: 'Noto Sans TC', sans-serif;
+}
 </style>

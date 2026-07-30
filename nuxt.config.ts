@@ -1,4 +1,25 @@
+import { execSync } from "node:child_process";
 import tailwindcss from "@tailwindcss/vite";
+
+// 資料版本（cache busting）：public/ 底下的資產（data/*.json、tw-towns-*.json）
+// 不像 _nuxt/ 的 build assets 會帶 content hash，換了內容 URL 仍相同 →
+// 瀏覽器／CDN 會繼續給舊檔（換資料時最容易中）。故在 build 時算出一個版本字串，
+// 由 dataSource 以 `?v=` 附加到每個 public 資產請求上，讓每次部署自然換 URL。
+//
+// 取 git short SHA（每次 commit 必變、同一版重 build 仍命中快取）；
+// 無 git 環境（CI shallow copy / zip 部署）退回 build 時間戳。
+// 可用 NUXT_PUBLIC_DATA_VERSION 覆寫；⚠️ 設成空字串等於關閉 cache busting。
+const dataVersion = (() => {
+  try {
+    return execSync("git rev-parse --short HEAD", {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return String(Date.now());
+  }
+})();
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -44,6 +65,8 @@ export default defineNuxtConfig({
     public: {
       APP_MODE: "",
       APP_ASSETS_PATH: "",
+      // public/ 靜態資料的 cache busting 版本（見檔案頂端 dataVersion）
+      DATA_VERSION: dataVersion,
     },
   },
 
@@ -57,6 +80,13 @@ export default defineNuxtConfig({
         return "/";
       }
     })(),
+
+    // 缺 lang 時，瀏覽器替 CJK 字元解 generic family（serif / sans-serif）會走系統 locale
+    // fallback → 同一份 CSS 在 Windows 落到微軟正黑體、iOS 落到蘋方、舊 Android 落到
+    // Droid Sans Fallback，「同畫面各裝置字體不同」。標成 zh-Hant-TW 讓 fallback 可預測。
+    head: {
+      htmlAttrs: { lang: "zh-Hant-TW" },
+    },
   },
 
   // 字型：app 全域宣告 Noto Sans TC（base.scss），外部選單 NmdMenu 用 Noto Serif TC。
@@ -69,6 +99,11 @@ export default defineNuxtConfig({
   //   fallback 而是直接變豆腐字（實測「宜居城市指南」6 字全缺）。故用 runtime <link> 模式：
   //   download:false → 瀏覽器向 Google 依 unicode-range 按需抓分片，CJK 完整且只載實際用到的字。
   //   （runtime <link> 走 Google 絕對網址，不受本站 sub-path 影響，無 baseURL 問題。）
+  // ⚠️ useStylesheet 必須開：模組預設 false，會改用一段 inline script 在 client 端才
+  //   document.createElement('link') 插入 stylesheet → SSR HTML 裡沒有 @font-face，
+  //   hydration 前所有中文都用系統字型畫。配合 CJK 依 unicode-range 分片（這組 URL 回
+  //   逾 600 條 @font-face，只在文字真的上畫面時才抓分片）與 display:swap，慢裝置會明顯
+  //   看到「先系統黑體、之後才換 Noto」。改成真 <link rel=stylesheet> + preload 才穩。
   googleFonts: {
     families: {
       "Noto+Sans+TC": [300, 400, 500, 600, 700],
@@ -77,6 +112,8 @@ export default defineNuxtConfig({
     display: "swap",
     download: false,
     preconnect: true,
+    preload: true,
+    useStylesheet: true,
   },
 
   vite: {

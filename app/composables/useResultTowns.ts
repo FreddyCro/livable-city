@@ -19,6 +19,22 @@ interface UseResultTownsOptions {
 }
 
 /**
+ * 指標值 → 可比較的分數。zeroMeansNone 的指標（醫療院所平均每家服務人數、圖書館人口比）
+ * 值為 0 代表「該地區完全沒有這項設施」，語意上是最差，故換算成該指標方向的最差值
+ * （lowerIsBetter → +Infinity）；其餘指標原值直接比。
+ *
+ * ⚠️ 兩端（候選地區 val 與現居地 refVal）都要換算：
+ *   - val=0 換成最差 → 沒有醫療院所的茂林區不再被「醫療資源更多」選出（PM 回報的問題）。
+ *   - refVal=0 換成最差 → 現居地本身沒有設施時（如金門縣烏坵鄉），任何「有設施」的地區
+ *     都算比它更好；若只換算 val 這端，這些使用者會永遠篩不出任何結果。
+ *   - 兩端皆 0 → 最差 vs 最差不成立（Infinity < Infinity 為 false），一樣排除。
+ */
+function metricScore(val: number, meta: FilterMeta | undefined): number {
+  if (!meta?.zeroMeansNone || val !== 0) return val
+  return meta.lowerIsBetter ? Infinity : -Infinity
+}
+
+/**
  * 結果運算層：依「選定鄉鎮 + 篩選條件」算出勝過基準的鄉鎮清單，
  * 並維護 step 3 比較卡的預設選取（explore-compare 3.4）。
  *
@@ -45,7 +61,10 @@ export function useResultTowns(opts: UseResultTownsOptions) {
           const refVal = data[selectedTownCode.value]
           const val = data[code]
           if (refVal == null || val == null) return false
-          return filterMeta[fid]?.lowerIsBetter ? val < refVal : val > refVal
+          const fm = filterMeta[fid]
+          const score = metricScore(val, fm)
+          const refScore = metricScore(refVal, fm)
+          return fm?.lowerIsBetter ? score < refScore : score > refScore
         })
       })
       // 依 order.json 的官方順序排列，與 StepLocation 下拉一致（無 rank 者排到最後）

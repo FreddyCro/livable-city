@@ -10,7 +10,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import {
-  PATHS, DIRECTION, EXCLUDE_FROM_INDEX,
+  PATHS, DIRECTION, EXCLUDE_FROM_INDEX, ZERO_MEANS_NONE,
   cleanName, idOf, listXlsx, dataRows, loadLookup, matchRow, suggest,
 } from './lib/sources.mjs';
 
@@ -87,7 +87,7 @@ if (!existsSync(PATHS.indexPath)) {
 
   // 2b) index 內每一筆都要合法：非孤兒、名稱/方向與設定一致
   for (const entry of index) {
-    const { id, name, lowerIsBetter } = entry ?? {};
+    const { id, name, lowerIsBetter, zeroMeansNone } = entry ?? {};
     const file = fileById.get(id);
     if (!file) { err('index.json', `id "${id}" 沒有對應來源檔（孤兒項）`); continue; }
     if (EXCLUDE_FROM_INDEX.has(id)) err('index.json', `id "${id}" 應排除卻出現在 index`);
@@ -95,6 +95,9 @@ if (!existsSync(PATHS.indexPath)) {
     if (name !== expectName) warn('index.json', `id "${id}" 名稱「${name}」與檔名推得的「${expectName}」不一致`);
     if (typeof lowerIsBetter !== 'boolean') err('index.json', `id "${id}" lowerIsBetter 非布林值`);
     else if (id in DIRECTION && lowerIsBetter !== DIRECTION[id]) err('index.json', `id "${id}" lowerIsBetter=${lowerIsBetter} 與 DIRECTION 設定(${DIRECTION[id]})不符`);
+    // zeroMeansNone 漏帶會讓前端退回舊行為（0 被當成最好），故與 ZERO_MEANS_NONE 對齊檢查
+    if (typeof zeroMeansNone !== 'boolean') err('index.json', `id "${id}" zeroMeansNone 非布林值（請重跑 process-xlsx.mjs）`);
+    else if (zeroMeansNone !== ZERO_MEANS_NONE.has(id)) err('index.json', `id "${id}" zeroMeansNone=${zeroMeansNone} 與 ZERO_MEANS_NONE 設定(${ZERO_MEANS_NONE.has(id)})不符`);
   }
 }
 

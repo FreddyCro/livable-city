@@ -24,6 +24,23 @@ defineEmits<{
 const { img } = useAssets();
 const iconUrl = (name: string) => img(`icon/${name}.svg`);
 
+// 語意斷行（PM 0729：這兩個 label 未選前也要完整顯示，不可截斷）。
+// 只列 PM 指名的兩個 11 字 label，斷點對齊 Figma「414px-MOB-stage3」＝第 7 字後。
+// 未列出者交給自然換行：9 字的三個（交通事故死傷率更低／青壯年人口比率更高／
+// 居住地綠地空間更大）在 414px 剛好單行，較窄機型（390／375）會自然折成兩行、
+// 可能剩單字孤行——已知且刻意接受，換取 414px 基準完全對齊設計稿。
+// 背景數字：卡片半欄寬且永久預留 ✕ 的 21px，label 可用寬 ＝ (viewport - 44) / 2 - 41
+// → 414px 得 144px、390px 得 132px、375px 得 124.5px；15px 的 CJK 每字剛好 15px。
+const LABEL_BREAK: Record<string, number> = {
+  餐飲及住宿店家密度更高: 7,
+  大規模崩塌災害風險更低: 7,
+};
+// 依斷點切成 1～2 段供逐行 span 渲染；完整字串仍用於 GA / a11y。
+function labelLines(label: string): string[] {
+  const at = LABEL_BREAK[label];
+  return at ? [label.slice(0, at), label.slice(at)] : [label];
+}
+
 // GA：result 側欄事件（term = 條件文字／按鈕文字／區塊名）
 const { gaClickOption, gaClickBtn, gaClickOpen } = useTrackingEvent();
 </script>
@@ -87,9 +104,19 @@ const { gaClickOption, gaClickBtn, gaClickOpen } = useTrackingEvent();
             class="lc-sr__card"
             @click="gaClickOption(f.label ?? f.name)"
           >
-            <span class="lc-sr__card-label">{{ f.label ?? f.name }}</span>
-            <!-- CheckboxIndicator 僅在勾選時 render（等同原本 ✕ 的 v-if）；圖示用 button_close（X circle） -->
-            <CheckboxIndicator class="lc-sr__card-x">
+            <span class="lc-sr__card-label">
+              <span
+                v-for="(line, i) in labelLines(f.label ?? f.name)"
+                :key="i"
+                class="lc-sr__card-line"
+                >{{ line }}</span
+              >
+            </span>
+            <!-- 圖示用 button_close（X circle）。force-mount：未勾選時也保留 DOM 佔位，
+                 僅以 CSS（[data-state='unchecked'] → visibility:hidden）隱藏。
+                 若讓它照預設「勾選才 render」，label 的可用寬度會在勾選瞬間少 21px，
+                 長 label 就會從 2 行重排／被截斷 —— 卡片文字與高度都會跳動。 -->
+            <CheckboxIndicator force-mount class="lc-sr__card-x">
               <img :src="iconUrl('button_close')" alt="" />
             </CheckboxIndicator>
           </CheckboxRoot>
@@ -105,8 +132,12 @@ const { gaClickOption, gaClickBtn, gaClickOpen } = useTrackingEvent();
         rel="noopener"
         @click="gaClickBtn(str.banner1Title + ' ' + str.banner1Sub)"
       >
+        <!-- 標題：MOB/PAD 用精簡文案、PC 用完整標題＋副標，兩者以 CSS 切換（同 step 2 title-pc/-mob 作法） -->
         <span class="lc-sr__banner-text"
-          ><span>{{ str.banner1Title }}</span>
+          ><span class="lc-sr__banner-title--mob">{{
+            str.banner1TitleMob
+          }}</span
+          ><span class="lc-sr__banner-title--pc">{{ str.banner1Title }}</span>
           <span class="lc-sr__banner-sub">{{ str.banner1Sub }}</span></span
         >
         <span class="lc-sr__banner-icon"
@@ -121,7 +152,10 @@ const { gaClickOption, gaClickBtn, gaClickOpen } = useTrackingEvent();
         @click="gaClickBtn(str.banner2Title + ' ' + str.banner2Sub)"
       >
         <span class="lc-sr__banner-text"
-          ><span>{{ str.banner2Title }}</span>
+          ><span class="lc-sr__banner-title--mob">{{
+            str.banner2TitleMob
+          }}</span
+          ><span class="lc-sr__banner-title--pc">{{ str.banner2Title }}</span>
           <span class="lc-sr__banner-sub">{{ str.banner2Sub }}</span></span
         >
         <span class="lc-sr__banner-icon"

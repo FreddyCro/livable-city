@@ -48,7 +48,11 @@
       bottom: auto;
       right: auto;
       width: $explore-sidebar-w;
-      height: calc(100vh - #{$app-header-h});
+      // 用 100%（定位父層 .lc-sr 為 fixed inset:0＝可視視窗）而非 100vh：
+      // iOS/iPadOS Safari 的 100vh 是「工具列隱藏時」的大視窗，比可視區高 50~70px，
+      // 側欄會比可視框高一截 → 底部被 .lc-mv 的 overflow:hidden 裁掉；且內容雖超出可視區
+      // 卻仍小於這個過高的 height，overflow:auto 判定「裝得下」而不給卷軸（iPad Pro 橫式最明顯）。
+      height: calc(100% - #{$app-header-h});
       max-height: none;
       padding: 24px 20px 0;
       border-radius: 0;
@@ -316,13 +320,18 @@
     }
   }
 
-  // step-result__card-label（撐滿、過長截斷）
+  // step-result__card-label（撐滿；過長換行完整顯示，不截斷）
+  //   對齊 Figma（414px-MOB-stage3）：半欄寬容不下的長 label（「餐飲及住宿店家密度更高」
+  //   「大規模崩塌災害風險更低」）折成兩行完整呈現，卡片高度隨之增加（同列另一張卡跟著撐高）。
+  //   原本 nowrap + ellipsis 會讓這兩項「未選時就被截斷」，不符 PM 規格。
   &__card-label {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  }
+
+  // step-result__card-line（語意斷行的每一行；未列入 LABEL_BREAK 的 label 只有單行，block 不影響外觀）
+  &__card-line {
+    display: block;
   }
 
   // step-result__card-x（已選卸除圖示，button_close／X circle）
@@ -331,6 +340,12 @@
     flex-shrink: 0;
     width: 16px;
     height: 16px;
+
+    // 未選時只隱藏、不移除佔位（元件加了 force-mount 才有此節點）：
+    // 用 display:none／不 render 會讓 label 可用寬度在勾選瞬間變動 → 文字重排、卡片高度跳動。
+    &[data-state='unchecked'] {
+      visibility: hidden;
+    }
 
     img {
       width: 100%;
@@ -386,6 +401,10 @@
       padding: 16px 24px;
     }
 
+    @include rwd-min(pc) {
+      font-size: 15px;
+    }
+
     // step-result__banner--data（hover 整體淡出至 90%，對齊設計稿 hover 態；hover mixin 僅游標裝置生效）
     &--data {
       background: var(--color-b03);
@@ -401,6 +420,27 @@
 
       @include hover {
         opacity: 0.8;
+      }
+    }
+  }
+
+  // step-result__banner-title（外連按鈕標題；MOB/PAD 與 PC 用不同文案，以 CSS 切換）
+  //   MOB/PAD：窄版容不下副標，改用獨立的精簡文案（「圖解全台城市戰力」「2026選戰最新報導」）
+  //   PC：還原完整標題＋副標（banner-sub）
+  &__banner-title {
+    // step-result__banner-title--mob
+    &--mob {
+      @include rwd-min(pc) {
+        display: none;
+      }
+    }
+
+    // step-result__banner-title--pc
+    &--pc {
+      display: none;
+
+      @include rwd-min(pc) {
+        display: inline;
       }
     }
   }
@@ -600,7 +640,7 @@
     max-height: 48vh;
     display: flex;
     flex-direction: column;
-    background: var(--c-surface-translucent);
+    background: rgba($color: #fff, $alpha: 0.9);
     border: 1px solid var(--c-line-main);
     border-radius: 14px;
     box-shadow: 0 4px 16px rgb(var(--c-shadow) / 0.1);

@@ -29,6 +29,13 @@
     align-items: center;
   }
 
+  // 寬 1100–1440 × 高 ≤1024：pc 的上下留白（86 + 24）在 576 高的視窗佔掉近兩成高度，
+  // 「看結果」會被擠出視窗；上留白收到 header + 10、下留白 16，回收 24px。
+  // 其餘不足的高度由 __cards 內捲吸收（見 &__cards）。
+  @include rwd-lap {
+    padding: ($app-header-h + 10px) 24px 16px;
+  }
+
   // step-criteria__inner（MOB 單欄直向；PAD/PC 置中兩欄）
   &__inner {
     display: flex;
@@ -264,15 +271,19 @@
 
   // step-criteria__stat-label
   &__stat-label {
-    flex: 0 0 105px;
-    width: 110px;
+    // 優先保 value 單行：label 欄可縮（值過長時讓出寬度），max-width 封頂維持短值時的對齊
+    flex: 1 1 auto;
+    max-width: 110px;
+    min-width: 0;
     font-weight: 700;
   }
 
   // step-criteria__stat-val
   &__stat-val {
-    flex: 1;
+    // 數值＋單位一律排成一行：不換行、依內容定寬；寬度不足時由 label 欄讓出空間
+    flex: 0 0 auto;
     text-align: right;
+    white-space: nowrap;
   }
 
   // ── 右欄：條件選擇 ──────────────────────────────────
@@ -385,13 +396,18 @@
     margin: 0;
     font-size: 18px;
     font-weight: 400;
-    line-height: 36px;
+    line-height: 28px;
 
     // MOB：改 inline 以接續標題連成一句（見 &__head）
     display: inline;
 
     @include rwd-min(pad) {
       display: block;
+      line-height: 32px;
+    }
+
+    @include rwd-min(pc) {
+      line-height: 36px;
     }
   }
 
@@ -447,6 +463,24 @@
       max-height: 460px;
       // 進場②：與標題同時 fade up
       animation: lc-sc-fadeup 500ms ease 600ms both;
+    }
+
+    // 寬 1100–1440 矮視窗：卡片格是 __main 裡唯一能讓高度的區塊（head 與 submit 都必須留在
+    // 視窗內）。解除 min-height 下限並改為自身內捲：576 高的視窗縮到約 305px 開始出現捲軸，
+    // 標題與「看結果」恆在框內。
+    // ⚠️ 列高必須同時改成 minmax(80px, auto)：只設 min-height:0 + overflow 是沒用的——
+    //   repeat(5, 1fr)（或 auto）在有明確高度的容器裡會被 align-content:stretch 均分，
+    //   實測 305px 容器把卡片壓成 50.6px 且 scrollHeight === clientHeight（完全不會捲）。
+    //   給列高下限才會溢出成可捲。80px 沿用 &__card 在 PAD 的 min-height。
+    // max-height: 460 刻意保留 → 高度充裕的一端仍先被 460 封頂，列高 stretch 到 81.6px、
+    //   不出現捲軸，與現行 1fr 的結果完全相同（此規則在該端等於 no-op）。
+    // 右側留 8px 讓卡片不貼著捲軸（同 __info 清單的做法）。
+    @include rwd-lap {
+      grid-template-rows: repeat(5, minmax(80px, auto));
+      min-height: 0;
+      padding: 10px 8px 10px 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
     }
   }
 
