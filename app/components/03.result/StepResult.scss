@@ -4,6 +4,8 @@
   //   base（MOB / < sm / <768，設計稿 633-17957 / 414×736）：側欄＝底部可展開 filter sheet、
   //     banners 移頂部橫列（y=59 h=44）、工具列 y=113（pill x=10 / reselect x=154 / zoom 右）、
   //     compare 底部 sheet（w=320 距底 70）、filter bar 滿版。
+  //   rwd-max(xxs)（< 375，設計稿 633-20327 半開 / 633-22551 全開 / 320×576）：compare 的左右
+  //     paddle 不再分踞卡片兩側，改成一組並排浮在卡片上方左側，卡片同時放寬為左右各留 10px。
   //   rwd-min(pad)（≥ sm / 768，設計稿 633-11031）：還原 PC 架構（常駐左側欄＋右側浮層），
   //     PAD 只縮窄側欄內距、filter 卡片改單欄。
   //   rwd-min(pc)（≥ md / 1024）：僅 __cards 由 PAD 單欄改回 2 欄，其餘與 PAD 相同。
@@ -27,7 +29,6 @@
     justify-content: space-between;
     flex-direction: column;
     pointer-events: auto;
-    background: var(--c-surface);
     // MOB：C1/C2 側欄 → 底部可展開 filter sheet（Collapsible）
     top: auto;
     bottom: 0;
@@ -36,11 +37,18 @@
     height: auto;
     max-height: 80vh;
     padding: 0;
-    border-radius: 20px 20px 0 0;
-    border: solid 1px var(--c-line-main);
-    box-shadow: 0 -4px 16px rgb(var(--c-shadow) / 0.12);
+    // ⚠ MOB 的 sheet 可見表面（底色／框線／圓角／陰影）刻意下移到 __sidebar-top，
+    //   本層保持透明無框，才能疊在同為子孫、以 fixed 抽到頂部的 __banners 之上。原因見 __sidebar-top。
+    background: transparent;
+    border-radius: 0;
+    border: 0;
+    box-shadow: none;
     overflow: visible; // banners / reselect 以 fixed 抽離；捲動交給 cards-body
     z-index: 30; // C8：filter sheet 疊在 compare sheet 之上
+
+    @include rwd-short-phone {
+      max-height: calc(100vh - $app-header-h);
+    }
 
     @include rwd-min(pad) {
       // PAD/PC：常駐左側欄
@@ -48,6 +56,7 @@
       bottom: auto;
       right: auto;
       width: $explore-sidebar-w;
+      background: var(--c-surface);
       // 用 100%（定位父層 .lc-sr 為 fixed inset:0＝可視視窗）而非 100vh：
       // iOS/iPadOS Safari 的 100vh 是「工具列隱藏時」的大視窗，比可視區高 50~70px，
       // 側欄會比可視框高一截 → 底部被 .lc-mv 的 overflow:hidden 裁掉；且內容雖超出可視區
@@ -55,8 +64,6 @@
       height: calc(100% - #{$app-header-h});
       max-height: none;
       padding: 24px 20px 0;
-      border-radius: 0;
-      border: 0;
       box-shadow: 2px 0 12px rgb(var(--c-shadow) / 0.06);
       // overflow-y: auto 會連帶把 overflow-x 算成 auto（見 gotchas）；banners 靠負邊界
       // 剛好貼齊 padding box，任何寬度縮減/次像素捨入都會冒 x scrollbar，故明確裁掉 x。
@@ -65,7 +72,7 @@
     }
   }
 
-  // step-result__sidebar-top（MOB：filter sheet 內容包裹層，撐滿並讓 cards-body 捲動）
+  // step-result__sidebar-top（MOB：filter sheet 內容包裹層，撐滿、讓 cards-body 捲動，並承載 sheet 可見表面）
   &__sidebar-top {
     display: flex;
     flex-direction: column;
@@ -73,11 +80,33 @@
     // MOB：撐滿 sheet 剩餘高度
     min-height: 0;
     flex: 1;
+    // MOB：sheet 的可見表面（底色／框線／圓角／陰影）掛在這一層，並用 z-index 疊過 __banners。
+    //   __banners 在 MOB 是 position:fixed 抽到視窗頂部，但 DOM 上仍是 __sidebar 的子孫；
+    //   __sidebar 有 z-index:30 而自成 stacking context，其「自身背景」永遠畫在所有子孫之下
+    //   （CSS painting order 第 1 步），所以無論把 __sidebar 的 z-index 調多高、或把 __banners
+    //   壓到 z-index:-1，都蓋不掉頂部 banners。改把表面下移到這層 positioned 子元素
+    //   （z-index 31 > banners 30），展開的 sheet 才真的疊在 banners 之上。
+    //   ⚠ 這裡 position:relative 不會把 __reselect / __banners 的 fixed containing block 搶走
+    //     （只有 transform / filter / contain 等會），兩者定位不受影響。
+    //   何時會重疊：sheet 高 max 80vh、banners 底緣 104px ⇒ 視窗高 < 520px（橫向手機）就會撞上。
+    position: relative;
+    z-index: 31;
+    background: var(--c-surface);
+    border-radius: 20px 20px 0 0;
+    border: solid 1px var(--c-line-main);
+    box-shadow: 0 -4px 16px rgb(var(--c-shadow) / 0.12);
 
     @include rwd-min(pad) {
       flex: 0 1 auto;
       height: auto;
       min-height: auto;
+      // PAD/PC：banners 回到 sheet 內流排，表面交還 __sidebar
+      position: static;
+      z-index: auto;
+      background: transparent;
+      border-radius: 0;
+      border: 0;
+      box-shadow: none;
     }
 
     @include rwd-min(pc) {
@@ -624,6 +653,12 @@
     transform: translateX(-50%);
     pointer-events: none;
 
+    // < 375：paddle 已移到卡片上方（見 __paddle），兩側不必再讓位 48px，
+    // 卡片改為左右各留 10px 的近滿版（320 視窗 → 300 寬，對齊設計稿 x=10 w=300）
+    @include rwd-max(xxs) {
+      width: calc(100% - 20px);
+    }
+
     @include rwd-min(pad) {
       // PAD/PC：sidebar 佔住左側，寬度扣掉 sidebar，讓面板只佔地圖區
       bottom: 24px;
@@ -683,6 +718,13 @@
       box-shadow 0.15s,
       transform 0.15s;
 
+    // < 375：兩鈕併成一組浮在卡片上方左側（設計稿 633-20327 / 633-22551）。
+    // wrap 在 MOB 為 height:auto＝卡片高度，故 bottom:100% 即卡片頂緣，再往上留 5px 間距。
+    // 尺寸維持 30px（設計稿 <375 亦為 30×30），僅換定位。
+    @include rwd-max(xxs) {
+      bottom: calc(100% + 5px);
+    }
+
     @include rwd-min(pad) {
       width: 40px;
       height: 40px;
@@ -706,18 +748,27 @@
       box-shadow: none;
     }
 
-    // step-result__paddle--prev（左：上一個地區；MOB 外緣 -38px、PAD/PC -52px）
+    // step-result__paddle--prev（左：上一個地區；< 375 卡片上方左緣、MOB 外緣 -38px、PAD/PC -52px）
     &--prev {
       left: -38px;
+
+      @include rwd-max(xxs) {
+        left: 0; // 與卡片左緣對齊
+      }
 
       @include rwd-min(pad) {
         left: -52px;
       }
     }
 
-    // step-result__paddle--next（右：下一個地區；MOB 外緣 -38px、PAD/PC -52px）
+    // step-result__paddle--next（右：下一個地區；< 375 緊接 prev 右側、MOB 外緣 -38px、PAD/PC -52px）
     &--next {
       right: -38px;
+
+      @include rwd-max(xxs) {
+        right: auto;
+        left: 36px; // 30px 鈕寬 + 6px 間距（設計稿 prev x=10 / next x=46）
+      }
 
       @include rwd-min(pad) {
         right: -52px;
