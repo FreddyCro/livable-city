@@ -24,7 +24,9 @@ const {
   onTownSelect,
   gaClickBtn,
   visualVideo,
+  visualBlocked,
   onVisualEnded,
+  onVisualError,
   videoPoster,
   videoSrc,
 } = useStepLocation(props, emit);
@@ -43,12 +45,17 @@ const {
       <!-- 主視覺背景影片。來源用 <source media>：瀏覽器解析 HTML 時即依斷點挑對來源
            （SSR 首屏正確、不必等 JS，桌機不會先抓 mob）；順序 pc → pad → mob(fallback)，
            取第一個 media 命中且格式支援者。跨斷點 resize 由 JS 呼叫 el.load() 重挑（見 logic）。
+           webm 的 type 帶上 codecs="vp9"：只寫容器（video/webm）時 WebKit 的 canPlayType 會回
+           "maybe" 而搶下這個來源，真正解不了 VP9 時已無法回頭挑 mp4（規格不會為 decode 失敗
+           退回下一個 <source>）。寫明 codecs 讓不支援者直接跳過；真的挑中又失敗時，另由
+           @error 的 onVisualError 手動改吃同斷點 mp4（見 logic）。
            poster 無法用 media 選（單一 URL）：改由 CSS 依斷點換背景圖（見 SCSS 的 --lc-sl-poster-*）。
            URL 經此處 CSS 變數帶入（含 CDN 前綴）；影片解出首幀前顯示，之後被影片幀蓋過，
            與影片同吃 object-fit(contain) 對應的 background-size 與四邊羽化 mask。 -->
       <video
         ref="visualVideo"
         class="lc-sl__visual"
+        :class="{ 'lc-sl__visual--blocked': visualBlocked }"
         :style="{
           '--lc-sl-poster-mob': `url('${videoPoster.mob}')`,
           '--lc-sl-poster-pad': `url('${videoPoster.pad}')`,
@@ -58,10 +65,11 @@ const {
         muted
         playsinline
         @ended="onVisualEnded"
+        @error="onVisualError"
       >
         <source
           :src="videoSrc.pc.webm"
-          type="video/webm"
+          type="video/webm; codecs=vp9"
           media="(min-width: 1024px)"
         />
         <source
@@ -71,7 +79,7 @@ const {
         />
         <source
           :src="videoSrc.pad.webm"
-          type="video/webm"
+          type="video/webm; codecs=vp9"
           media="(min-width: 768px)"
         />
         <source
@@ -79,7 +87,10 @@ const {
           type="video/mp4"
           media="(min-width: 768px)"
         />
-        <source :src="videoSrc.mob.webm" type="video/webm" />
+        <source
+          :src="videoSrc.mob.webm"
+          type="video/webm; codecs=vp9"
+        />
         <source :src="videoSrc.mob.mp4" type="video/mp4" />
       </video>
 

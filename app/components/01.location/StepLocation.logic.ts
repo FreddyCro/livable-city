@@ -167,45 +167,111 @@ export function useStepLocation(
   const VISUAL_LOOP_START = 4;
   const visualVideo = ref<HTMLVideoElement | null>(null);
   const introDone = ref(false);
+
+  // autoplay 被瀏覽器政策擋下（WebKit 此時會在影片上疊原生播放鍵）。影片預設 pointer-events:none
+  // 以免擋住下方互動，一旦被擋就連那顆播放鍵都點不到 → 用此旗標暫時開放點擊（見 SCSS 的
+  // __visual--blocked）。成功播放後回復 false。
+  const visualBlocked = ref(false);
+  // webm 解碼失敗後已強制改吃 mp4（見 onVisualError）；斷點換片時要沿用同一條路，
+  // 因為 src 屬性優先於 <source>，load() 不會再回頭重挑 <source>。
+  let forcedMp4 = false;
+
+  const currentBp = (): Bp => {
+    if (window.matchMedia('(min-width: 1024px)').matches) return 'pc';
+    if (window.matchMedia('(min-width: 768px)').matches) return 'pad';
+    return 'mob';
+  };
+
+  // 統一的播放入口：Safari（尤其經 SPA 路由進來時）判斷能否 muted autoplay 看的是 muted DOM
+  // property，而 Vue 的裸 <video muted> 只保證寫 attribute、不保證同步 property，故每次都補設。
+  // play() 被拒（背景分頁、視窗未聚焦、Low Power Mode、Safari 站台「永不自動播放」…）無法由頁面
+  // 覆蓋，但可以「稍後再試」：標記 visualBlocked，由 retryVisual 在回前景／使用者觸碰時重試。
+  async function playVisual() {
+    const el = visualVideo.value;
+    if (!el) return;
+    el.muted = true;
+    el.playsInline = true;
+    try {
+      await el.play();
+      visualBlocked.value = false;
+    } catch (err) {
+      visualBlocked.value = true;
+      // 留一行診斷：在實機（尤其 iOS）上要靠這行分辨「政策擋下」還是「來源播不了」。
+      console.warn('[visual] play rejected:', (err as Error)?.name, {
+        currentSrc: el.currentSrc,
+        readyState: el.readyState,
+        errorCode: el.error?.code,
+      });
+    }
+  }
+
+  // 重載並依前奏狀態決定起點（換片／強制 fallback 共用）。先掛 loadeddata 再 load()，避免搶不到事件。
+  function reloadVisual() {
+    const el = visualVideo.value;
+    if (!el) return;
+    const onReady = () => {
+      el.removeEventListener('loadeddata', onReady);
+      el.currentTime = introDone.value ? VISUAL_LOOP_START : 0;
+      void playVisual();
+    };
+    el.addEventListener('loadeddata', onReady);
+    el.load();
+  }
+
+  // 影片層級的 error：代表「已選定的來源播不了」。webm(VP9) 在 WebKit 上最常見的失敗是
+  // 容器解析成功、影格解不出來（MEDIA_ERR_DECODE=3）——此時規格上不會自動退回下一個 <source>，
+  // 會直接卡死。故在此手動把 src 指到同斷點的 mp4 重載，補上這條缺失的 fallback。
+  function onVisualError() {
+    const el = visualVideo.value;
+    if (!el || forcedMp4) return;
+    console.warn('[visual] source failed, falling back to mp4:', {
+      errorCode: el.error?.code,
+      currentSrc: el.currentSrc,
+    });
+    forcedMp4 = true;
+    el.src = visualVideoSrc[currentBp()].mp4;
+    reloadVisual();
+  }
+
   function onVisualEnded() {
     introDone.value = true;
     const el = visualVideo.value;
     if (!el) return;
     el.currentTime = VISUAL_LOOP_START;
-    void el.play();
+    void playVisual();
   }
+
+  // ── autoplay 被擋後的重試 ─────────────────────────────
+  // WebKit 擋下 autoplay 後不會自己重試，因此需要三個時機補打：頁面回到前景（背景分頁開啟的情況）、
+  // 影片已可播、以及使用者第一次觸碰畫面（在 user gesture 內 play() 幾乎必成功）。
+  const retryVisual = () => {
+    if (visualBlocked.value) void playVisual();
+  };
+  const onVisibilityChange = () => {
+    if (!document.hidden) retryVisual();
+  };
 
   // matchMedia 追蹤斷點：跨越門檻時重載影片，讓瀏覽器依 <source media> 重挑來源
   let mqlPad: MediaQueryList | null = null;
   let mqlPc: MediaQueryList | null = null;
 
   // 跨斷點（change 事件只在「實際跨越」門檻時觸發，掛載當下不會，故不會多做一次重載）：
-  // el.load() 讓瀏覽器依 <source media> 重挑影片來源，載入後依前奏狀態決定起點。
+  // 讓瀏覽器依 <source media> 重挑影片來源，載入後依前奏狀態決定起點。
   // （poster 由 CSS media query 自動換圖，無需在此處理。）
   const onBpChange = () => {
-    const el = visualVideo.value;
-    if (!el) return;
-    el.load();
-    const onReady = () => {
-      el.currentTime = introDone.value ? VISUAL_LOOP_START : 0;
-      void el.play();
-      el.removeEventListener('loadeddata', onReady);
-    };
-    el.addEventListener('loadeddata', onReady);
+    if (forcedMp4) {
+      const el = visualVideo.value;
+      if (el) el.src = visualVideoSrc[currentBp()].mp4;
+    }
+    reloadVisual();
   };
 
   onMounted(() => {
-    // Safari（尤其經 SPA 路由進來時）判斷能否 muted autoplay 看的是 muted DOM property，
-    // 而 Vue 的裸 <video muted> 只保證寫 attribute、不保證同步 property。故在此強制設定
-    // property 並主動 play()：SSR / SPA 兩條路徑都確保靜音，也繞過 template 只設 attribute 的坑。
-    // play() 被拒（Low Power Mode / 網站「永不自動播放」等 runtime 政策）無法由頁面覆蓋，
-    // 交回 Safari 原生播放鍵接手，故僅吞下 rejection。
-    const videoEl = visualVideo.value;
-    if (videoEl) {
-      videoEl.muted = true;
-      videoEl.playsInline = true;
-      void videoEl.play().catch(() => {});
-    }
+    void playVisual();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    // pointerdown 涵蓋觸控與滑鼠；passive 不影響滑動效能。只在 visualBlocked 時才真的重試。
+    window.addEventListener('pointerdown', retryVisual, { passive: true });
+    visualVideo.value?.addEventListener('canplay', retryVisual);
 
     mqlPad = window.matchMedia('(min-width: 768px)');
     mqlPc = window.matchMedia('(min-width: 1024px)');
@@ -223,6 +289,9 @@ export function useStepLocation(
   onBeforeUnmount(() => {
     mqlPad?.removeEventListener('change', onBpChange);
     mqlPc?.removeEventListener('change', onBpChange);
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    window.removeEventListener('pointerdown', retryVisual);
+    visualVideo.value?.removeEventListener('canplay', retryVisual);
     blockRo?.disconnect();
     window.removeEventListener('resize', measureCenter);
   });
@@ -242,7 +311,9 @@ export function useStepLocation(
     onTownSelect,
     gaClickBtn,
     visualVideo,
+    visualBlocked,
     onVisualEnded,
+    onVisualError,
     videoPoster: visualPoster,
     videoSrc: visualVideoSrc,
   };

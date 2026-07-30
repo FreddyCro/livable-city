@@ -118,6 +118,14 @@
 - **位置**：`StepResult.scss`（`&__compare` 的 `rwd-min(pad)`、`&__compare-head`、`&__compare-body`）。
 - **延伸**：Sass（Dart Sass ≥ 1.11）對混合單位的 `min(600px, 100%)` 會原樣輸出成 CSS `min()`（px 與 % 無法化簡故不當 Sass 函式算），可安心使用。
 
+### Reka `CheckboxIndicator` 預設「勾選才 render」——會讓卡片文字在勾選瞬間重排
+
+- **症狀**：result 側欄的居住條件卡片，一勾選文字就從完整變成截斷／從一行變兩行，卡片高度跟著跳動。
+- **原因**：`CheckboxIndicator` 內部包 `Presence`，`present = forceMount || state === true`，**預設未勾選時整個節點不存在**。它是 flex 的一個 item（16px + gap 5 = **21px**），所以勾選前後 label 的可用寬度差 21px。
+- **修法**：加 `force-mount`，改用 CSS 依 `data-state` 隱藏（`&[data-state='unchecked'] { visibility: hidden; }`）——`visibility` 保留盒子，`display:none` 不行。`data-state` 由 Reka 的 `getState()` 產生，值為 `checked` / `unchecked` / `indeterminate`。
+- **位置**：[ExploreSidebar.vue](../app/components/03.result/ExploreSidebar.vue) 的 `CheckboxIndicator`、`StepResult.scss` 的 `&__card-x`。
+- **延伸（取捨，不是 bug）**：預留這 21px 是有代價的——MOB 兩欄下 label 可用寬 ＝ `(viewport - 32 - 12) / 2 - 20 - 21`，故 414px（Figma 基準）得 144px、390px 得 132px、375px 得 124.5px。15px 的 CJK 每字剛好 15px，所以 **9 字 label（如「交通事故死傷率更低」＝135px）在 414 放得下、在 390/375 就會折行**且可能只剩一個字孤行。11 字的兩個 label（PM 0729 指名）已用 `LABEL_BREAK` 語意斷行（第 7 字後，對齊 Figma）；**9 字的三個刻意留給自然換行**——曾評估過「9 字也加語意斷行」，但那會讓 414px（設計稿基準）也變兩行，故決議不做，接受 390/375 折行＋可能孤字。文字在任何寬度都不會被截斷（`card-label` 已無 ellipsis），PM 的需求成立。若日後 PM 反應窄機型的孤字，再加 `LABEL_BREAK` 條目即可，不需動 CSS。
+
 ## fonts（字型 / `@nuxtjs/google-fonts`，`nuxt.config.ts`）
 
 ### `@nuxtjs/google-fonts` 的 self-host（`download`/`outputDir`）模式會把 CJK 字型「塌縮」成豆腐字
@@ -126,3 +134,19 @@
 - **原因**：CJK 被 Google 切成上百個 unicode-range 分片，此模組下載時全塌縮成同一個 `*-text.woff2`（只剩約 250 字）；缺字依 `unicode-range` 語意不 fallback，直接 render notdef。
 - **修法**：不要開 self-host，用 runtime `<link>`：`googleFonts: { download: false, preconnect: true }`。真要自架須改 `@nuxt/fonts` 或 `cn-font-split` 靜態子集。
 - **位置**：`nuxt.config.ts` 的 `googleFonts`。
+
+## video（主視覺背景影片，`app/components/01.location/`）
+
+### `<source>` 選中 webm 後解碼失敗**不會**退回 mp4——WebKit 上等於整支影片死掉
+
+- **症狀**：首屏主視覺影片在 MacBook Safari、iPhone Safari／Chrome（iOS Chrome 也是 WebKit）不自動播放，畫面停在 poster 並疊一顆 WebKit 原生播放鍵；桌機 Chrome／Firefox 正常。
+- **原因**：兩層疊加。
+  1. `<source type="video/webm">` 只寫容器不寫 codecs 時，WebKit 的 `canPlayType` 會回 `"maybe"` → 資源選擇演算法**挑中 webm 就定案**。之後若 VP9 影格解不出來（容器解析成功、解碼才失敗 → `MEDIA_ERR_DECODE`＝3），規格上**不會**為 decode 失敗退回下一個 `<source>`，直接卡死。iOS 對 WebM `<video>` 播放的支援很晚才有，且 SE2（A13）沒有 VP9 硬解。
+  2. WebKit 擋下 autoplay 後（背景分頁開啟、視窗未聚焦、Low Power Mode、Safari 站台「永不自動播放」）**不會自己重試**，`play()` 的 rejection 若被吞掉就永久停在封面。
+- **修法**：
+  - webm 的 `type` 寫明 `codecs="vp9"`（不支援者直接跳過）；mp4 的 `type` 反而**要留裸容器** `video/mp4`，才能永遠當候選。
+  - 補上規格缺的 fallback：監聽 `<video>` 的 `error`，手動把 `el.src` 指到同斷點 mp4 再 `load()`。注意 **`src` 屬性優先於 `<source>`**，之後跨斷點換片必須自己再設 `el.src`，`load()` 不會回頭重挑 `<source>`。
+  - `play()` 被拒時標記狀態並在「回前景 / `canplay` / 使用者第一次 `pointerdown`」重試（user gesture 內幾乎必成功）。
+- **位置**：[StepLocation.vue](../app/components/01.location/StepLocation.vue) 的 `<video>`、[StepLocation.logic.ts](../app/components/01.location/StepLocation.logic.ts) 的 `playVisual` / `onVisualError` / `retryVisual`。
+- **延伸**：影片設 `pointer-events: none`（讓點擊穿透到下方內容）時，autoplay 被擋後**連那顆原生播放鍵都點不到**，等於沒有救援路徑。故只在被擋時加 `lc-sl__visual--blocked` 暫時開放點擊。
+- **診斷**：實機（iOS 用 Mac Safari 的 Web Inspector 連線）看 `video.currentSrc`（選到 webm 還是 mp4）、`video.error?.code`（3=DECODE、4=SRC_NOT_SUPPORTED）、`play()` rejection 的 `err.name`（`NotAllowedError`＝政策擋下）。兩者要分清楚，修法完全不同。

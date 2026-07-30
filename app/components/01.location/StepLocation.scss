@@ -128,6 +128,13 @@ $title-h-pc: 120px;
     }
   }
 
+  // step-location__visual--blocked（autoplay 被瀏覽器政策擋下時才加上）
+  // 平時 __visual 是 pointer-events:none（讓點擊穿透到下方內容），但被擋時 WebKit 會在影片上
+  // 疊一顆原生播放鍵，若維持 none 使用者連它都點不到 → 此時暫時開放點擊當作最後的救援路徑。
+  &__visual--blocked {
+    pointer-events: auto;
+  }
+
   // step-location__visual-credit（影片來源標註；左下角）
   &__visual-credit {
     position: absolute;
