@@ -26,9 +26,18 @@ const ASSET = {
 // 注意：要用 Nuxt 的 app.baseURL（public 資產服務於此前綴下），
 // 不可用 import.meta.env.BASE_URL —— 那是 build assets 目錄（dev 下為 /_nuxt/），
 // 用它會把資產導去 /_nuxt/xxx.json 而 404。
+//
+// 並附加 `?v={DATA_VERSION}` 做 cache busting：public/ 資產不像 _nuxt/ 的 build
+// assets 帶 content hash，換了資料（如重跑 process-xlsx 產生新的 data/1.json）
+// URL 仍然相同，瀏覽器／CDN 會繼續給舊檔 → 新 JS 配舊資料。版本字串於 build 時
+// 由 nuxt.config 產生（git short SHA），每次部署自然換 URL。
+// DATA_VERSION 為空時不附加（等於維持舊行為）。
 function assetUrl(path: string): string {
-  const base = useRuntimeConfig().app.baseURL || '/'
-  return base.endsWith('/') ? `${base}${path}` : `${base}/${path}`
+  const config = useRuntimeConfig()
+  const base = config.app.baseURL || '/'
+  const url = base.endsWith('/') ? `${base}${path}` : `${base}/${path}`
+  const v = config.public.DATA_VERSION
+  return v ? `${url}?v=${encodeURIComponent(v)}` : url
 }
 
 async function fetchJson<T>(path: string): Promise<T> {

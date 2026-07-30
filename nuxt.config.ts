@@ -1,4 +1,25 @@
+import { execSync } from "node:child_process";
 import tailwindcss from "@tailwindcss/vite";
+
+// 資料版本（cache busting）：public/ 底下的資產（data/*.json、tw-towns-*.json）
+// 不像 _nuxt/ 的 build assets 會帶 content hash，換了內容 URL 仍相同 →
+// 瀏覽器／CDN 會繼續給舊檔（換資料時最容易中）。故在 build 時算出一個版本字串，
+// 由 dataSource 以 `?v=` 附加到每個 public 資產請求上，讓每次部署自然換 URL。
+//
+// 取 git short SHA（每次 commit 必變、同一版重 build 仍命中快取）；
+// 無 git 環境（CI shallow copy / zip 部署）退回 build 時間戳。
+// 可用 NUXT_PUBLIC_DATA_VERSION 覆寫；⚠️ 設成空字串等於關閉 cache busting。
+const dataVersion = (() => {
+  try {
+    return execSync("git rev-parse --short HEAD", {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return String(Date.now());
+  }
+})();
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -44,6 +65,8 @@ export default defineNuxtConfig({
     public: {
       APP_MODE: "",
       APP_ASSETS_PATH: "",
+      // public/ 靜態資料的 cache busting 版本（見檔案頂端 dataVersion）
+      DATA_VERSION: dataVersion,
     },
   },
 

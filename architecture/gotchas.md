@@ -61,6 +61,19 @@
 - **修法**：資料管線 `parseVal()` 把數字字串轉 `number`、`"-"`/`"--"`/空 → `null`。改資料來源解析時務必保留此正規化。
 - **位置**：`scripts/lib/sources.mjs` `parseVal`、`app/composables/useResultTowns.ts`。
 
+## data assets（`public/` 靜態資料，`utils/dataSource.ts`）
+
+### `public/` 資產沒有 content hash——換了資料 URL 不變，快取會繼續給舊檔
+
+- **症狀**：重跑 `process-xlsx.mjs` 換好新資料、部署完成，但線上（尤其回訪者）看到的人口數／房價還是舊值；且**只有部分指標舊**（新 JS 配舊 JSON），畫面數字彼此矛盾。硬重載可能好，換個裝置又出現。
+- **原因**：Nuxt 只對 `_nuxt/` 底下的 build assets 加 content hash；`public/` 是**原封不動複製**。所以 `data/0.json`、`data/1.json`、`index.json`、`order.json`、`tw-towns-*.json` 的 URL **永遠相同**，瀏覽器／CDN 無從得知內容已換。更無聲的是：來源 xlsx 檔名改了（`（0723更新）`）也不會影響產出檔名——`cleanName` 刻意剝掉更新註記，連 `index.json` 的 `name` 都一模一樣，整條鏈路對快取零信號。
+- **修法**：`dataSource.assetUrl()` 附加 `?v={DATA_VERSION}`，版本字串在 **build 時**由 `nuxt.config.ts` 取 git short SHA（無 git 環境退回時間戳），每次部署自然換 URL。重點是**每次部署都必須變**，否則等於沒加；用 `NUXT_PUBLIC_DATA_VERSION` 覆寫時尤其注意，**設成空字串會直接關閉**（`assetUrl` 視為 falsy 就不附加）。
+- **位置**：[app/utils/dataSource.ts](../app/utils/dataSource.ts) `assetUrl`、[nuxt.config.ts](../nuxt.config.ts) 頂端 `dataVersion` + `runtimeConfig.public.DATA_VERSION`。
+- **延伸**：
+  - `public/img/**` 走 `useAssets` 的 `APP_ASSETS_PATH`（正式指向 `nmdap.udn.com.tw` CDN），**刻意不加 `?v=`**——圖檔幾乎不改，每次 commit 都換 URL 只會白丟快取。真的換圖且被快取住，只能等 TTL 或請對方 purge（使用者自己硬重載清不掉 edge cache）。
+  - 要診斷是否中快取：`curl -sI "<部署網址>/data/1.json"` 看 `Cache-Control` / `ETag` / `Age` / `x-cache`（有 `Age` 或 `x-cache: HIT` 表示前面有 CDN 在快取）。
+  - 若主機 header 改得動，`data/*.json` 給 `Cache-Control: no-cache`（保留 ETag 走 304）是更省的做法；本專案部署在 udn 靜態主機、header 不一定能控，故選前端加版本參數。
+
 ## build / SFC（Nuxt 4 / Vue 3.5 編譯）
 
 ### `defineProps<ImportedType>()` 需要專案安裝 `typescript`

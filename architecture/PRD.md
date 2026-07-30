@@ -36,6 +36,8 @@
 
 > ⚠️ **`baseURL` 前綴**：`dataSource` 用 Nuxt `app.baseURL`（`public/` 資產前綴），**不可**用 `import.meta.env.BASE_URL`（那是 build assets 目錄，會導向 `/_nuxt/*.json` 而 404）。部署於子路徑時尤其重要。
 
+> ⚠️ **cache busting**：上表所有 `public/` 資料檔都經 `dataSource.assetUrl()` 附加 `?v={DATA_VERSION}`（build 時取 git short SHA，見 [nuxt.config.ts](../nuxt.config.ts)）。`public/` 不像 `_nuxt/` 會加 content hash，換資料時 URL 不變 → 瀏覽器／CDN 會給舊檔。新增 `public/` 資料檔請一律走 `dataSource`，不要另外裸寫 `fetch('/data/xxx.json')`。
+
 ---
 
 ## Page：首頁 `/`（[app.vue](../app/app.vue)）
