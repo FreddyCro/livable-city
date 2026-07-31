@@ -110,12 +110,16 @@
 
 ### 父層自成 stacking context 時，它的「自身背景」永遠蓋不掉 `position:fixed` 抽離的子孫
 
-- **症狀**：MOB 的 filter sheet（`lc-sr__sidebar`）展開後，頂部兩條 banner（`lc-sr__banners`）浮在 sheet **之上**。把 `__sidebar` 的 `z-index` 從 30 調到 999、或把 `__banners` 壓到 `z-index: -1`，都完全沒有效果。
-- **原因**：`__banners` 在 MOB 是 `position: fixed` 抽到視窗頂部，但 **DOM 上仍是 `__sidebar` 的子孫**；而 `__sidebar` 有 `z-index: 30` → 自成 stacking context，子孫全部被關在裡面，跟外界比不了。而 CSS painting order 的第 1 步就是「形成 stacking context 那個元素自身的 background / border」，之後才輪到 negative z-index 的子孫（第 2 步）。所以 **`__sidebar` 的底色一定畫在所有子孫下面**，連 `z-index: -1` 都在它上面（`z-index:-1` 只有在父層**不是** stacking context 時才會鑽到父層背景之後）。
-- **修法**：把「可見表面」從 stacking context 那一層下移到一個 **positioned 子元素**，z-index 開得比要蓋住的兄弟高。本專案的做法：MOB 時 `__sidebar` 保持 `background: transparent; border: 0; box-shadow: none; border-radius: 0`，底色／框線／圓角／陰影全掛在 `__sidebar-top`（`position: relative; z-index: 31` > banners 的 30）；`rwd-min(pad)` 再互換回來（banners 在 PAD/PC 是內流排，無此問題）。
-  - `position: relative` **不會**搶走 `fixed` 子孫的 containing block（只有 `transform` / `filter` / `contain` / `will-change` 等會），所以 `__reselect`、`__banners` 的 fixed 定位不受影響。
-- **位置**：`StepResult.scss` 的 `&__sidebar`、`&__sidebar-top`；markup 見 [ExploreSidebar.vue](../app/components/03.result/ExploreSidebar.vue)（`__banners` 是 `CollapsibleRoot` 的子節點）。
-- **延伸（何時才看得到）**：sheet `max-height: 80vh`、banners 底緣 `60 + 44 = 104px`，重疊條件是 `100vh - 80vh < 104` ⇒ **視窗高 < 520px**。直立手機（667／736／812）不會重疊，**橫向手機**（如 667×375、寬度仍 < 768 走 MOB 版型）才會——所以在直立模擬器裡測不出來。
+- **症狀**：MOB 的 filter sheet（`lc-sr__sidebar`）展開後，頂部兩條 banner（`lc-sr__banners`）和「重選地區」pill（`lc-sr__reselect`）浮在 sheet **之上**。把 `__sidebar` 的 `z-index` 從 30 調到 999、或把 `__banners` 壓到 `z-index: -1`，都完全沒有效果。
+- **原因**：這兩者在 MOB 都是 `position: fixed` 抽到視窗頂部，但 **DOM 上仍是 `__sidebar` 的子孫**；而 `__sidebar` 有 `z-index: 30` → 自成 stacking context，子孫全部被關在裡面，跟外界比不了。而 CSS painting order 的第 1 步就是「形成 stacking context 那個元素自身的 background / border」，之後才輪到 negative z-index 的子孫（第 2 步）。所以 **`__sidebar` 的底色一定畫在所有子孫下面**，連 `z-index: -1` 都在它上面（`z-index:-1` 只有在父層**不是** stacking context 時才會鑽到父層背景之後）。
+- **修法**：把「可見表面」從 stacking context 那一層，下移到一個 **不定位的內流子元素**（painting order 第 3 步），再把要被蓋住的 fixed 子孫壓成 **負 z-index**（第 2 步）。本專案的做法：
+  - MOB 時 `__sidebar` 保持 `background: transparent; border: 0; box-shadow: none; border-radius: 0`，底色／框線／圓角／陰影全掛在 `__sidebar-top`；
+  - `__banners`、`__reselect` 的 MOB `z-index` 由 30／31 改成 `-1`；
+  - `rwd-min(pad)` 再互換回來（PAD/PC 這兩者是內流排，無此問題）。
+- **⚠ 反例（踩過一次）**：第一版把表面掛在 `__sidebar-top` 並給它 `position: relative; z-index: 31`（> banners 的 30）——banners 修好了，但 `__reselect` 巢在 `__sidebar-top` **裡面**，`__sidebar-top` 自成 stacking context 後又把它關進來，pill 照樣浮在自己的表面之上，**同一個坑只是往下移一層**。承載表面的那層若有任何要被它蓋住的子孫，就**不能**自成 stacking context（別給 `position` + `z-index`，也別給 `transform` / `filter` / `opacity < 1` / `contain` 等）。
+- **位置**：`StepResult.scss` 的 `&__sidebar`、`&__sidebar-top`、`&__banners`、`&__reselect`；markup 見 [ExploreSidebar.vue](../app/components/03.result/ExploreSidebar.vue)（`__banners` 是 `CollapsibleRoot` 的直接子節點，`__reselect` 巢在 `__sidebar-top > __head` 內）。
+- **延伸 1（負 z-index 不會把它們踢到地圖底下）**：負值只排序 `__sidebar` **自己這個 stacking context 內部**；整個側欄子樹仍以 `z-index: 30` 疊在 `.lc-sr` 裡，所以 banners／pill 依舊浮在地圖、`__list`（z 10）、compare（z auto）之上。
+- **延伸 2（何時才看得到）**：sheet 上限 `80vh`（`rwd-short-phone` 再放寬到 `100vh - 60px`），banners 底緣 `60 + 44 = 104px`、pill 底緣 143px。以 80vh 計，重疊條件是 `100vh - 80vh < 104` ⇒ **視窗高 < 520px**：直立手機（667／736／812）不會重疊，**橫向手機**（如 667×375、寬度仍 < 768 走 MOB 版型）與矮螢幕手機才會——所以在直立模擬器裡測不出來。
 
 ### `max-height: calc(100vh - …)` 在 iOS/iPadOS 會超出可視區 → 用 `dvh`
 

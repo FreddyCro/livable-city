@@ -38,7 +38,8 @@
     max-height: 80vh;
     padding: 0;
     // ⚠ MOB 的 sheet 可見表面（底色／框線／圓角／陰影）刻意下移到 __sidebar-top，
-    //   本層保持透明無框，才能疊在同為子孫、以 fixed 抽到頂部的 __banners 之上。原因見 __sidebar-top。
+    //   本層保持透明無框，才能疊在同為子孫、以 fixed 抽到頂部的 __banners / __reselect 之上。
+    //   原因（stacking context 第 1 步永遠在子孫之下）見 __sidebar-top。
     background: transparent;
     border-radius: 0;
     border: 0;
@@ -80,17 +81,16 @@
     // MOB：撐滿 sheet 剩餘高度
     min-height: 0;
     flex: 1;
-    // MOB：sheet 的可見表面（底色／框線／圓角／陰影）掛在這一層，並用 z-index 疊過 __banners。
-    //   __banners 在 MOB 是 position:fixed 抽到視窗頂部，但 DOM 上仍是 __sidebar 的子孫；
-    //   __sidebar 有 z-index:30 而自成 stacking context，其「自身背景」永遠畫在所有子孫之下
-    //   （CSS painting order 第 1 步），所以無論把 __sidebar 的 z-index 調多高、或把 __banners
-    //   壓到 z-index:-1，都蓋不掉頂部 banners。改把表面下移到這層 positioned 子元素
-    //   （z-index 31 > banners 30），展開的 sheet 才真的疊在 banners 之上。
-    //   ⚠ 這裡 position:relative 不會把 __reselect / __banners 的 fixed containing block 搶走
-    //     （只有 transform / filter / contain 等會），兩者定位不受影響。
-    //   何時會重疊：sheet 高 max 80vh、banners 底緣 104px ⇒ 視窗高 < 520px（橫向手機）就會撞上。
-    position: relative;
-    z-index: 31;
+    // MOB：sheet 的可見表面（底色／框線／圓角／陰影）掛在這一層，而不是 __sidebar。
+    //   __banners、__reselect 在 MOB 都以 position:fixed 抽到視窗頂部，但 DOM 上仍是 __sidebar
+    //   的子孫；__sidebar 有 z-index:30 而自成 stacking context，其「自身背景」永遠畫在所有子孫
+    //   之下（CSS painting order 第 1 步），表面留在 __sidebar 時無論怎麼調 z-index 都蓋不住那兩者。
+    //   改掛到這層「非定位的內流子元素」（painting order 第 3 步），再把 __banners / __reselect
+    //   壓成負 z-index（第 2 步），展開的 sheet 就會蓋在它們之上。
+    //   ⚠ 這層刻意不設 position / z-index：一旦自成 stacking context，巢在它裡面的 __reselect
+    //     會被關進來、永遠浮在自己的表面之上——同一個坑只是往下移了一層。
+    //   何時會重疊：sheet 上限 80vh／矮機 100vh-60，banners 底緣 104px、reselect 底緣 143px，
+    //   視窗高不足時（橫向手機、矮螢幕手機）就會撞上。
     background: var(--c-surface);
     border-radius: 20px 20px 0 0;
     border: solid 1px var(--c-line-main);
@@ -100,9 +100,7 @@
       flex: 0 1 auto;
       height: auto;
       min-height: auto;
-      // PAD/PC：banners 回到 sheet 內流排，表面交還 __sidebar
-      position: static;
-      z-index: auto;
+      // PAD/PC：banners / reselect 回到 sheet 內流排，表面交還 __sidebar
       background: transparent;
       border-radius: 0;
       border: 0;
@@ -235,7 +233,10 @@
     top: $mob-toolbar-top;
     left: 154px;
     margin: 0;
-    z-index: 31;
+    // 負值：展開的 sheet（表面掛在 __sidebar-top，painting order 第 3 步）要蓋住這顆 pill。
+    // 只影響 __sidebar stacking context 內的先後，整個側欄仍在 .lc-sr 的 z-index:30 層，
+    // 故 pill 依然浮在地圖／__list／compare 之上（見 __sidebar-top 註解）。
+    z-index: -1;
 
     &:hover {
       border-color: var(--c-border-hover);
@@ -393,7 +394,7 @@
     right: 0;
     margin: 0;
     flex-direction: row;
-    z-index: 30;
+    z-index: -1; // 同 __reselect：讓展開的 sheet 蓋住頂部橫列（見 __sidebar-top 註解）
 
     @include rwd-min(pad) {
       // PAD/PC：沿側欄底部滿版、直向堆疊
