@@ -121,6 +121,21 @@
 - **延伸 1（負 z-index 不會把它們踢到地圖底下）**：負值只排序 `__sidebar` **自己這個 stacking context 內部**；整個側欄子樹仍以 `z-index: 30` 疊在 `.lc-sr` 裡，所以 banners／pill 依舊浮在地圖、`__list`（z 10）、compare（z auto）之上。
 - **延伸 2（何時才看得到）**：sheet 上限 `80vh`（`rwd-short-phone` 再放寬到 `100vh - 60px`），banners 底緣 `60 + 44 = 104px`、pill 底緣 143px。以 80vh 計，重疊條件是 `100vh - 80vh < 104` ⇒ **視窗高 < 520px**：直立手機（667／736／812）不會重疊，**橫向手機**（如 667×375、寬度仍 < 768 走 MOB 版型）與矮螢幕手機才會——所以在直立模擬器裡測不出來。
 
+### iPadOS Safari 旋轉時 `window.resize` 讀到的是「舊尺寸」——量測要用 ResizeObserver 掛在視窗盒上
+
+- **症狀**：iPad Pro 在 step 1 第二階段（`lc-sl--revealed`）**直式轉橫式**後，標題上方留下一大條空白、底部「下一步」被切掉且捲不到。橫式重新整理就正常，只有「轉過去」才壞。
+- **原因**：那段上方空白不是 CSS 排出來的，是 `StepLocation.logic.ts` 的 `measureCenter()` 量完寫成**絕對 px** 餵給 `--lc-sl-block-y`（`transform: translateY()`）。原本的更新時機只有 `window.addEventListener('resize')` 與掛在 `block` 自己身上的 ResizeObserver：
+  - iPadOS Safari 在**旋轉途中**就派送 `resize`，此時同步讀 `clientHeight` / `offsetHeight` 拿到的還是舊版面，而且**之後不會再補派一次** → `centerY` 永久停在直式的值。
+  - `block` 的 RO 只看自己的盒子，管不到視窗高度。
+  - 加上 `.lc-sl` 是 `overflow: hidden`，被推出視窗的 CTA 完全捲不到，是硬傷不是視覺瑕疵。
+  - 數字（iPad Pro 12.9）：直式 `centerY ≈ 284`，橫式應為 `≈ 136`；沿用 284 就讓整組底緣超出可視區。
+- **修法**：
+  1. **ResizeObserver 加掛 `block.parentElement`（`.lc-sl`，`position: fixed; inset: 0` ＝視窗盒）**。RO 在 **layout 之後、paint 之前**派送，讀到的必定是新版面，天生繞開上述時序問題；同一個 RO `observe()` 兩個節點即可。這是主力，`resize` 事件只當備援。
+  2. **夾住上界** `Math.min(wrapperH - blockH, …)`：`overflow: hidden` 沒有補救機會，夾住後就算某次量測失準也只是置中略偏，不會讓 CTA 消失。
+  3. 補 `window.visualViewport` 的 `resize`：iOS/iPadOS 工具列收放會改變可視高度，但**不觸發** `window.resize`。
+- **位置**：[StepLocation.logic.ts](../app/components/01.location/StepLocation.logic.ts) 的 `measureCenter` / `onMounted` / `onBeforeUnmount`。
+- **延伸（為什麼不直接改純 CSS）**：`transform` 的百分比是「元素自身尺寸」（同檔 `translateX(-50%)` 已在用這個性質），所以置中理論上可寫成 `translateY(max(var(--lc-sl-title-top), calc(50dvh - 50%)))`，`50dvh` 取代 `wrapperH`、`50%` 取代 `offsetHeight`，數學上與 JS 版一對一等價，且兩端都還是 `transform`、**保留 0.5s 揭露轉場**（改用 flex `margin: auto` 則會失去轉場，不可行）。尚未採用的原因有二，需實機驗過再換：① 兩端都是含 `%` 的 `calc`/`max` 時，iPadOS WebKit 的 transform interpolation 可能退化成瞬跳；② `100dvh` 不保證等於 `.lc-sl` 的 `clientHeight`。
+
 ### `max-height: calc(100vh - …)` 在 iOS/iPadOS 會超出可視區 → 用 `dvh`
 
 - **症狀**：iPad（尤其橫向）上，`position:fixed` 的浮層／對話框（如 info-dialog）上下超出視窗、底部被切掉。

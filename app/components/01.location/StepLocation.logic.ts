@@ -49,17 +49,22 @@ export function useStepLocation(
     const el = block.value;
     if (!el) return;
     const wrapperH = el.parentElement?.clientHeight ?? window.innerHeight;
+    const blockH = el.offsetHeight;
     // header 下緣（＝標題版位）作為上緣下限；單一來源同步自 SCSS 的 --lc-sl-title-top，
     // 不在此硬寫各斷點 header 高度的魔術數字。
     const titleTop =
       parseFloat(getComputedStyle(el).getPropertyValue('--lc-sl-title-top')) ||
       0;
-    centerY.value = Math.max(
-      titleTop,
-      Math.round((wrapperH - el.offsetHeight) / 2),
+    // 上界＝「整組剛好貼齊底部」。.lc-sl 是 overflow:hidden，位移一旦偏大，被推出視窗的
+    // CTA 完全捲不到（PM 回報 iPad Pro 直轉橫「下一步」被切掉即此）。夾住上界後，就算
+    // 某次量測失準也只會讓置中略偏，不會讓按鈕消失。整組裝不下時（負值）退為 0（貼頂）。
+    const maxY = Math.max(0, wrapperH - blockH);
+    centerY.value = Math.min(
+      maxY,
+      Math.max(titleTop, Math.round((wrapperH - blockH) / 2)),
     );
   }
-  let blockRo: ResizeObserver | null = null;
+  let centerRo: ResizeObserver | null = null;
 
   // 任一下拉選單展開時，只許展開、不許「收回封面」，避免選縣市/鄉鎮滑動清單時誤退回首屏。
   // 用 DOM 偵測 open（Reka 在 trigger 掛 data-state="open"，與 SCSS chevron 判斷同源），
@@ -280,11 +285,21 @@ export function useStepLocation(
     mqlPad.addEventListener('change', onBpChange);
     mqlPc.addEventListener('change', onBpChange);
 
-    // 量測置中位移：初次 + block 尺寸變動（字體載入／斷點 reflow）+ 視窗高度變動
+    // 量測置中位移。三個來源互補，缺一都會留下 stale 的位移值：
+    //   1. block 自己的 RO：組內高度變動（字體載入、斷點 reflow、鄉鎮清單換字）。
+    //   2. wrapper（.lc-sl，position:fixed inset:0＝視窗盒）的 RO：視窗尺寸變動。這是「旋轉」
+    //      的主力——RO 在 layout 之後、paint 之前派送，讀到的必定是新版面；而 window resize
+    //      在 iPadOS Safari 旋轉途中就派送、同步讀到的還是舊尺寸，之後不再補一次，centerY
+    //      就會停在直式的值把 CTA 推出視窗（見 gotchas）。同一個 RO 觀察兩個節點即可。
+    //   3. visualViewport resize：iOS/iPadOS 工具列收放會改變可視高度，但不觸發 window resize。
+    // window resize 仍留作備援（桌機拖拉視窗、以及沒有 visualViewport 的環境）。
     measureCenter();
-    blockRo = new ResizeObserver(measureCenter);
-    if (block.value) blockRo.observe(block.value);
+    centerRo = new ResizeObserver(measureCenter);
+    if (block.value) centerRo.observe(block.value);
+    const wrap = block.value?.parentElement;
+    if (wrap) centerRo.observe(wrap);
     window.addEventListener('resize', measureCenter);
+    window.visualViewport?.addEventListener('resize', measureCenter);
   });
   onBeforeUnmount(() => {
     mqlPad?.removeEventListener('change', onBpChange);
@@ -292,8 +307,9 @@ export function useStepLocation(
     document.removeEventListener('visibilitychange', onVisibilityChange);
     window.removeEventListener('pointerdown', retryVisual);
     visualVideo.value?.removeEventListener('canplay', retryVisual);
-    blockRo?.disconnect();
+    centerRo?.disconnect();
     window.removeEventListener('resize', measureCenter);
+    window.visualViewport?.removeEventListener('resize', measureCenter);
   });
 
   return {
