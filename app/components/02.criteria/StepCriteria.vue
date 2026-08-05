@@ -29,21 +29,46 @@ function cardLabel(f: FilterMeta): string {
 }
 
 // PM 指定的語意斷行：label → 在第 N 字後斷行；未列出者不斷（單行）。
-// 斷點多為 5，「交通事故死傷率更低」特別在第 4 字後。
-const LABEL_BREAK: Record<string, number> = {
-  癌症發生率更低: 5,
-  交通事故死傷率更低: 4,
-  公托覆蓋率更高: 5,
-  圖書館資源更多: 5,
-  青壯年人口比率更高: 5,
-  餐飲及住宿店家密度更高: 5,
-  大規模崩塌災害風險更低: 5,
-  居住地綠地空間更大: 5,
+//
+// ⚠️ 同一個 label 在 MOB 與 PAD/PC 的斷點**不同**，因為兩者字級與可用寬度都不同。實測：
+//   MOB   ：15px 字、label 可用寬 ＝ (viewport − 77.3) / 2 − 21.3
+//           → 414 得 147px、390 得 135px、375 得 127.5px、320 得 100px（icon 隱藏、無 ✕）
+//   PAD/PC：18px 字、卡片多出 40px icon ＋ 5px gap（PAD 2 欄／PC 3 欄）→ 可用寬僅約 119.7px
+//   15px CJK 每字 15px、18px CJK 每字 18px：
+//           11 字 label ＝ MOB 165px／PAD 198px，兩邊都放不下，必須斷
+//           斷第 5 字 → MOB 75+90、PAD 90+108，兩邊都容得下
+//           斷第 7 字 → MOB 105+60 容得下（＝Figma 414px-MOB-stage2 的畫法）
+//                       但 PAD 第一段 126px > 119.7px 會溢出 → 故 PAD/PC 必須維持第 5 字
+// 結論：`pad` 是兩段 span 的實際切點（PAD/PC 用 display:block 強制斷行），
+//       `mob` 是 MOB 的斷點，靠第二段內的零寬空格（U+200B）表達，見 labelLines。
+const LABEL_BREAK: Record<string, { pad: number; mob: number }> = {
+  癌症發生率更低: { pad: 5, mob: 5 },
+  交通事故死傷率更低: { pad: 4, mob: 7 },
+  公托覆蓋率更高: { pad: 5, mob: 5 },
+  圖書館資源更多: { pad: 5, mob: 5 },
+  青壯年人口比率更高: { pad: 5, mob: 7 },
+  餐飲及住宿店家密度更高: { pad: 5, mob: 7 },
+  大規模崩塌災害風險更低: { pad: 5, mob: 7 },
+  居住地綠地空間更大: { pad: 5, mob: 7 },
 };
 // 依斷點切成 1～2 段供逐行 span 渲染；完整字串仍由 cardLabel 提供給 GA / a11y。
+//
+// 第二段內插入一個零寬空格 U+200B，位置＝MOB 的斷點：
+//   MOB   ：兩段是 inline、文字順接成一串，而 __card-label 套了 `word-break: keep-all`
+//           禁止 CJK 在任意兩字之間斷行 → 這個零寬空格是**唯一**的斷行機會。
+//           於是「放得下就單行、放不下才斷，且一定斷在語意邊界」由瀏覽器自己決定，
+//           不必逐斷點寫死該不該斷（9 字 label 在 414 維持單行、375 才斷，即由此自動達成）。
+//   PAD/PC：兩段各自 display:block，零寬空格落在第二行行首、寬度為 0，不影響外觀。
 function labelLines(label: string): string[] {
-  const at = LABEL_BREAK[label];
-  return at ? [label.slice(0, at), label.slice(at)] : [label];
+  const cfg = LABEL_BREAK[label];
+  if (!cfg) return [label];
+  const { pad, mob } = cfg;
+  // 用 \u200B escape 而非字面字元：零寬空格在編輯器裡看不見，寫成字面值等於埋一個隱形陷阱。
+  const ZWSP = '\u200B';
+  return [
+    label.slice(0, pad),
+    `${label.slice(pad, mob)}${ZWSP}${label.slice(mob)}`,
+  ];
 }
 
 function criteriaIcon(id: string): string {

@@ -146,6 +146,25 @@
 - **延伸：寫在 `height` 上會「被裁切但不出現卷軸」**：side effect 更難察覺。iPad Pro 橫式（1194×834）下側欄可視高 ≈ 643px、宣告高 = `100vh-60` = 774px、內容 ≈ 710px → 內容超出**可視區**但仍小於**元素高度**，`overflow: hidden auto` 判定「裝得下」而不給卷軸，超出的 ~70px 被 `.lc-mv { overflow: hidden }` 裁掉，畫面就是「切一半又捲不動」。內容再多、突破 774px 才會冒卷軸，故不是每次都看得出來。診斷依據：同層 `fixed inset:0` 內的元素（compare 卡 `bottom:24px`、paddle）位置正常，只有寫 `vh` 的盒子超出 → 即 large/small viewport 落差。
 - **無法用桌機 Chrome 重製**：桌機 Chrome 沒有可收起的工具列，`100vh` == `innerHeight` == `fixed inset:0` 高度，落差為 0；DevTools 的 iPad Pro 模擬只改 viewport 尺寸與 UA，**不模擬 large/small viewport 落差**。要驗證請用真機 Safari，或 Android Chrome（同樣有動態工具列）。
 
+### media query 的 `height` 是「可視高」不是螢幕高 → `max-height` 斷點會把 iPhone 15 Pro 也判成矮機
+
+- **症狀**：PM 用 iPhone 15 Pro（螢幕 393×852）看 step 1，標題／前言／問句全部套到「SE 矮機」的收斂字級（標題 20px 而非設計的 36px），畫面像小機版：字小、下方一大片留白。iPhone SE 以外的機型不該命中，卻命中了。
+- **原因**：`rwd-short-phone` 的門檻寫 `max-height: 700px`，註解是拿**裝置螢幕高**（SE 667、mini 812）在推算的；但 media query 的 `height` 比對的是**扣掉 Safari 上下工具列後的可視高**，兩者在 iOS 差 100~190px：
+
+  | 機型 | 螢幕高 | Safari 可視高（約） | 命中 `≤700`？ |
+  |---|---|---|---|
+  | iPhone SE2/SE3 | 667 | 553 | ✅（原本的目標） |
+  | iPhone 13 mini | 812 | 620 | ✅（早就誤中，只是沒人回報） |
+  | iPhone 15 Pro | 852 | 664 | ✅ ← 這次的 bug |
+
+  也就是 700 這條線在真機上幾乎「所有直立 iPhone 都算矮機」，**完全失去區分力**。這是 `100vh` large/small viewport 落差（見上一則）的同一家族，只是踩在 media query 的 `height` 上，更難聯想。
+- **修法**：字級／尺寸的收斂**不要用 `max-height` 二元斷點**，改用 `svh` 單位連續插值——`mixins.scss` 的 `fluid-by-svh($min, $max)` 產生 `clamp($min, <線性插值>svh, $max)`，錨點集中在 `$phone-svh-min: 570px` / `$phone-svh-max: 640px`（＝「SE 取 $min、15 Pro 取 $max」，唯一的調整旋鈕，呼叫端不用動）。
+  - **為什麼是 `svh` 而不是 `dvh`**：`svh` 是「工具列全開」的小視窗高，值**靜態**；用 `dvh` 會在捲動收放工具列時讓字級一直跳動。
+  - **fallback**：不認 `svh` 的瀏覽器（iOS <15.4 / Chrome <108）會把整條 `clamp()` 宣告丟棄 → 退回 `.lc-h1` / `.lc-p` 的 mob 級距，矮機又會溢出，故補 `@include no-svh { … }`（`@supports not (height: 1svh)` + `max-height: 600px`，門檻用 600 而非 700 才不會誤中 15 Pro 的 ~664）。這個 mixin **不自帶寬度上界**，必須巢在 `rwd-max(pad)` 內。
+- **⚠ 反例（想過但不能做）**：給 `rwd-short-phone` 加寬度上界（`max-width: 375px`）把 393 寬的機型排除掉。兩個坑：①`rwd-max(xxs)` 算出 `374.98px`，SE 正好 375 → 把要修的機型自己排除掉，得寫**含 375** 的 `max-width: 375px`；②**橫向手機（667×375，寬度仍 < 768 走 MOB 版型）會被寬度上界一起排除**，而它正是最需要收斂的情境（可視高只有 ~330）——`StepResult` 的 sheet 放寬就靠它（見本節「父層自成 stacking context」那則的延伸 2）。而且寬度只擋掉 390+ 機型，**修不掉 mini 的誤中**，根因（高度判定失準）還在。
+- **位置**：`mixins.scss`（`fluid-by-svh()` / `no-svh()` / `rwd-short-phone` 的警告註解）、`StepLocation.scss`（`&__heading`、`&__scroll-hint-line`、`&__intro`、`&__question` 四處已改用 `fluid-by-svh`）。`StepResult.scss` 的 `&__sidebar` **刻意保留** `rwd-short-phone`：它只是「放寬 `max-height` 上限」，過度命中無視覺破圖，且橫向手機要靠它。
+- **無法用桌機 DevTools 重製**：裝置模擬只設 viewport 尺寸，`height` 直接等於你設的值（393×852 就是 852，不會扣工具列）→ 條件不成立，看起來一切正常。要驗證請用真機 Safari，或在真機上讀 `window.innerHeight` 對照。
+
 ### `overflow-y: auto` 會連帶把 `overflow-x` 變 `auto` → 冒出非預期的水平 scrollbar
 
 - **症狀**：只想垂直捲動的容器卻出現水平 scrollbar（如 info-dialog 內塞入為整頁滿版設計的 `NmdFooter`）。

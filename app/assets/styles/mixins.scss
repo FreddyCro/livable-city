@@ -1,4 +1,5 @@
 @use 'sass:map';
+@use 'sass:math';
 @use './variables.scss' as vars;
 
 @mixin rwd-min($key) {
@@ -38,11 +39,50 @@
 }
 
 // 矮螢幕手機（如 iPhone SE2：375×667）：min-width 斷點無法涵蓋「視窗高度不足」，
-// 以 max-height + 手機寬度收斂字級，補足這個情境。$maxH 預設 700px（涵蓋 SE 級距 667/568，
-// 不觸及 iPhone 13 mini 812 等一般手機）；寬度上界對齊 rwd-max(pad) 的 768 - 0.02。
+// 以 max-height + 手機寬度補足這個情境。寬度上界對齊 rwd-max(pad) 的 768 - 0.02。
+//
+// ⚠ $maxH 比對的是 media query 的 `height`＝**扣掉瀏覽器工具列後的可視高**，不是裝置螢幕高。
+//    iOS Safari 兩者差 100~190px：SE2（螢幕 667）可視高僅約 553、iPhone 15 Pro（螢幕 852）
+//    也只有約 664 → 預設 700px 幾乎「所有直立 iPhone 都算矮機」，區分力極低（見 gotchas）。
+//    字級收斂請改用 fluid-by-svh()；本 mixin 只留給「放寬高度上限」這類過度命中無害的用途。
 @mixin rwd-short-phone($maxH: 700px) {
   @media screen and (max-width: 767.98px) and (max-height: #{$maxH}) {
     @content;
+  }
+}
+
+// ── 可視高驅動的流體數值 ────────────────────────────────
+// 手機的垂直空間差異只能靠「可視視窗高」判斷，但 media query 的 height 會誤判（見上），
+// 且會隨工具列收放翻轉 → 改用 svh 單位做連續插值：
+//   svh = small viewport height＝「工具列全開」時的可視高，值**靜態**（滾動時不變），
+//   故不會像 dvh 那樣在捲動中讓字級抖動。
+//
+// $phone-svh-*：插值區間的兩個錨點（單位 px，指可視高）。這是唯一的調整旋鈕：
+//   - $phone-svh-min 570：iPhone SE2/SE3（可視高約 553）落在區間下緣 → 取 $min。
+//   - $phone-svh-max 640：iPhone 13/14/15（含 15 Pro，可視高約 656~664）落在上緣 → 取 $max。
+//   兩者之間（iPhone 12/13 mini 等）連續插值，沒有斷點懸崖。
+//   實機量測值若與此不符，只改這兩個數字即可，呼叫端不用動。
+$phone-svh-min: 570px;
+$phone-svh-max: 640px;
+
+// 在 $hMin→$hMax 之間把 $min 線性插值到 $max，兩端由 clamp() 各自夾住。
+// 產出例：fluid-by-svh(20px, 36px) → clamp(20px, calc(-110.286px + 22.857svh), 36px)
+@function fluid-by-svh($min, $max, $hMin: $phone-svh-min, $hMax: $phone-svh-max) {
+  $slope: math.div($max - $min, $hMax - $hMin); // 無單位（px ÷ px）
+  $svh: math.div(math.round($slope * 100000), 1000); // 每 1svh 幾 px，取 3 位小數
+  $intercept: math.div(math.round(($min - $slope * $hMin) * 1000), 1000); // px，通常為負
+  @return clamp(#{$min}, calc(#{$intercept} + #{$svh}svh), #{$max});
+}
+
+// svh 的 fallback（iOS <15.4 / Chrome <108）：不認 svh 時 fluid-by-svh() 那條宣告會被整條丟棄，
+// 字級退回 .lc-h1 / .lc-p 的 mob 級距 → 矮機又會溢出。這個 mixin 補回等效的二元收斂。
+// $maxH 用 600px（不是 700）：比對的是可視高，600 能收斂 SE 級距又不誤中 15 Pro 的 ~664。
+// ⚠ 必須巢在 rwd-max(pad) 之類的手機條件內使用（本 mixin 不自帶寬度上界）。
+@mixin no-svh($maxH: 600px) {
+  @supports not (height: 1svh) {
+    @media screen and (max-height: #{$maxH}) {
+      @content;
+    }
   }
 }
 

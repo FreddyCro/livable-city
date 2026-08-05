@@ -47,8 +47,17 @@
     overflow: visible; // banners / reselect 以 fixed 抽離；捲動交給 cards-body
     z-index: 30; // C8：filter sheet 疊在 compare sheet 之上
 
+    // 矮視窗（含橫向手機）：80vh 的 sheet 太矮不好操作，上限放寬到「可視高 - header」。
+    // 這裡刻意保留 rwd-short-phone 的門檻：過度命中只是讓 sheet 可以更高，無視覺破圖，
+    // 且橫向手機（667×375）要靠它——改成寬度上界會把橫向排除掉（見 gotchas）。
     @include rwd-short-phone {
-      max-height: calc(100vh - $app-header-h);
+      max-height: calc(100vh - #{$app-header-h});
+
+      // dvh 才是扣掉工具列的可視高；100vh 是「工具列隱藏時」的大視窗，會讓 sheet 底部
+      // 落到工具列後面（同 StepResult.global.scss 的處理）。不支援 dvh 者退回上一行。
+      @supports (height: 100dvh) {
+        max-height: calc(100dvh - #{$app-header-h});
+      }
     }
 
     @include rwd-min(pad) {
