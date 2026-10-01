@@ -233,11 +233,17 @@ $title-h-pc: 120px;
       $color-b01
     ); // 白底沿字形輪廓，壓在背景影片上仍清晰
 
-    // 矮螢幕手機（SE2 等）：mob 級距 36/44（兩行 ≈ 88px）在 667px 高的視窗過大，
-    // 會把首屏擠到「下滑看更多」壓上主視覺說明字。收斂字級讓出垂直空間（覆寫 .lc-h1）。
-    @include rwd-short-phone {
-      font-size: 20px;
-      line-height: 24px;
+    // 矮螢幕手機（SE2 等）：mob 級距 36/44（兩行 ≈ 88px）在可視高只有 5xx 的視窗過大，
+    // 會把首屏擠到「下滑看更多」壓上主視覺說明字。字級隨可視高連續收斂讓出垂直空間（覆寫 .lc-h1）。
+    // 不用 max-height 二元斷點：它比對的是可視高而非螢幕高，iPhone 15 Pro 也會誤中（見 gotchas）。
+    @include rwd-max(pad) {
+      font-size: fluid-by-svh(20px, 36px);
+      line-height: fluid-by-svh(24px, 44px);
+
+      @include no-svh {
+        font-size: 20px;
+        line-height: 24px;
+      }
     }
   }
 
@@ -288,8 +294,13 @@ $title-h-pc: 120px;
     // background: rgba(0, 0, 0, 0.2); // 暗淡軌道
     overflow: hidden;
 
-    @include rwd-short-phone {
-      height: 36px;
+    // 矮螢幕手機：軌道跟著可視高收短，讓首屏這一組不壓上主視覺說明字（與標題同一組收斂）
+    @include rwd-max(pad) {
+      height: fluid-by-svh(36px, 74px);
+
+      @include no-svh {
+        height: 36px;
+      }
     }
 
     @include rwd-min(pc) {
@@ -344,10 +355,16 @@ $title-h-pc: 120px;
       transform 0.5s ease 0.3s;
 
     // 矮螢幕手機（SE2 等）：前言 .lc-p 18/36 多行過高，step 1-2 整組（標題＋前言＋表單）
-    // 會超出視窗被裁掉（「下一步」被工具列擋住）。收斂字級讓表單完整入框（覆寫 .lc-p）。
-    @include rwd-short-phone {
-      font-size: 15px;
-      line-height: 20px;
+    // 會超出視窗被裁掉（「下一步」被工具列擋住）。字級隨可視高連續收斂讓表單完整入框（覆寫 .lc-p）。
+    // 行高的收斂幅度（36→20）比字級（18→15）大得多，故兩者各自插值、不用單一 ratio。
+    @include rwd-max(pad) {
+      font-size: fluid-by-svh(15px, 18px);
+      line-height: fluid-by-svh(20px, 36px);
+
+      @include no-svh {
+        font-size: 15px;
+        line-height: 20px;
+      }
     }
 
     @include rwd-min(pc) {
@@ -390,9 +407,15 @@ $title-h-pc: 120px;
     font-size: 24px;
     line-height: 1;
 
-    @include rwd-short-phone {
-      font-size: 18px;
-      line-height: 22px;
+    // 矮螢幕手機：與標題／前言同一組收斂（line-height 上緣 24px＝基準 24px × 1）
+    @include rwd-max(pad) {
+      font-size: fluid-by-svh(18px, 24px);
+      line-height: fluid-by-svh(22px, 24px);
+
+      @include no-svh {
+        font-size: 18px;
+        line-height: 22px;
+      }
     }
 
     @include rwd-min(pc) {

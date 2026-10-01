@@ -108,6 +108,34 @@
 - **位置**：`InfoContent.vue`、`AppFooter.vue`、`StepResult/StepResult.global.scss`（與 scoped 的 `StepResult.scss` 分檔，用 `<style src>` 各自引入）。
 - **延伸**：`nuxt.config.ts` 的 `css.preprocessorOptions.scss.additionalData` 會把 `mixins`/`variables` 注入**每個** scss（含 `<style src>` 外部檔），故外部 `.scss` 用 `$app-header-h`、`@include rwd-min(...)` 免再手動 `@use`。
 
+### 父層自成 stacking context 時，它的「自身背景」永遠蓋不掉 `position:fixed` 抽離的子孫
+
+- **症狀**：MOB 的 filter sheet（`lc-sr__sidebar`）展開後，頂部兩條 banner（`lc-sr__banners`）和「重選地區」pill（`lc-sr__reselect`）浮在 sheet **之上**。把 `__sidebar` 的 `z-index` 從 30 調到 999、或把 `__banners` 壓到 `z-index: -1`，都完全沒有效果。
+- **原因**：這兩者在 MOB 都是 `position: fixed` 抽到視窗頂部，但 **DOM 上仍是 `__sidebar` 的子孫**；而 `__sidebar` 有 `z-index: 30` → 自成 stacking context，子孫全部被關在裡面，跟外界比不了。而 CSS painting order 的第 1 步就是「形成 stacking context 那個元素自身的 background / border」，之後才輪到 negative z-index 的子孫（第 2 步）。所以 **`__sidebar` 的底色一定畫在所有子孫下面**，連 `z-index: -1` 都在它上面（`z-index:-1` 只有在父層**不是** stacking context 時才會鑽到父層背景之後）。
+- **修法**：把「可見表面」從 stacking context 那一層，下移到一個 **不定位的內流子元素**（painting order 第 3 步），再把要被蓋住的 fixed 子孫壓成 **負 z-index**（第 2 步）。本專案的做法：
+  - MOB 時 `__sidebar` 保持 `background: transparent; border: 0; box-shadow: none; border-radius: 0`，底色／框線／圓角／陰影全掛在 `__sidebar-top`；
+  - `__banners`、`__reselect` 的 MOB `z-index` 由 30／31 改成 `-1`；
+  - `rwd-min(pad)` 再互換回來（PAD/PC 這兩者是內流排，無此問題）。
+- **⚠ 反例（踩過一次）**：第一版把表面掛在 `__sidebar-top` 並給它 `position: relative; z-index: 31`（> banners 的 30）——banners 修好了，但 `__reselect` 巢在 `__sidebar-top` **裡面**，`__sidebar-top` 自成 stacking context 後又把它關進來，pill 照樣浮在自己的表面之上，**同一個坑只是往下移一層**。承載表面的那層若有任何要被它蓋住的子孫，就**不能**自成 stacking context（別給 `position` + `z-index`，也別給 `transform` / `filter` / `opacity < 1` / `contain` 等）。
+- **位置**：`StepResult.scss` 的 `&__sidebar`、`&__sidebar-top`、`&__banners`、`&__reselect`；markup 見 [ExploreSidebar.vue](../app/components/03.result/ExploreSidebar.vue)（`__banners` 是 `CollapsibleRoot` 的直接子節點，`__reselect` 巢在 `__sidebar-top > __head` 內）。
+- **延伸 1（負 z-index 不會把它們踢到地圖底下）**：負值只排序 `__sidebar` **自己這個 stacking context 內部**；整個側欄子樹仍以 `z-index: 30` 疊在 `.lc-sr` 裡，所以 banners／pill 依舊浮在地圖、`__list`（z 10）、compare（z auto）之上。
+- **延伸 2（何時才看得到）**：sheet 上限 `80vh`（`rwd-short-phone` 再放寬到 `100vh - 60px`），banners 底緣 `60 + 44 = 104px`、pill 底緣 143px。以 80vh 計，重疊條件是 `100vh - 80vh < 104` ⇒ **視窗高 < 520px**：直立手機（667／736／812）不會重疊，**橫向手機**（如 667×375、寬度仍 < 768 走 MOB 版型）與矮螢幕手機才會——所以在直立模擬器裡測不出來。
+
+### iPadOS Safari 旋轉時 `window.resize` 讀到的是「舊尺寸」——量測要用 ResizeObserver 掛在視窗盒上
+
+- **症狀**：iPad Pro 在 step 1 第二階段（`lc-sl--revealed`）**直式轉橫式**後，標題上方留下一大條空白、底部「下一步」被切掉且捲不到。橫式重新整理就正常，只有「轉過去」才壞。
+- **原因**：那段上方空白不是 CSS 排出來的，是 `StepLocation.logic.ts` 的 `measureCenter()` 量完寫成**絕對 px** 餵給 `--lc-sl-block-y`（`transform: translateY()`）。原本的更新時機只有 `window.addEventListener('resize')` 與掛在 `block` 自己身上的 ResizeObserver：
+  - iPadOS Safari 在**旋轉途中**就派送 `resize`，此時同步讀 `clientHeight` / `offsetHeight` 拿到的還是舊版面，而且**之後不會再補派一次** → `centerY` 永久停在直式的值。
+  - `block` 的 RO 只看自己的盒子，管不到視窗高度。
+  - 加上 `.lc-sl` 是 `overflow: hidden`，被推出視窗的 CTA 完全捲不到，是硬傷不是視覺瑕疵。
+  - 數字（iPad Pro 12.9）：直式 `centerY ≈ 284`，橫式應為 `≈ 136`；沿用 284 就讓整組底緣超出可視區。
+- **修法**：
+  1. **ResizeObserver 加掛 `block.parentElement`（`.lc-sl`，`position: fixed; inset: 0` ＝視窗盒）**。RO 在 **layout 之後、paint 之前**派送，讀到的必定是新版面，天生繞開上述時序問題；同一個 RO `observe()` 兩個節點即可。這是主力，`resize` 事件只當備援。
+  2. **夾住上界** `Math.min(wrapperH - blockH, …)`：`overflow: hidden` 沒有補救機會，夾住後就算某次量測失準也只是置中略偏，不會讓 CTA 消失。
+  3. 補 `window.visualViewport` 的 `resize`：iOS/iPadOS 工具列收放會改變可視高度，但**不觸發** `window.resize`。
+- **位置**：[StepLocation.logic.ts](../app/components/01.location/StepLocation.logic.ts) 的 `measureCenter` / `onMounted` / `onBeforeUnmount`。
+- **延伸（為什麼不直接改純 CSS）**：`transform` 的百分比是「元素自身尺寸」（同檔 `translateX(-50%)` 已在用這個性質），所以置中理論上可寫成 `translateY(max(var(--lc-sl-title-top), calc(50dvh - 50%)))`，`50dvh` 取代 `wrapperH`、`50%` 取代 `offsetHeight`，數學上與 JS 版一對一等價，且兩端都還是 `transform`、**保留 0.5s 揭露轉場**（改用 flex `margin: auto` 則會失去轉場，不可行）。尚未採用的原因有二，需實機驗過再換：① 兩端都是含 `%` 的 `calc`/`max` 時，iPadOS WebKit 的 transform interpolation 可能退化成瞬跳；② `100dvh` 不保證等於 `.lc-sl` 的 `clientHeight`。
+
 ### `max-height: calc(100vh - …)` 在 iOS/iPadOS 會超出可視區 → 用 `dvh`
 
 - **症狀**：iPad（尤其橫向）上，`position:fixed` 的浮層／對話框（如 info-dialog）上下超出視窗、底部被切掉。
@@ -117,6 +145,25 @@
 - **位置（`height` 版）**：`StepResult.scss`（`&__sidebar` 的 `rwd-min(pad)`，`height: calc(100vh - 60px)` → 改 `calc(100% - 60px)`，父層 `.lc-sr` 為 `fixed inset:0`＝可視視窗）。
 - **延伸：寫在 `height` 上會「被裁切但不出現卷軸」**：side effect 更難察覺。iPad Pro 橫式（1194×834）下側欄可視高 ≈ 643px、宣告高 = `100vh-60` = 774px、內容 ≈ 710px → 內容超出**可視區**但仍小於**元素高度**，`overflow: hidden auto` 判定「裝得下」而不給卷軸，超出的 ~70px 被 `.lc-mv { overflow: hidden }` 裁掉，畫面就是「切一半又捲不動」。內容再多、突破 774px 才會冒卷軸，故不是每次都看得出來。診斷依據：同層 `fixed inset:0` 內的元素（compare 卡 `bottom:24px`、paddle）位置正常，只有寫 `vh` 的盒子超出 → 即 large/small viewport 落差。
 - **無法用桌機 Chrome 重製**：桌機 Chrome 沒有可收起的工具列，`100vh` == `innerHeight` == `fixed inset:0` 高度，落差為 0；DevTools 的 iPad Pro 模擬只改 viewport 尺寸與 UA，**不模擬 large/small viewport 落差**。要驗證請用真機 Safari，或 Android Chrome（同樣有動態工具列）。
+
+### media query 的 `height` 是「可視高」不是螢幕高 → `max-height` 斷點會把 iPhone 15 Pro 也判成矮機
+
+- **症狀**：PM 用 iPhone 15 Pro（螢幕 393×852）看 step 1，標題／前言／問句全部套到「SE 矮機」的收斂字級（標題 20px 而非設計的 36px），畫面像小機版：字小、下方一大片留白。iPhone SE 以外的機型不該命中，卻命中了。
+- **原因**：`rwd-short-phone` 的門檻寫 `max-height: 700px`，註解是拿**裝置螢幕高**（SE 667、mini 812）在推算的；但 media query 的 `height` 比對的是**扣掉 Safari 上下工具列後的可視高**，兩者在 iOS 差 100~190px：
+
+  | 機型 | 螢幕高 | Safari 可視高（約） | 命中 `≤700`？ |
+  |---|---|---|---|
+  | iPhone SE2/SE3 | 667 | 553 | ✅（原本的目標） |
+  | iPhone 13 mini | 812 | 620 | ✅（早就誤中，只是沒人回報） |
+  | iPhone 15 Pro | 852 | 664 | ✅ ← 這次的 bug |
+
+  也就是 700 這條線在真機上幾乎「所有直立 iPhone 都算矮機」，**完全失去區分力**。這是 `100vh` large/small viewport 落差（見上一則）的同一家族，只是踩在 media query 的 `height` 上，更難聯想。
+- **修法**：字級／尺寸的收斂**不要用 `max-height` 二元斷點**，改用 `svh` 單位連續插值——`mixins.scss` 的 `fluid-by-svh($min, $max)` 產生 `clamp($min, <線性插值>svh, $max)`，錨點集中在 `$phone-svh-min: 570px` / `$phone-svh-max: 640px`（＝「SE 取 $min、15 Pro 取 $max」，唯一的調整旋鈕，呼叫端不用動）。
+  - **為什麼是 `svh` 而不是 `dvh`**：`svh` 是「工具列全開」的小視窗高，值**靜態**；用 `dvh` 會在捲動收放工具列時讓字級一直跳動。
+  - **fallback**：不認 `svh` 的瀏覽器（iOS <15.4 / Chrome <108）會把整條 `clamp()` 宣告丟棄 → 退回 `.lc-h1` / `.lc-p` 的 mob 級距，矮機又會溢出，故補 `@include no-svh { … }`（`@supports not (height: 1svh)` + `max-height: 600px`，門檻用 600 而非 700 才不會誤中 15 Pro 的 ~664）。這個 mixin **不自帶寬度上界**，必須巢在 `rwd-max(pad)` 內。
+- **⚠ 反例（想過但不能做）**：給 `rwd-short-phone` 加寬度上界（`max-width: 375px`）把 393 寬的機型排除掉。兩個坑：①`rwd-max(xxs)` 算出 `374.98px`，SE 正好 375 → 把要修的機型自己排除掉，得寫**含 375** 的 `max-width: 375px`；②**橫向手機（667×375，寬度仍 < 768 走 MOB 版型）會被寬度上界一起排除**，而它正是最需要收斂的情境（可視高只有 ~330）——`StepResult` 的 sheet 放寬就靠它（見本節「父層自成 stacking context」那則的延伸 2）。而且寬度只擋掉 390+ 機型，**修不掉 mini 的誤中**，根因（高度判定失準）還在。
+- **位置**：`mixins.scss`（`fluid-by-svh()` / `no-svh()` / `rwd-short-phone` 的警告註解）、`StepLocation.scss`（`&__heading`、`&__scroll-hint-line`、`&__intro`、`&__question` 四處已改用 `fluid-by-svh`）。`StepResult.scss` 的 `&__sidebar` **刻意保留** `rwd-short-phone`：它只是「放寬 `max-height` 上限」，過度命中無視覺破圖，且橫向手機要靠它。
+- **無法用桌機 DevTools 重製**：裝置模擬只設 viewport 尺寸，`height` 直接等於你設的值（393×852 就是 852，不會扣工具列）→ 條件不成立，看起來一切正常。要驗證請用真機 Safari，或在真機上讀 `window.innerHeight` 對照。
 
 ### `overflow-y: auto` 會連帶把 `overflow-x` 變 `auto` → 冒出非預期的水平 scrollbar
 
@@ -140,6 +187,15 @@
 - **修法**：加 `force-mount`，改用 CSS 依 `data-state` 隱藏（`&[data-state='unchecked'] { visibility: hidden; }`）——`visibility` 保留盒子，`display:none` 不行。`data-state` 由 Reka 的 `getState()` 產生，值為 `checked` / `unchecked` / `indeterminate`。
 - **位置**：[ExploreSidebar.vue](../app/components/03.result/ExploreSidebar.vue) 的 `CheckboxIndicator`、`StepResult.scss` 的 `&__card-x`。
 - **延伸（取捨，不是 bug）**：預留這 21px 是有代價的——MOB 兩欄下 label 可用寬 ＝ `(viewport - 32 - 12) / 2 - 20 - 21`，故 414px（Figma 基準）得 144px、390px 得 132px、375px 得 124.5px。15px 的 CJK 每字剛好 15px，所以 **9 字 label（如「交通事故死傷率更低」＝135px）在 414 放得下、在 390/375 就會折行**且可能只剩一個字孤行。11 字的兩個 label（PM 0729 指名）已用 `LABEL_BREAK` 語意斷行（第 7 字後，對齊 Figma）；**9 字的三個刻意留給自然換行**——曾評估過「9 字也加語意斷行」，但那會讓 414px（設計稿基準）也變兩行，故決議不做，接受 390/375 折行＋可能孤字。文字在任何寬度都不會被截斷（`card-label` 已無 ellipsis），PM 的需求成立。若日後 PM 反應窄機型的孤字，再加 `LABEL_BREAK` 條目即可，不需動 CSS。
+
+## figma（設計稿量測 / MCP `get_metadata`、REST `/nodes`）
+
+### 旋轉過的 instance，回傳的 `x`/`y` 是「旋轉後的原點角」，不是 bounding box 左上角
+
+- **症狀**：量「左右按鈕」這種靠 180° 旋轉做出反向鏡像的成對元件時，兩顆鈕的座標完全不成對——例如 prev 回 `x=10 y=152`，next 回 `x=76 y=182`，看起來 next 既右移 66 又下移 30，跟畫面上「兩顆同高並排、間距 6px」對不起來。`width`/`height` 還會帶一串浮點尾數（`30.000002622682587`）。
+- **原因**：`x`/`y` 來自節點的 `relativeTransform`（平移分量），也就是**套用旋轉後的局部原點**落在父座標系的位置。轉 180° 時局部原點是原本的右下角，所以回傳值＝bounding box 的**右下角**。浮點尾數就是旋轉矩陣的殘差，可直接視為整數。
+- **修法**：看到座標「不成對」或 `width`/`height` 帶浮點尾數，先假設它被旋轉：轉 180° 時 bbox 左上 ＝ `(x - width, y - height)`。上例 next 實為 `x=46 y=152`，於是 prev `10..40`、next `46..76`，間距 6px、同一 `y`，與畫面一致。必要時用 `get_screenshot` 目視覆核，別直接把回傳座標當 CSS `left`/`top`。
+- **位置**：實作 `lc-sr__paddle`（`< 375` 斷點，設計稿 `633-20327` / `633-22551`）時踩到；見 `app/components/03.result/StepResult.scss` 的 `&__paddle`。
 
 ## fonts（字型 / `@nuxtjs/google-fonts`，`nuxt.config.ts`）
 

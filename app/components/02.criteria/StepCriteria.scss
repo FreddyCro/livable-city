@@ -564,10 +564,22 @@
     font-weight: 400;
     text-align: left;
     color: #000;
+    // MOB：禁止 CJK 在任意兩字之間斷行，讓 labelLines 插入的零寬空格（U+200B）成為
+    // **唯一**的斷行機會 → 放得下就單行、放不下才斷，且一定斷在語意邊界。
+    // 沒有這一行的話，MOB 的 __card-line 是 inline、兩段順接成一串，瀏覽器會自然折行斷在
+    // 任意字：「餐飲及住宿店家密度更高」在 414px（可用 147px）會斷成「⋯密度／更高」的
+    // 單字孤行（A.7 回饋 bug 4 的原始症狀）。
+    // ⚠ 副作用：整段放不下且無零寬空格可斷時（如 7 字 label 在 320px 只有 100px），
+    //   keep-all 會讓它「溢出而不斷行」——只吃掉卡片 10px 右內距的一半，不會多出一行也不會
+    //   被裁切，比亂斷成孤字好。不要為此改回 normal。
+    word-break: keep-all;
 
     @include rwd-min(pad) {
       font-size: 18px;
       line-height: 28px;
+      // PAD/PC 改由 __card-line 的 display:block 強制斷行，故不需要（也不該）限制斷點：
+      // 此級距字級 18px、label 可用寬僅約 119.7px，若沿用 keep-all，放不下的段落會直接溢出。
+      word-break: normal;
     }
   }
 
@@ -577,11 +589,12 @@
 
   // step-criteria__card-line（PM 指定語意斷行）
   &__card-line {
-    // MOB：兩段順接成一行（不強制折行，過長才自然換行）
+    // MOB：兩段順接成一串，斷不斷行交給 __card-label 的 keep-all ＋ 第二段內的零寬空格決定
+    //（斷點是 LABEL_BREAK 的 mob 值，可與下方 block 的實際切點不同，見 StepCriteria.vue）。
     display: inline;
 
     @include rwd-min(pad) {
-      // PAD/PC：逐行 block 上下堆疊
+      // PAD/PC：逐行 block 上下堆疊，斷點即兩段的實際切點（LABEL_BREAK 的 pad 值）
       display: block;
     }
   }

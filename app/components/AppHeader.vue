@@ -64,12 +64,11 @@ const menu = [
 }
 
 /*
+ * ⚠️ 不要把 .nmd-menu 覆寫成 Noto Sans TC。
  * common-components 的 .nmd-menu 是 @extend %font-serif（"Noto Serif TC",
- * source-han-serif-tc, serif）。本站主字體是 Noto Sans TC，故整個選單面板
- * （含 NmdMenuItem 與訂閱按鈕）覆寫回黑體，避免與其餘畫面不一致。
- * 非 scoped：.nmd-menu 由 vendor 元件渲染，scoped 的 data 屬性選不到。
+ * source-han-serif-tc, serif），而 Figma 的漢堡選單本來就是明體 —— vendor 預設即正解。
+ * 曾為了「與本站主字體 Noto Sans TC 一致」覆寫成黑體，但那與設計稿不符：選單項目
+ * （.nmd-menu__list-item）帶 font-weight: 600，覆寫成 sans 後就渲染成黑體半粗。
+ * nuxt.config.ts 的 googleFonts 早已專為這份選單載入 Noto Serif TC 600（見該檔註解）。
  */
-.nmd-menu {
-  font-family: 'Noto Sans TC', sans-serif;
-}
 </style>
