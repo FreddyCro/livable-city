@@ -9,7 +9,12 @@ export interface MapCameraConfig {
   view: {
     longitude: number
     latitude: number
+    /** 全台總覽 zoom（手機 / 平板） */
     zoom: number
+    /** 全台總覽 zoom（桌機，≥ pcMinWidth） */
+    zoomPc: number
+    /** ≥ 此寬度（px）視為桌機，對應 SCSS `$breakpoints.pc` */
+    pcMinWidth: number
     minZoom: number
     maxZoom: number
   }
@@ -64,6 +69,8 @@ export const MAP_CAMERA: MapCameraConfig = {
     longitude: 120.9,
     latitude: 23.6,
     zoom: 6,
+    zoomPc: 7,
+    pcMinWidth: 1024,
     minZoom: 5,
     maxZoom: 14,
   },
