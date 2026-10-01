@@ -91,6 +91,9 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
     window.matchMedia(`(min-width: ${MAP_CAMERA.view.pcMinWidth}px)`).matches
       ? MAP_CAMERA.view.zoomPc
       : MAP_CAMERA.view.zoom;
+  // 全台總覽緯度：手機另用 latitudeNarrow，抵銷 mobileBottom 造成的偏上
+  const overviewLatitude = () =>
+    mapIsNarrow ? MAP_CAMERA.view.latitudeNarrow : MAP_CAMERA.view.latitude;
   let deckViewState: any = {
     longitude: MAP_CAMERA.view.longitude,
     latitude: MAP_CAMERA.view.latitude,
@@ -282,7 +285,7 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
     deckViewState = {
       ...deckViewState,
       longitude: MAP_CAMERA.view.longitude,
-      latitude: MAP_CAMERA.view.latitude,
+      latitude: overviewLatitude(),
       zoom: overviewZoom(),
       transitionDuration: MAP_CAMERA.fly.duration,
       transitionInterpolator: new FlyToInterpolatorCtor({
@@ -515,6 +518,7 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
     mapIsNarrow = mapMql.matches;
     deckViewState = {
       ...deckViewState,
+      latitude: overviewLatitude(),
       zoom: overviewZoom(),
       padding: viewPadding(),
     };
