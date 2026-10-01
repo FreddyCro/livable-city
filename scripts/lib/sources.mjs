@@ -108,12 +108,13 @@ export const idOf = (file) => {
 
 // 讀第三欄表頭括號內的單位（"超商密度（間／平方公里）" → "間／平方公里"）。
 // 單位寫在來源 xlsx 第三欄表頭，而非檔名；無括號（如「人口數」）回空字串。
+// 全形、半形括號都接受：來源曾混用（0930 版「公托覆蓋率(%)」為半形），只認全形會讓 unit 靜默變空。
 export function headerUnit(file, dir = PATHS.sourcesDir) {
   const wb = XLSX.readFile(resolve(dir, file));
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
   const third = String(rows[0]?.[2] ?? '');
-  const m = /（(.+?)）/.exec(third);
+  const m = /[（(](.+?)[）)]/.exec(third);
   return m ? m[1].trim() : '';
 }
 
