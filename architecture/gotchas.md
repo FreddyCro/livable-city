@@ -115,6 +115,15 @@
 - **修法**：`pnpm add -D typescript`（已裝）。或改用「就地定義」的字面型別 `defineProps<{…}>()`（不跨檔即免 tsc）。
 - **位置**：`app/components/*/*.logic.ts` + 對應 `.vue`。
 
+## deploy（`deploy-gh.sh` / 部署 branch）
+
+### 正式站需要 index / noindex 兩版——robots 是 generate 時烤進 HTML，只能各 build 一份
+
+- **症狀**：想先用 noindex 預上線、確認沒問題再開放索引；但 `<meta name="robots">` 由 `useSeoMeta` 在 SSR 階段寫進每頁 HTML，沒有 runtime 可切的開關，同一份靜態輸出不可能兩種行為。
+- **原因**：靜態站沒有 server，也不該靠 client JS 補 meta（爬蟲不一定執行）。另外**不要**用 robots.txt 擋：被 robots.txt 擋住的頁 Google 根本讀不到 `noindex`。
+- **修法**：`./deploy-gh.sh production` 一次從同一個 HEAD 產出 `prod`（index）與 `prod-noindex` 兩個 branch，差別只有 `.env.production-noindex.example` 多一行 `NUXT_PUBLIC_NOINDEX=1`；`app.vue` 以 `APP_MODE === 'production' && !NOINDEX` 決定 robots，所以 noindex 版的 `APP_MODE` 仍是 `production`（tracking、assets path、`DATA_VERSION` 全部一樣）。script 最後會 diff 兩份輸出，html 以外必須完全相同、html 只允許 robots 那行不同，否則 exit 1。IT 預上線拉 `prod-noindex`、正式拉 `prod`，切換後要 purge CDN，否則 edge 可能繼續吐快取的 noindex HTML。
+- **位置**：[deploy-gh.sh](../deploy-gh.sh) `JOBS` / `deploy_branch`、[app/app.vue](../app/app.vue) `ROBOTS_INDEX`、[nuxt.config.ts](../nuxt.config.ts) `runtimeConfig.public.NOINDEX`。
+
 ## scss / 樣式
 
 ### Dialog portal 內 scoped 樣式套不到 → 用 non-scoped + `lc-` 命名隔離
