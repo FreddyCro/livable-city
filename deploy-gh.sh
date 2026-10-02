@@ -210,20 +210,34 @@ done
 if [ "$TARGET" = "production" ]; then
   echo ""
   echo "==> 驗證 prod 與 prod-noindex 的差異"
-  # html 以外的檔案（_nuxt、data…）必須完全相同
-  if ! diff -rq --exclude='*.html' "${COMPARE_DIR}/prod" "${COMPARE_DIR}/prod-noindex"; then
-    echo "!!! 兩版有 html 以外的差異（見上方），請檢查。"
+  # 每次 build 必然不同的雜訊，不算差異：
+  #   _nuxt/builds/**  → Nuxt 隨機 build id + 時間戳（前端用來偵測新版部署）
+  #   _payload.json    → 只有 prerenderedAt 時間戳
+  #   *.html           → __NUXT__ config 內的 buildId、時間戳、NOINDEX 值，以及 robots meta 本身
+  # 其餘檔案（_nuxt/*.js|css、data/、img/…）必須完全相同。
+  if ! diff -rq --exclude='*.html' --exclude='_payload.json' --exclude='builds' \
+      "${COMPARE_DIR}/prod" "${COMPARE_DIR}/prod-noindex"; then
+    echo "!!! 兩版有 html / 建置雜訊以外的差異（見上方），請檢查。"
     exit 1
   fi
-  # html 的差異只允許是 robots meta 那行
-  OTHER_DIFF="$(diff -r "${COMPARE_DIR}/prod" "${COMPARE_DIR}/prod-noindex" \
-    | grep -E '^[<>]' | grep -v 'name="robots"' || true)"
-  if [ -n "$OTHER_DIFF" ]; then
-    echo "!!! html 有 robots 以外的差異："
-    echo "$OTHER_DIFF"
-    exit 1
-  fi
-  echo "    OK：兩版除了 <meta name=\"robots\"> 之外完全相同。"
+  # html 與 _payload.json：把已知雜訊正規化後必須完全相同
+  normalize() {
+    sed -E \
+      -e 's/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/UUID/g' \
+      -e 's/\b1[0-9]{12}\b/TIMESTAMP/g' \
+      -e 's/content="(index, follow|noindex, nofollow)"/content="ROBOTS"/g' \
+      -e 's/NOINDEX:("1"|1|"")/NOINDEX:X/g' \
+      "$1"
+  }
+  while IFS= read -r -d '' f; do
+    rel="${f#"${COMPARE_DIR}/prod/"}"
+    if ! diff -q <(normalize "$f") <(normalize "${COMPARE_DIR}/prod-noindex/${rel}") >/dev/null; then
+      echo "!!! ${rel} 在排除 buildId / 時間戳 / robots 後仍有差異："
+      diff <(normalize "$f") <(normalize "${COMPARE_DIR}/prod-noindex/${rel}") || true
+      exit 1
+    fi
+  done < <(find "${COMPARE_DIR}/prod" \( -name '*.html' -o -name '_payload.json' \) -print0)
+  echo "    OK：兩版除了 <meta name=\"robots\"> 與建置雜訊（buildId / 時間戳）之外完全相同。"
   echo "    prod         : $(grep -o 'name="robots" content="[^"]*"' "${COMPARE_DIR}/prod/index.html" | head -1)"
   echo "    prod-noindex : $(grep -o 'name="robots" content="[^"]*"' "${COMPARE_DIR}/prod-noindex/index.html" | head -1)"
 fi
