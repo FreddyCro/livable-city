@@ -1,0 +1,5 @@
+<!-- placeholder：定位 pin（result-count）。動畫（上下浮動）由元件 CSS 套在 <img> 上。之後可直接替換為正式設計稿。 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" fill="none">
+  <path d="M16 2C8.8 2 3 7.8 3 15c0 9 13 23 13 23s13-14 13-23C29 7.8 23.2 2 16 2Z" fill="#d62e29" />
+  <circle cx="16" cy="15" r="5" fill="#fff" />
+</svg>
