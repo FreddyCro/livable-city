@@ -73,7 +73,7 @@
   1. `scripts/lib/sources.mjs` 的 `ZERO_MEANS_NONE`（單一來源，與 `DIRECTION` 並列）→ `process-xlsx.mjs` 寫進 `index.json` 的 `zeroMeansNone` → `validate-sources.mjs` 交叉檢查（漏帶會 error，因為前端會靜默退回舊行為）。
   2. `useResultTowns` 的 `metricScore()` 把 0 換算成該方向的最差值（`lowerIsBetter` → `Infinity`），**候選地區與現居地兩端都要換算**：只換一端就會製造上述鏡像 bug；兩端皆 0 時 `Infinity < Infinity` 為 false，自然排除。
 - **位置**：[useResultTowns.ts](../app/composables/useResultTowns.ts) `metricScore`、[sources.mjs](../scripts/lib/sources.mjs) `ZERO_MEANS_NONE`、[filter.ts](../app/types/filter.ts) `FilterMeta.zeroMeansNone`。
-- **⚠️ 判斷是否該列入 `ZERO_MEANS_NONE`**：只有「0 是分母為零的副產物」才算。指標 14 大規模崩塌潛勢區數的 `0`＝真的沒有潛勢區＝**最好**，加進去會反向壞掉；指標 8（每萬名老人關懷據點數）雖有 17 個 0＝沒有據點，但方向是 `lowerIsBetter=false`（越高越好），0 本來就排最後，無需標記。新增指標時先問：這支的 0 是「沒有」還是「很少」？
+- **⚠️ 判斷是否該列入 `ZERO_MEANS_NONE`**：只有「0 是分母為零的副產物」才算。指標 14 大規模崩塌潛勢區數的 `0`＝真的沒有潛勢區＝**最好**，加進去會反向壞掉；指標 8（每萬名老人長照據點數）雖有 0＝沒有據點（0930 版剩 1 個；舊「社區照顧關懷據點」版有 17 個），但方向是 `lowerIsBetter=false`（越高越好），0 本來就排最後，無需標記。新增指標時先問：這支的 0 是「沒有」還是「很少」？
 - **延伸（未處理，已知）**：step 2 現居地資訊欄與 step 3 比較卡仍會把 0 顯示成「0 人」（看起來像最佳值），且 `pct()` 在現居地為 0 時回 `null`（不顯示百分比）。純顯示層問題，PM 本次只要求修篩選；若要處理，建議這類 0 顯示為「無」而非數字。
 
 ## data assets（`public/` 靜態資料，`utils/dataSource.ts`）
@@ -89,6 +89,23 @@
   - 要診斷是否中快取：`curl -sI "<部署網址>/data/1.json"` 看 `Cache-Control` / `ETag` / `Age` / `x-cache`（有 `Age` 或 `x-cache: HIT` 表示前面有 CDN 在快取）。
   - 若主機 header 改得動，`data/*.json` 給 `Cache-Control: no-cache`（保留 ETag 走 304）是更省的做法；本專案部署在 udn 靜態主機、header 不一定能控，故選前端加版本參數。
 
+### xlsx 鄉鎮名稱寫錯，`process-xlsx` 只 warn 略過——該鄉鎮靜默變成「無資料」
+
+- **症狀**：某指標在特定鄉鎮顯示無資料、不參與篩選，但 `process-xlsx.mjs` 跑完沒有失敗，只在一長串輸出裡夾著 `[id] no match: …`。
+- **原因**：來源 xlsx 由人工整理，鄉鎮名稱常沿用舊的行政層級或打錯字，對不到 `tw-towns-meta.json` 的官方名稱。`matchRow` 只做 `臺→台`、去空白的正規化，不做模糊比對。對不到的列在 `process-xlsx` 只會 warn 後略過，不會中止。
+  - 已知案例：`4. 癌症發生率.xlsx` 第 198 列「苗栗縣 頭份鎮」（應為頭份市，2015 年升格）、第 363 列「金門縣 金寧鎮」（應為金寧鄉）。此前 `4.json` 一直只有 366/368 筆，2026-10-01 已直接修正來源檔（`工作表1`、`排序` 兩個工作表都改了），補齊為 368 筆。
+- **手動改來源 xlsx 的方法**：只改 `xl/sharedStrings.xml` 裡的字串，不要用 SheetJS 讀進來再整份寫回（社群版會丟掉樣式）。重新打包要用 SheetJS 內建的 `XLSX.CFB`（`CFB.read` → 改 `FileIndex[i].content` → `CFB.write(..., { fileType: 'zip' })`）。**不要用 .NET `ZipArchive` 的 Update 模式**：改完 Excel 可能打得開，但 `xlsx@0.18.5` 讀取會丟 `Bad compressed size`，`process-xlsx` / `validate-sources` 直接崩潰。改完拿舊檔逐格比對，確認只動到預期的儲存格。
+- **修法**：換資料時**先跑** `node scripts/validate-sources.mjs`。它會逐列比對，對不到的列判為 error，並建議正確名稱（層級後綴不同或編輯距離 ≤ 2）；重複對到同一鄉鎮也算 error，缺漏的鄉鎮列為提示。修正來源 xlsx 的名稱，不要在比對邏輯加別名硬對。
+- **位置**：[sources.mjs](../scripts/lib/sources.mjs) `norm` / `matchRow` / `suggest`、[validate-sources.mjs](../scripts/validate-sources.mjs)。
+- **延伸**：`deploy-gh.sh` 也會跑 validate，但**只警告、不擋部署**（避免既有的檔案 4 錯誤擋住所有部署）。所以部署輸出裡的 `❌` 要自己看，不會讓部署失敗。
+
+### 表頭單位括號全半形混用——只認全形會讓 `unit` 靜默變空
+
+- **症狀**：換新版 xlsx 後 `index.json` 某指標 `unit` 變 `""`，前端數值後面的單位不見，但 `process-xlsx` / `validate-sources` 都沒報錯。
+- **原因**：`unit` 取自第三欄表頭括號內文字。來源檔括號全半形混用，例如 0930 版「7. 公托覆蓋率」的表頭是 `公托覆蓋率(%)`（半形），舊版是 `公托覆蓋率（%）`（全形）。原本的 regex 只認全形 `（）`。
+- **修法**：`headerUnit()` 的 regex 改成 `/[（(](.+?)[）)]/`，全半形都接受。換資料後記得 `git diff public/data/index.json`，確認 `unit` 沒有變動。
+- **位置**：[sources.mjs](../scripts/lib/sources.mjs) `headerUnit`。
+
 ## build / SFC（Nuxt 4 / Vue 3.5 編譯）
 
 ### `defineProps<ImportedType>()` 需要專案安裝 `typescript`
@@ -97,6 +114,15 @@
 - **原因**：把 props 型別抽到 `*.logic.ts` 再 `defineProps<StepResultProps>()`，Vue 編譯器要**跨檔解析 import 的型別**來產生 runtime props 宣告，這需要 `typescript` 套件。本專案雖到處 `lang="ts"`，但靠 esbuild 剝型別、原本沒裝 tsc。
 - **修法**：`pnpm add -D typescript`（已裝）。或改用「就地定義」的字面型別 `defineProps<{…}>()`（不跨檔即免 tsc）。
 - **位置**：`app/components/*/*.logic.ts` + 對應 `.vue`。
+
+## deploy（`deploy-gh.sh` / 部署 branch）
+
+### 正式站需要 index / noindex 兩版——robots 是 generate 時烤進 HTML，只能各 build 一份
+
+- **症狀**：想先用 noindex 預上線、確認沒問題再開放索引；但 `<meta name="robots">` 由 `useSeoMeta` 在 SSR 階段寫進每頁 HTML，沒有 runtime 可切的開關，同一份靜態輸出不可能兩種行為。
+- **原因**：靜態站沒有 server，也不該靠 client JS 補 meta（爬蟲不一定執行）。另外**不要**用 robots.txt 擋：被 robots.txt 擋住的頁 Google 根本讀不到 `noindex`。
+- **修法**：`./deploy-gh.sh production` 一次從同一個 HEAD 產出 `prod`（index）與 `prod-noindex` 兩個 branch，差別只有 `.env.production-noindex.example` 多一行 `NUXT_PUBLIC_NOINDEX=1`；`app.vue` 以 `APP_MODE === 'production' && !NOINDEX` 決定 robots，所以 noindex 版的 `APP_MODE` 仍是 `production`（tracking、assets path、`DATA_VERSION` 全部一樣）。script 最後會 diff 兩份輸出，html 以外必須完全相同、html 只允許 robots 那行不同，否則 exit 1。IT 預上線拉 `prod-noindex`、正式拉 `prod`，切換後要 purge CDN，否則 edge 可能繼續吐快取的 noindex HTML。
+- **位置**：[deploy-gh.sh](../deploy-gh.sh) `JOBS` / `deploy_branch`、[app/app.vue](../app/app.vue) `ROBOTS_INDEX`、[nuxt.config.ts](../nuxt.config.ts) `runtimeConfig.public.NOINDEX`。
 
 ## scss / 樣式
 

@@ -21,6 +21,8 @@ import { useTracking } from '~/assets/js/tracking.js';
 const config = useRuntimeConfig();
 const APP_MODE = config.public.APP_MODE;
 const ASSETS_PATH = config.public.APP_ASSETS_PATH;
+// 只有 production 才允許索引；NOINDEX 開關讓 prod-noindex 版在其他設定完全相同下強制 noindex
+const ROBOTS_INDEX = APP_MODE === 'production' && !config.public.NOINDEX;
 const { img } = useAssets();
 
 useSeoMeta({
@@ -34,7 +36,7 @@ useSeoMeta({
   twitterDescription: seoMeta.metaXDesc,
   twitterCard: 'summary_large_image',
   keywords: seoMeta.metaKeywords,
-  robots: APP_MODE === 'production' ? 'index, follow' : 'noindex, nofollow',
+  robots: ROBOTS_INDEX ? 'index, follow' : 'noindex, nofollow',
 });
 
 // favicon（UDN）

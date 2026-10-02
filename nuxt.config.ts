@@ -65,6 +65,8 @@ export default defineNuxtConfig({
     public: {
       APP_MODE: "",
       APP_ASSETS_PATH: "",
+      // 設成非空字串即強制 robots noindex（prod-noindex 預上線版用），其餘設定與 production 相同
+      NOINDEX: "",
       // public/ 靜態資料的 cache busting 版本（見檔案頂端 dataVersion）
       DATA_VERSION: dataVersion,
     },

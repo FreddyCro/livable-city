@@ -9,7 +9,18 @@ export interface MapCameraConfig {
   view: {
     longitude: number
     latitude: number
+    /**
+     * 全台總覽緯度（手機，≤ nudge.narrowMaxWidth）。手機套用 nudge.mobileBottom 會把
+     * 焦點往上推，無結果時台灣偏上；改用較大的緯度把台灣拉回畫面中間。
+     * 與 mobileBottom、手機版 zoom 連動：任一改動都要重新實機微調此值。
+     */
+    latitudeNarrow: number
+    /** 全台總覽 zoom（手機 / 平板） */
     zoom: number
+    /** 全台總覽 zoom（桌機，≥ pcMinWidth） */
+    zoomPc: number
+    /** ≥ 此寬度（px）視為桌機，對應 SCSS `$breakpoints.pc` */
+    pcMinWidth: number
     minZoom: number
     maxZoom: number
   }
@@ -63,7 +74,10 @@ export const MAP_CAMERA: MapCameraConfig = {
   view: {
     longitude: 120.9,
     latitude: 23.6,
+    latitudeNarrow: 24.2,
     zoom: 6,
+    zoomPc: 7,
+    pcMinWidth: 1024,
     minZoom: 5,
     maxZoom: 14,
   },

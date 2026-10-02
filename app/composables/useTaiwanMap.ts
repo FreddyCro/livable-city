@@ -85,6 +85,15 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
     right: mapIsNarrow ? 0 : MAP_CAMERA.nudge.x,
     bottom: mapIsNarrow ? MAP_CAMERA.nudge.mobileBottom : 0,
   });
+  // 全台總覽 zoom：桌機（≥ pc）比手機 / 平板大一級，避免未放大時台灣太小
+  const overviewZoom = () =>
+    typeof window !== 'undefined' &&
+    window.matchMedia(`(min-width: ${MAP_CAMERA.view.pcMinWidth}px)`).matches
+      ? MAP_CAMERA.view.zoomPc
+      : MAP_CAMERA.view.zoom;
+  // 全台總覽緯度：手機另用 latitudeNarrow，抵銷 mobileBottom 造成的偏上
+  const overviewLatitude = () =>
+    mapIsNarrow ? MAP_CAMERA.view.latitudeNarrow : MAP_CAMERA.view.latitude;
   let deckViewState: any = {
     longitude: MAP_CAMERA.view.longitude,
     latitude: MAP_CAMERA.view.latitude,
@@ -276,8 +285,8 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
     deckViewState = {
       ...deckViewState,
       longitude: MAP_CAMERA.view.longitude,
-      latitude: MAP_CAMERA.view.latitude,
-      zoom: MAP_CAMERA.view.zoom,
+      latitude: overviewLatitude(),
+      zoom: overviewZoom(),
       transitionDuration: MAP_CAMERA.fly.duration,
       transitionInterpolator: new FlyToInterpolatorCtor({
         speed: MAP_CAMERA.fly.speed,
@@ -328,7 +337,7 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
       MAP_CAMERA.zoomButton.zoomMax,
       Math.max(
         MAP_CAMERA.zoomButton.zoomMin,
-        (deckViewState.zoom ?? MAP_CAMERA.view.zoom) +
+        (deckViewState.zoom ?? overviewZoom()) +
           delta * MAP_CAMERA.zoomButton.factor,
       ),
     );
@@ -507,7 +516,12 @@ export function useTaiwanMap(opts: UseTaiwanMapOptions) {
       `(max-width: ${MAP_CAMERA.nudge.narrowMaxWidth}px)`,
     );
     mapIsNarrow = mapMql.matches;
-    deckViewState = { ...deckViewState, padding: viewPadding() };
+    deckViewState = {
+      ...deckViewState,
+      latitude: overviewLatitude(),
+      zoom: overviewZoom(),
+      padding: viewPadding(),
+    };
     mapMql.addEventListener('change', onMapMqlChange);
 
     deckInstance.value = new Deck({
